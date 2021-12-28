@@ -1,8 +1,12 @@
 package tcp
 
 import (
+	"bufio"
+	"bytes"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"regexp"
 	"sort"
@@ -73,8 +77,9 @@ func NewConnData(serverName string, conn tcp.WriteCloser) (ConnData, error) {
 
 // Muxer defines a muxer that handles TCP routing with rules.
 type Muxer struct {
-	routes []*route
-	parser predicate.Parser
+	routes   []*route
+	parser   predicate.Parser
+	NotFound tcp.Handler
 }
 
 // NewMuxer returns a TCP muxer.
@@ -89,11 +94,23 @@ func NewMuxer() (*Muxer, error) {
 		return nil, fmt.Errorf("error while creating rules parser: %w", err)
 	}
 
-	return &Muxer{parser: parser}, nil
+	return &Muxer{parser: parser, NotFound: tcp.HandlerFunc(func(conn tcp.WriteCloser) {
+		conn.Close()
+	})}, nil
+}
+
+func (m Muxer) ServeTCP(conn tcp.WriteCloser) {
+	eConn := &EnrichConn{WriteCloser: conn}
+	h := m.Match(eConn)
+	if h != nil {
+		h.ServeTCP(eConn)
+		return
+	}
+	m.NotFound.ServeTCP(eConn)
 }
 
 // Match returns the handler of the first route matching the connection metadata.
-func (m Muxer) Match(meta ConnData) tcp.Handler {
+func (m Muxer) Match(meta *EnrichConn) tcp.Handler {
 	for _, route := range m.routes {
 		if route.matchers.match(meta) {
 			return route.handler
@@ -105,12 +122,15 @@ func (m Muxer) Match(meta ConnData) tcp.Handler {
 
 // AddRoute adds a new route, associated to the given handler, at the given
 // priority, to the muxer.
-func (m *Muxer) AddRoute(rule string, priority int, handler tcp.Handler) error {
+func (m *Muxer) AddRoute(rule string, priority int, handler tcp.Handler, tls bool) error {
 	// Special case for when the catchAll fallback is present.
 	// When no user-defined priority is found, the lowest computable priority minus one is used,
 	// in order to make the fallback the last to be evaluated.
 	if priority == 0 && rule == "HostSNI(`*`)" {
-		priority = -1
+		priority = -2
+		if tls {
+			priority = -1
+		}
 	}
 
 	// Default value, which means the user has not set it, so we'll compute it.
@@ -134,10 +154,21 @@ func (m *Muxer) AddRoute(rule string, priority int, handler tcp.Handler) error {
 		return err
 	}
 
+	var realMatchers *matchersTree
+	realMatchers = &matchers
+	if tls {
+		var tlsMatcher matchersTree
+		tlsMatcher.matcher = func(meta *EnrichConn) bool {
+			return meta.IsTLS() && matchers.match(meta)
+		}
+		realMatchers = &tlsMatcher
+	}
+
 	newRoute := &route{
 		handler:  handler,
 		priority: priority,
-		matchers: matchers,
+		matchers: *realMatchers,
+		rule:     fmt.Sprintf("Rule: %s Priority: %d TLS: %v", rule, priority, tls),
 	}
 	m.routes = append(m.routes, newRoute)
 
@@ -171,7 +202,7 @@ func addRule(tree *matchersTree, rule *rules.Tree) error {
 
 		if rule.Not {
 			matcherFunc := tree.matcher
-			tree.matcher = func(meta ConnData) bool {
+			tree.matcher = func(meta *EnrichConn) bool {
 				return !matcherFunc(meta)
 			}
 		}
@@ -209,10 +240,16 @@ type route struct {
 	// given request.
 	// Computed from the matching rule length, if not user-set.
 	priority int
+
+	rule string
+}
+
+func (r *route) String() string {
+	return r.rule
 }
 
 // matcher is a matcher func used to match connection properties.
-type matcher func(meta ConnData) bool
+type matcher func(meta *EnrichConn) bool
 
 // matchersTree represents the matchers tree structure.
 type matchersTree struct {
@@ -226,7 +263,7 @@ type matchersTree struct {
 	right *matchersTree
 }
 
-func (m *matchersTree) match(meta ConnData) bool {
+func (m *matchersTree) match(meta *EnrichConn) bool {
 	if m == nil {
 		// This should never happen as it should have been detected during parsing.
 		log.WithoutContext().Warnf("Rule matcher is nil")
@@ -255,12 +292,12 @@ func clientIP(tree *matchersTree, clientIPs ...string) error {
 		return fmt.Errorf("could not initialize IP Checker for \"ClientIP\" matcher: %w", err)
 	}
 
-	tree.matcher = func(meta ConnData) bool {
-		if meta.remoteIP == "" {
+	tree.matcher = func(meta *EnrichConn) bool {
+		if meta.GetRemoteIP() == "" {
 			return false
 		}
 
-		ok, err := checker.Contains(meta.remoteIP)
+		ok, err := checker.Contains(meta.GetRemoteIP())
 		if err != nil {
 			log.WithoutContext().Warnf("\"ClientIP\" matcher: could not match remote address : %v", err)
 			return false
@@ -296,7 +333,7 @@ func hostSNI(tree *matchersTree, hosts ...string) error {
 		hosts[i] = strings.ToLower(host)
 	}
 
-	tree.matcher = func(meta ConnData) bool {
+	tree.matcher = func(meta *EnrichConn) bool {
 		// Since a HostSNI(`*`) rule has been provided as catchAll for non-TLS TCP,
 		// it allows matching with an empty serverName.
 		// Which is why we make sure to take that case into account before before
@@ -305,7 +342,7 @@ func hostSNI(tree *matchersTree, hosts ...string) error {
 			return true
 		}
 
-		if meta.serverName == "" {
+		if meta.ServerName() == "" {
 			return false
 		}
 
@@ -314,13 +351,13 @@ func hostSNI(tree *matchersTree, hosts ...string) error {
 				return true
 			}
 
-			if host == meta.serverName {
+			if host == meta.ServerName() {
 				return true
 			}
 
 			// trim trailing period in case of FQDN
 			host = strings.TrimSuffix(host, ".")
-			if host == meta.serverName {
+			if host == meta.ServerName() {
 				return true
 			}
 		}
@@ -330,3 +367,153 @@ func hostSNI(tree *matchersTree, hosts ...string) error {
 
 	return nil
 }
+
+type EnrichConn struct {
+	tcp.WriteCloser
+	calculated bool
+	serverName string
+	isTLS      bool
+}
+
+func (e *EnrichConn) GetRemoteIP() string {
+	ip, _, _ := net.SplitHostPort(e.RemoteAddr().String())
+	return ip
+}
+
+func (e *EnrichConn) calculate() {
+	br := bufio.NewReader(e.WriteCloser)
+	serverName, tls, peeked, err := clientHelloServerName(br)
+	if err != nil {
+		log.WithoutContext().Error(err)
+	}
+
+	e.serverName = serverName
+	e.isTLS = tls
+	e.WriteCloser = &Conn{
+		Peeked:      []byte(peeked),
+		WriteCloser: e.WriteCloser,
+	}
+}
+func (e *EnrichConn) IsTLS() bool {
+	if !e.calculated {
+		e.calculate()
+	}
+	return e.isTLS
+}
+
+func (e *EnrichConn) ServerName() string {
+	if !e.calculated {
+		e.calculate()
+	}
+	return e.serverName
+}
+
+// Conn is a connection proxy that handles Peeked bytes.
+type Conn struct {
+	// Peeked are the bytes that have been read from Conn for the
+	// purposes of route matching, but have not yet been consumed
+	// by Read calls. It set to nil by Read when fully consumed.
+	Peeked []byte
+
+	// Conn is the underlying connection.
+	// It can be type asserted against *net.TCPConn or other types
+	// as needed. It should not be read from directly unless
+	// Peeked is nil.
+	tcp.WriteCloser
+}
+
+// Read reads bytes from the connection (using the buffer prior to actually reading).
+func (c *Conn) Read(p []byte) (n int, err error) {
+	if len(c.Peeked) > 0 {
+		n = copy(p, c.Peeked)
+		c.Peeked = c.Peeked[n:]
+		if len(c.Peeked) == 0 {
+			c.Peeked = nil
+		}
+		return n, nil
+	}
+	return c.WriteCloser.Read(p)
+}
+
+const defaultBufSize = 4096
+
+// clientHelloServerName returns the SNI server name inside the TLS ClientHello,
+// without consuming any bytes from br.
+// On any error, the empty string is returned.
+func clientHelloServerName(br *bufio.Reader) (string, bool, string, error) {
+	hdr, err := br.Peek(1)
+	if err != nil {
+		var opErr *net.OpError
+		if !errors.Is(err, io.EOF) && (!errors.As(err, &opErr) || opErr.Timeout()) {
+			log.WithoutContext().Errorf("Error while Peeking first byte: %s", err)
+		}
+
+		return "", false, "", err
+	}
+
+	// No valid TLS record has a type of 0x80, however SSLv2 handshakes
+	// start with a uint16 length where the MSB is set and the first record
+	// is always < 256 bytes long. Therefore typ == 0x80 strongly suggests
+	// an SSLv2 client.
+	const recordTypeSSLv2 = 0x80
+	const recordTypeHandshake = 0x16
+	if hdr[0] != recordTypeHandshake {
+		if hdr[0] == recordTypeSSLv2 {
+			// we consider SSLv2 as TLS and it will be refused by real TLS handshake.
+			return "", true, getPeeked(br), nil
+		}
+		return "", false, getPeeked(br), nil // Not TLS.
+	}
+
+	const recordHeaderLen = 5
+	hdr, err = br.Peek(recordHeaderLen)
+	if err != nil {
+		log.Errorf("Error while Peeking hello: %s", err)
+		return "", false, getPeeked(br), nil
+	}
+
+	recLen := int(hdr[3])<<8 | int(hdr[4]) // ignoring version in hdr[1:3]
+
+	if recordHeaderLen+recLen > defaultBufSize {
+		br = bufio.NewReaderSize(br, recordHeaderLen+recLen)
+	}
+
+	helloBytes, err := br.Peek(recordHeaderLen + recLen)
+	if err != nil {
+		log.Errorf("Error while Hello: %s", err)
+		return "", true, getPeeked(br), nil
+	}
+
+	sni := ""
+	server := tls.Server(sniSniffConn{r: bytes.NewReader(helloBytes)}, &tls.Config{
+		GetConfigForClient: func(hello *tls.ClientHelloInfo) (*tls.Config, error) {
+			sni = hello.ServerName
+			return nil, nil
+		},
+	})
+	_ = server.Handshake()
+
+	return sni, true, getPeeked(br), nil
+}
+
+func getPeeked(br *bufio.Reader) string {
+	peeked, err := br.Peek(br.Buffered())
+	if err != nil {
+		log.Errorf("Could not get anything: %s", err)
+		return ""
+	}
+	return string(peeked)
+}
+
+// sniSniffConn is a net.Conn that reads from r, fails on Writes,
+// and crashes otherwise.
+type sniSniffConn struct {
+	r        io.Reader
+	net.Conn // nil; crash on any unexpected use
+}
+
+// Read reads from the underlying reader.
+func (c sniSniffConn) Read(p []byte) (int, error) { return c.r.Read(p) }
+
+// Write crashes all the time.
+func (sniSniffConn) Write(p []byte) (int, error) { return 0, io.EOF }
