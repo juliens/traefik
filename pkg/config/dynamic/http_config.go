@@ -32,10 +32,11 @@ type Model struct {
 
 // Service holds a service configuration (can only be of one type at the same time).
 type Service struct {
-	LoadBalancer *ServersLoadBalancer `json:"loadBalancer,omitempty" toml:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty" export:"true"`
-	Weighted     *WeightedRoundRobin  `json:"weighted,omitempty" toml:"weighted,omitempty" yaml:"weighted,omitempty" label:"-" export:"true"`
-	Mirroring    *Mirroring           `json:"mirroring,omitempty" toml:"mirroring,omitempty" yaml:"mirroring,omitempty" label:"-" export:"true"`
-	Failover     *Failover            `json:"failover,omitempty" toml:"failover,omitempty" yaml:"failover,omitempty" label:"-" export:"true"`
+	FastHTTPLB   *FastHTTPLoadBalancer `json:"fasthttplb,omitempty" toml:"fasthttplb,omitempty" yaml:"fasthttplb,omitempty" export:"true"`
+	LoadBalancer *ServersLoadBalancer  `json:"loadBalancer,omitempty" toml:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty" export:"true"`
+	Weighted     *WeightedRoundRobin   `json:"weighted,omitempty" toml:"weighted,omitempty" yaml:"weighted,omitempty" label:"-" export:"true"`
+	Mirroring    *Mirroring            `json:"mirroring,omitempty" toml:"mirroring,omitempty" yaml:"mirroring,omitempty" label:"-" export:"true"`
+	Failover     *Failover             `json:"failover,omitempty" toml:"failover,omitempty" yaml:"failover,omitempty" label:"-" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -180,6 +181,37 @@ func (l *ServersLoadBalancer) Mergeable(loadBalancer *ServersLoadBalancer) bool 
 func (l *ServersLoadBalancer) SetDefaults() {
 	defaultPassHostHeader := true
 	l.PassHostHeader = &defaultPassHostHeader
+}
+
+// ServersLoadBalancer holds the ServersLoadBalancer configuration.
+type FastHTTPLoadBalancer struct {
+	// Sticky  *Sticky  `json:"sticky,omitempty" toml:"sticky,omitempty" yaml:"sticky,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
+	Servers []Server `json:"servers,omitempty" toml:"servers,omitempty" yaml:"servers,omitempty" label-slice-as-struct:"server" export:"true"`
+	// HealthCheck enables regular active checks of the responsiveness of the
+	// children servers of this load-balancer. To propagate status changes (e.g. all
+	// servers of this service are down) upwards, HealthCheck must also be enabled on
+	// the parent(s) of this service.
+	// HealthCheck        *ServerHealthCheck  `json:"healthCheck,omitempty" toml:"healthCheck,omitempty" yaml:"healthCheck,omitempty" export:"true"`
+	PassHostHeader *bool `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
+	// ResponseForwarding *ResponseForwarding `json:"responseForwarding,omitempty" toml:"responseForwarding,omitempty" yaml:"responseForwarding,omitempty" export:"true"`
+	ServersTransport string `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
+}
+
+// Mergeable tells if the given service is mergeable.
+func (l *FastHTTPLoadBalancer) Mergeable(loadBalancer *FastHTTPLoadBalancer) bool {
+	savedServers := l.Servers
+	defer func() {
+		l.Servers = savedServers
+	}()
+	l.Servers = nil
+
+	savedServersLB := loadBalancer.Servers
+	defer func() {
+		loadBalancer.Servers = savedServersLB
+	}()
+	loadBalancer.Servers = nil
+
+	return reflect.DeepEqual(l, loadBalancer)
 }
 
 // +k8s:deepcopy-gen=true

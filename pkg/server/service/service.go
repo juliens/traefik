@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -27,6 +28,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/failover"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/mirror"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/wrr"
+	"github.com/valyala/fasthttp"
 	"github.com/vulcand/oxy/roundrobin"
 	"github.com/vulcand/oxy/roundrobin/stickycookie"
 )
@@ -41,6 +43,10 @@ const defaultMaxBodySize int64 = -1
 // RoundTripperGetter is a roundtripper getter interface.
 type RoundTripperGetter interface {
 	Get(name string) (http.RoundTripper, error)
+}
+
+type TLSConfigGetter interface {
+	GetTLSConfig(name string) *tls.Config
 }
 
 // NewManager creates a new Manager.
@@ -102,6 +108,13 @@ func (m *Manager) BuildHTTP(rootCtx context.Context, serviceName string) (http.H
 	case conf.LoadBalancer != nil:
 		var err error
 		lb, err = m.getLoadBalancerServiceHandler(ctx, serviceName, conf.LoadBalancer)
+		if err != nil {
+			conf.AddError(err, true)
+			return nil, err
+		}
+	case conf.FastHTTPLB != nil:
+		var err error
+		lb, err = m.getLoadBalancerServiceFastHTTPHandler(ctx, serviceName, conf.FastHTTPLB)
 		if err != nil {
 			conf.AddError(err, true)
 			return nil, err
@@ -288,6 +301,71 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 
 	// Empty (backend with no servers)
 	return emptybackendhandler.New(balancer), nil
+}
+
+type HostClientWrapper struct {
+	*fasthttp.HostClient
+	PassHostHeader bool
+	Scheme         string
+}
+
+func (h *HostClientWrapper) DoDeadline(req *fasthttp.Request, resp *fasthttp.Response, deadline time.Time) error {
+	req.URI().SetScheme(h.Scheme)
+	if !h.PassHostHeader {
+		req.Header.SetHost(h.HostClient.Addr)
+	}
+	return h.HostClient.DoDeadline(req, resp, deadline)
+}
+
+func (m *Manager) getLoadBalancerServiceFastHTTPHandler(ctx context.Context, serviceName string, service *dynamic.FastHTTPLoadBalancer) (http.Handler, error) {
+	lb := &fasthttp.LBClient{
+		HealthCheck: func(req *fasthttp.Request, resp *fasthttp.Response, err error) bool {
+			return err == nil && int(resp.StatusCode()/100) != 5
+		},
+	}
+
+	if len(service.ServersTransport) > 0 {
+		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
+	}
+
+	var conf *tls.Config
+	if tlsConfigGetter, ok := m.roundTripperManager.(TLSConfigGetter); ok {
+		conf = tlsConfigGetter.GetTLSConfig(service.ServersTransport)
+	}
+
+	for _, server := range service.Servers {
+		parse, err := url.Parse(server.URL)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+
+		hostClient := &fasthttp.HostClient{
+			Addr:            parse.Host,
+			TLSConfig:       conf,
+			IsTLS:           parse.Scheme == "https",
+			ReadBufferSize:  64 * 1024,
+			WriteBufferSize: 64 * 1024,
+		}
+		var c fasthttp.BalancingClient = hostClient
+		c = &HostClientWrapper{HostClient: hostClient, Scheme: parse.Scheme, PassHostHeader: service.PassHostHeader == nil || !*service.PassHostHeader}
+		lb.Clients = append(lb.Clients, c)
+	}
+
+	fwd, err := newFastHTTPReverseProxy(lb)
+	if err != nil {
+		return nil, err
+	}
+
+	alHandler := func(next http.Handler) (http.Handler, error) {
+		return accesslog.NewFieldHandler(next, accesslog.ServiceName, serviceName, accesslog.AddServiceFields), nil
+	}
+
+	chain := alice.New()
+	if m.metricsRegistry != nil && m.metricsRegistry.IsSvcEnabled() {
+		chain = chain.Append(metricsMiddle.WrapServiceHandler(ctx, m.metricsRegistry, serviceName))
+	}
+	return chain.Append(alHandler).Then(fwd)
 }
 
 // LaunchHealthCheck launches the health checks.

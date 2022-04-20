@@ -279,18 +279,37 @@ func AddService(configuration *dynamic.HTTPConfiguration, serviceName string, se
 		return true
 	}
 
-	if !configuration.Services[serviceName].LoadBalancer.Mergeable(service.LoadBalancer) {
-		return false
+	if service.LoadBalancer != nil {
+		if !configuration.Services[serviceName].LoadBalancer.Mergeable(service.LoadBalancer) {
+			return false
+		}
+
+		uniq := map[string]struct{}{}
+		for _, server := range configuration.Services[serviceName].LoadBalancer.Servers {
+			uniq[server.URL] = struct{}{}
+		}
+
+		for _, server := range service.LoadBalancer.Servers {
+			if _, ok := uniq[server.URL]; !ok {
+				configuration.Services[serviceName].LoadBalancer.Servers = append(configuration.Services[serviceName].LoadBalancer.Servers, server)
+			}
+		}
 	}
 
-	uniq := map[string]struct{}{}
-	for _, server := range configuration.Services[serviceName].LoadBalancer.Servers {
-		uniq[server.URL] = struct{}{}
-	}
+	if service.FastHTTPLB != nil {
+		if !configuration.Services[serviceName].FastHTTPLB.Mergeable(service.FastHTTPLB) {
+			return false
+		}
 
-	for _, server := range service.LoadBalancer.Servers {
-		if _, ok := uniq[server.URL]; !ok {
-			configuration.Services[serviceName].LoadBalancer.Servers = append(configuration.Services[serviceName].LoadBalancer.Servers, server)
+		uniq := map[string]struct{}{}
+		for _, server := range configuration.Services[serviceName].FastHTTPLB.Servers {
+			uniq[server.URL] = struct{}{}
+		}
+
+		for _, server := range service.FastHTTPLB.Servers {
+			if _, ok := uniq[server.URL]; !ok {
+				configuration.Services[serviceName].FastHTTPLB.Servers = append(configuration.Services[serviceName].FastHTTPLB.Servers, server)
+			}
 		}
 	}
 

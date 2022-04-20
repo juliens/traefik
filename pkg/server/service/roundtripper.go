@@ -98,6 +98,22 @@ func (r *RoundTripperManager) Get(name string) (http.RoundTripper, error) {
 	return nil, fmt.Errorf("servers transport not found %s", name)
 }
 
+func (r *RoundTripperManager) GetTLSConfig(name string) *tls.Config {
+	if len(name) == 0 {
+		name = "default@internal"
+	}
+
+	r.rtLock.RLock()
+	defer r.rtLock.RUnlock()
+
+	if rt, ok := r.roundTrippers[name]; ok {
+		if srt, ok := rt.(*smartRoundTripper); ok {
+			return srt.http.TLSClientConfig
+		}
+	}
+	return nil
+}
+
 // createRoundTripper creates an http.RoundTripper configured with the Transport configuration settings.
 // For the settings that can't be configured in Traefik it uses the default http.Transport settings.
 // An exception to this is the MaxIdleConns setting as we only provide the option MaxIdleConnsPerHost in Traefik at this point in time.

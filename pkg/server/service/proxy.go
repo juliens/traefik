@@ -15,6 +15,7 @@ import (
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
+	"github.com/valyala/fasthttp"
 )
 
 // StatusClientClosedRequest non-standard HTTP status code for client disconnection.
@@ -22,6 +23,77 @@ const StatusClientClosedRequest = 499
 
 // StatusClientClosedRequestText non-standard HTTP status for client disconnection.
 const StatusClientClosedRequestText = "Client Closed Request"
+
+var hopHeaders = []string{
+	"Connection",
+	"Proxy-Connection", // non-standard but still sent by libcurl and rejected by e.g. google
+	"Keep-Alive",
+	"Proxy-Authenticate",
+	"Proxy-Authorization",
+	"Te",      // canonicalized version of "TE"
+	"Trailer", // not Trailers per URL above; https://www.rfc-editor.org/errata_search.php?eid=4522
+	"Transfer-Encoding",
+	"Upgrade",
+}
+
+func newFastHTTPReverseProxy(client *fasthttp.LBClient) (http.Handler, error) {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+		for _, header := range hopHeaders {
+			request.Header.Del(header)
+		}
+
+		req.Header.Set("FastHTTP", "enable")
+		req.Header.SetHost(request.Host)
+
+		req.SetRequestURI(request.RequestURI)
+
+		for k, v := range request.Header {
+			req.Header.Set(k, strings.Join(v, ", "))
+		}
+
+		req.SetBodyStream(request.Body, int(request.ContentLength))
+
+		req.Header.SetMethod(request.Method)
+
+		if clientIP, _, err := net.SplitHostPort(request.RemoteAddr); err == nil {
+			// If we aren't the first proxy retain prior
+			// X-Forwarded-For information as a comma+space
+			// separated list and fold multiple headers into one.
+			prior, ok := request.Header["X-Forwarded-For"]
+			omit := ok && prior == nil // Issue 38079: nil now means don't populate the header
+			if len(prior) > 0 {
+				clientIP = strings.Join(prior, ", ") + ", " + clientIP
+			}
+			if !omit {
+				req.Header.Set("X-Forwarded-For", clientIP)
+			}
+		}
+
+		err := client.Do(req, res)
+		if err != nil {
+			log.FromContext(request.Context()).Error(err)
+			return
+		}
+
+		// TODO: Remove Connection Headers
+		for _, header := range hopHeaders {
+			res.Header.Del(header)
+		}
+		res.Header.VisitAll(func(key, value []byte) {
+			writer.Header().Set(string(key), string(value))
+		})
+
+		writer.WriteHeader(res.StatusCode())
+		res.BodyWriteTo(writer)
+
+		// TRAILERS ??
+		// res.Header.VisitAllTrailer(func(value []byte) {
+		//
+		// })
+
+	}), nil
+}
 
 func buildProxy(passHostHeader *bool, responseForwarding *dynamic.ResponseForwarding, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) (http.Handler, error) {
 	var flushInterval ptypes.Duration
