@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
 	"math/big"
 	"net"
 	"net/http"
@@ -550,4 +551,24 @@ func (s *fakeSpiffeSource) GetX509BundleForTrustDomain(trustDomain spiffeid.Trus
 
 func (s *fakeSpiffeSource) GetX509SVID() (*x509svid.SVID, error) {
 	return s.svid, nil
+}
+
+func BenchmarkName(b *testing.B) {
+	b.ReportAllocs()
+	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Write([]byte("TEST"))
+	}))
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL, http.NoBody)
+	if err != nil {
+		b.Fatalf("ERR")
+	}
+
+	// tr := FastHTTPTransport{hc: NewHostChooser()}
+	tr := &http.Transport{}
+	var resp *http.Response
+	for i := 0; i < b.N; i++ {
+		resp, _ = tr.RoundTrip(req)
+	}
+	fmt.Println(resp)
 }

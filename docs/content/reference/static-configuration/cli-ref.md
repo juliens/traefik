@@ -966,6 +966,9 @@ Root key used for KV store. (Default: ```traefik```)
 `--providers.zookeeper.username`:  
 Username for authentication.
 
+`--serverstransport.fasthttp`:  
+Enable fastHTTP. (Default: ```true```)
+
 `--serverstransport.forwardingtimeouts.dialtimeout`:  
 The amount of time to wait until a connection to a backend server can be established. If zero, no timeout exists. (Default: ```30```)
 

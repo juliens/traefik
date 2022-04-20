@@ -45,6 +45,7 @@ type ServersTransportSpec struct {
 	PeerCertURI string `json:"peerCertURI,omitempty"`
 	// Spiffe defines the SPIFFE configuration.
 	Spiffe *dynamic.Spiffe `json:"spiffe,omitempty"`
+	// FIXME passHostHeader flushInterval
 }
 
 // +k8s:deepcopy-gen=true

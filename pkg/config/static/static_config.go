@@ -112,6 +112,7 @@ type ServersTransport struct {
 	MaxIdleConnsPerHost int                 `description:"If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used" json:"maxIdleConnsPerHost,omitempty" toml:"maxIdleConnsPerHost,omitempty" yaml:"maxIdleConnsPerHost,omitempty" export:"true"`
 	ForwardingTimeouts  *ForwardingTimeouts `description:"Timeouts for requests forwarded to the backend servers." json:"forwardingTimeouts,omitempty" toml:"forwardingTimeouts,omitempty" yaml:"forwardingTimeouts,omitempty" export:"true"`
 	Spiffe              *Spiffe             `description:"Defines the SPIFFE configuration." json:"spiffe,omitempty" toml:"spiffe,omitempty" yaml:"spiffe,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	FastHTTP            *FastHTTPConfig     `description:"Enable fastHTTP." json:"fasthttp,omitempty" toml:"fasthttp,omitempty" yaml:"fasthttp,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
 }
 
 // Spiffe holds the SPIFFE configuration.
@@ -119,6 +120,9 @@ type Spiffe struct {
 	IDs         []string `description:"Defines the allowed SPIFFE IDs (takes precedence over the SPIFFE TrustDomain)." json:"ids,omitempty" toml:"ids,omitempty" yaml:"ids,omitempty"`
 	TrustDomain string   `description:"Defines the allowed SPIFFE trust domain." json:"trustDomain,omitempty" yaml:"trustDomain,omitempty" toml:"trustDomain,omitempty"`
 }
+
+// FIXME should we keep a struct or a boolean is enougth?
+type FastHTTPConfig struct{}
 
 // API holds the API configuration.
 type API struct {

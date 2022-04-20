@@ -337,5 +337,10 @@ func (i *Provider) serverTransport(cfg *dynamic.Configuration) {
 		}
 	}
 
+	// FIXME make sure that all properties are set if we are using an object
+	if i.staticCfg.ServersTransport.FastHTTP != nil {
+		st.FastHTTP = &dynamic.FastHTTPConfig{}
+	}
+
 	cfg.HTTP.ServersTransports["default"] = st
 }
