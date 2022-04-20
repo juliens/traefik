@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"reflect"
 	"sync"
 	"time"
@@ -36,12 +37,17 @@ type SpiffeX509Source interface {
 	x509bundle.Source
 }
 
+// FIXME rename to proxyManager
 // NewRoundTripperManager creates a new RoundTripperManager.
 func NewRoundTripperManager(spiffeX509Source SpiffeX509Source) *RoundTripperManager {
 	return &RoundTripperManager{
 		roundTrippers:    make(map[string]http.RoundTripper),
 		configs:          make(map[string]*dynamic.ServersTransport),
 		spiffeX509Source: spiffeX509Source,
+
+		bufferPool: newBufferPool(),
+
+		pools: make(map[string]map[string]ConnectionPool),
 	}
 }
 
@@ -52,6 +58,11 @@ type RoundTripperManager struct {
 	configs       map[string]*dynamic.ServersTransport
 
 	spiffeX509Source SpiffeX509Source
+
+	bufferPool *bufferPool
+
+	pools   map[string]map[string]ConnectionPool
+	poolsMu sync.RWMutex
 }
 
 // Update updates the roundtrippers configurations.
@@ -59,43 +70,33 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 	r.rtLock.Lock()
 	defer r.rtLock.Unlock()
 
-	for configName, config := range r.configs {
-		newConfig, ok := newConfigs[configName]
-		if !ok {
+	for configName := range r.configs {
+		if _, ok := newConfigs[configName]; !ok {
 			delete(r.configs, configName)
 			delete(r.roundTrippers, configName)
+			delete(r.pools, configName)
 			continue
-		}
-
-		if reflect.DeepEqual(newConfig, config) {
-			continue
-		}
-
-		var err error
-		r.roundTrippers[configName], err = r.createRoundTripper(newConfig)
-		if err != nil {
-			log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", configName, err)
-			r.roundTrippers[configName] = http.DefaultTransport
 		}
 	}
 
 	for newConfigName, newConfig := range newConfigs {
-		if _, ok := r.configs[newConfigName]; ok {
+		if reflect.DeepEqual(newConfig, r.configs[newConfigName]) {
 			continue
 		}
 
-		var err error
-		r.roundTrippers[newConfigName], err = r.createRoundTripper(newConfig)
+		r.pools[newConfigName] = make(map[string]ConnectionPool)
+
+		transport, err := r.createRoundTripper(newConfig)
 		if err != nil {
 			log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
-			r.roundTrippers[newConfigName] = http.DefaultTransport
+			transport = http.DefaultTransport
 		}
+		r.roundTrippers[newConfigName] = transport
 	}
 
 	r.configs = newConfigs
 }
 
-// Get get a roundtripper by name.
 func (r *RoundTripperManager) Get(name string) (http.RoundTripper, error) {
 	if len(name) == 0 {
 		name = "default@internal"
@@ -109,6 +110,101 @@ func (r *RoundTripperManager) Get(name string) (http.RoundTripper, error) {
 	}
 
 	return nil, fmt.Errorf("servers transport not found %s", name)
+}
+
+func (r *RoundTripperManager) GetTLSConfig(name string) (*tls.Config, error) {
+	if len(name) == 0 {
+		name = "default@internal"
+	}
+
+	r.rtLock.RLock()
+	defer r.rtLock.RUnlock()
+
+	config, ok := r.configs[name]
+
+	if ok {
+		return r.createTLSConfig(config)
+	}
+
+	return nil, fmt.Errorf("unable to find tls config for serversTransport: %s", name)
+}
+
+func (r *RoundTripperManager) GetProxy(configName string, target *url.URL) (http.Handler, error) {
+	if len(configName) == 0 {
+		configName = "default@internal"
+	}
+
+	r.rtLock.RLock()
+	config, ok := r.configs[configName]
+	if !ok {
+		// FIXME error
+		return nil, errors.New("unknown config")
+	}
+	r.rtLock.RUnlock()
+
+	if config.FastHTTP != nil {
+
+		return NewFastHTTPReverseProxy(target, config.PassHostHeader, r.getPool(configName, config, target)), nil
+	}
+
+	roundTripper, err := r.Get(configName)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildSingleHostProxy(target, config.PassHostHeader, time.Duration(config.FlushInterval), roundTripper, r.bufferPool), nil
+}
+
+func (r *RoundTripperManager) getPool(configName string, config *dynamic.ServersTransport, target *url.URL) ConnectionPool {
+	url := target.Host
+
+	port := target.Port()
+	if port == "" {
+		if target.Scheme == "https" {
+			url += ":443"
+		} else {
+			url += ":80"
+		}
+	}
+
+	r.poolsMu.RLock()
+	pool := r.pools[configName]
+	r.poolsMu.RUnlock()
+
+	connectionPool, ok := pool[target.String()]
+	if ok {
+		return connectionPool
+	}
+
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	// var maxIdleConnTimeout time.Duration
+	if config.ForwardingTimeouts != nil {
+		dialer.Timeout = time.Duration(config.ForwardingTimeouts.DialTimeout)
+		// maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
+	}
+
+	tlsConfig, err := r.GetTLSConfig(configName)
+	if err != nil {
+		// log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
+
+	}
+
+	connectionPool = NewConnectionPool(func() (net.Conn, error) {
+		conn, err := dialer.Dial("tcp", url)
+		if tlsConfig != nil {
+			return tls.Client(conn, tlsConfig), nil
+		}
+		return conn, err
+	}, config.MaxIdleConnsPerHost)
+
+	r.poolsMu.Lock()
+	r.pools[configName][target.String()] = connectionPool
+	r.poolsMu.Unlock()
+	return connectionPool
 }
 
 // createRoundTripper creates an http.RoundTripper configured with the Transport configuration settings.
@@ -145,6 +241,23 @@ func (r *RoundTripperManager) createRoundTripper(cfg *dynamic.ServersTransport) 
 		transport.IdleConnTimeout = time.Duration(cfg.ForwardingTimeouts.IdleConnTimeout)
 	}
 
+	var err error
+	transport.TLSClientConfig, err = r.createTLSConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return directly HTTP/1.1 transport when HTTP/2 is disabled
+	if cfg.DisableHTTP2 {
+		return transport, nil
+	}
+
+	return newSmartRoundTripper(transport, cfg.ForwardingTimeouts)
+}
+
+func (r *RoundTripperManager) createTLSConfig(cfg *dynamic.ServersTransport) (*tls.Config, error) {
+	var tlsConfig *tls.Config
+
 	if cfg.Spiffe != nil {
 		if r.spiffeX509Source == nil {
 			return nil, errors.New("SPIFFE is enabled for this transport, but not configured")
@@ -155,15 +268,15 @@ func (r *RoundTripperManager) createRoundTripper(cfg *dynamic.ServersTransport) 
 			return nil, fmt.Errorf("unable to build SPIFFE authorizer: %w", err)
 		}
 
-		transport.TLSClientConfig = tlsconfig.MTLSClientConfig(r.spiffeX509Source, r.spiffeX509Source, spiffeAuthorizer)
+		tlsConfig = tlsconfig.MTLSClientConfig(r.spiffeX509Source, r.spiffeX509Source, spiffeAuthorizer)
 	}
 
 	if cfg.InsecureSkipVerify || len(cfg.RootCAs) > 0 || len(cfg.ServerName) > 0 || len(cfg.Certificates) > 0 || cfg.PeerCertURI != "" {
-		if transport.TLSClientConfig != nil {
+		if tlsConfig != nil {
 			return nil, errors.New("TLS and SPIFFE configuration cannot be defined at the same time")
 		}
 
-		transport.TLSClientConfig = &tls.Config{
+		tlsConfig = &tls.Config{
 			ServerName:         cfg.ServerName,
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
 			RootCAs:            createRootCACertPool(cfg.RootCAs),
@@ -171,18 +284,12 @@ func (r *RoundTripperManager) createRoundTripper(cfg *dynamic.ServersTransport) 
 		}
 
 		if cfg.PeerCertURI != "" {
-			transport.TLSClientConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
-				return traefiktls.VerifyPeerCertificate(cfg.PeerCertURI, transport.TLSClientConfig, rawCerts)
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
+				return traefiktls.VerifyPeerCertificate(cfg.PeerCertURI, tlsConfig, rawCerts)
 			}
 		}
 	}
-
-	// Return directly HTTP/1.1 transport when HTTP/2 is disabled
-	if cfg.DisableHTTP2 {
-		return transport, nil
-	}
-
-	return newSmartRoundTripper(transport, cfg.ForwardingTimeouts)
+	return tlsConfig, nil
 }
 
 func createRootCACertPool(rootCAs []traefiktls.FileOrContent) *x509.CertPool {

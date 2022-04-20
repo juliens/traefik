@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -35,12 +36,23 @@ type RoundTripperGetter interface {
 	Get(name string) (http.RoundTripper, error)
 }
 
+type TLSConfigGetter interface {
+	GetTLSConfig(configName string) (*tls.Config, error)
+}
+
+type ProxyGetter interface {
+	GetProxy(configName string, target *url.URL) (http.Handler, error)
+}
+
 // Manager The service manager.
 type Manager struct {
 	routinePool         *safe.Pool
 	metricsRegistry     metrics.Registry
 	bufferPool          httputil.BufferPool
 	roundTripperManager RoundTripperGetter
+
+	tlsConfigGetter TLSConfigGetter
+	proxyGetter     ProxyGetter
 
 	services       map[string]http.Handler
 	configs        map[string]*runtime.ServiceInfo
@@ -49,16 +61,17 @@ type Manager struct {
 }
 
 // NewManager creates a new Manager.
-func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, roundTripperManager RoundTripperGetter) *Manager {
+func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, tlsConfigGetter TLSConfigGetter, proxyGetter ProxyGetter) *Manager {
 	return &Manager{
-		routinePool:         routinePool,
-		metricsRegistry:     metricsRegistry,
-		bufferPool:          newBufferPool(),
-		roundTripperManager: roundTripperManager,
-		services:            make(map[string]http.Handler),
-		configs:             configs,
-		healthCheckers:      make(map[string]*healthcheck.ServiceHealthChecker),
-		rand:                rand.New(rand.NewSource(time.Now().UnixNano())),
+		routinePool:     routinePool,
+		metricsRegistry: metricsRegistry,
+		bufferPool:      newBufferPool(),
+		services:        make(map[string]http.Handler),
+		configs:         configs,
+		healthCheckers:  make(map[string]*healthcheck.ServiceHealthChecker),
+		rand:            rand.New(rand.NewSource(time.Now().UnixNano())),
+		tlsConfigGetter: tlsConfigGetter,
+		proxyGetter:     proxyGetter,
 	}
 }
 
@@ -253,29 +266,12 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 	logger := log.FromContext(ctx)
 	logger.Debug("Creating load-balancer")
 
-	// TODO: should we keep this config value as Go is now handling stream response correctly?
-	flushInterval := dynamic.DefaultFlushInterval
-	if service.ResponseForwarding != nil {
-		flushInterval = service.ResponseForwarding.FlushInterval
-	}
-
 	if len(service.ServersTransport) > 0 {
 		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
 	}
 
 	if service.Sticky != nil && service.Sticky.Cookie != nil {
 		service.Sticky.Cookie.Name = cookie.GetName(service.Sticky.Cookie.Name, serviceName)
-	}
-
-	// We make sure that the PassHostHeader value is defined to avoid panics.
-	passHostHeader := dynamic.DefaultPassHostHeader
-	if service.PassHostHeader != nil {
-		passHostHeader = *service.PassHostHeader
-	}
-
-	roundTripper, err := m.roundTripperManager.Get(service.ServersTransport)
-	if err != nil {
-		return nil, err
 	}
 
 	lb := wrr.New(service.Sticky, service.HealthCheck != nil)
@@ -293,8 +289,10 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		}
 
 		logger.WithField(log.ServerName, proxyName).Debugf("Creating server %s", target)
-
-		proxy := buildSingleHostProxy(target, passHostHeader, time.Duration(flushInterval), roundTripper, m.bufferPool)
+		proxy, err := m.proxyGetter.GetProxy(service.ServersTransport, target)
+		if err != nil {
+			return nil, err
+		}
 
 		proxy = accesslog.NewFieldHandler(proxy, accesslog.ServiceURL, target.String(), nil)
 		proxy = accesslog.NewFieldHandler(proxy, accesslog.ServiceAddr, target.Host, nil)
@@ -312,6 +310,11 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		healthCheckTargets[proxyName] = target
 	}
 
+	tlsConfig, err := m.tlsConfigGetter.GetTLSConfig(service.ServersTransport)
+	if err != nil {
+		return nil, err
+	}
+
 	if service.HealthCheck != nil {
 		m.healthCheckers[serviceName] = healthcheck.NewServiceHealthChecker(
 			ctx,
@@ -319,7 +322,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 			service.HealthCheck,
 			lb,
 			info,
-			roundTripper,
+			tlsConfig,
 			healthCheckTargets,
 		)
 	}
