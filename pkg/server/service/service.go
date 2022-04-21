@@ -341,11 +341,13 @@ func (m *Manager) getLoadBalancerServiceFastHTTPHandler(ctx context.Context, ser
 		}
 
 		hostClient := &fasthttp.HostClient{
-			Addr:            parse.Host,
-			TLSConfig:       conf,
-			IsTLS:           parse.Scheme == "https",
-			ReadBufferSize:  64 * 1024,
-			WriteBufferSize: 64 * 1024,
+			Addr:                          parse.Host,
+			TLSConfig:                     conf,
+			IsTLS:                         parse.Scheme == "https",
+			ReadBufferSize:                64 * 1024,
+			WriteBufferSize:               64 * 1024,
+			DisableHeaderNamesNormalizing: true,
+			DisablePathNormalizing:        true,
 		}
 		var c fasthttp.BalancingClient = hostClient
 		c = &HostClientWrapper{HostClient: hostClient, Scheme: parse.Scheme, PassHostHeader: service.PassHostHeader == nil || !*service.PassHostHeader}
