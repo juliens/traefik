@@ -10,6 +10,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/containous/alice"
@@ -318,43 +319,30 @@ func (h *HostClientWrapper) DoDeadline(req *fasthttp.Request, resp *fasthttp.Res
 }
 
 func (m *Manager) getLoadBalancerServiceFastHTTPHandler(ctx context.Context, serviceName string, service *dynamic.FastHTTPLoadBalancer) (http.Handler, error) {
-	lb := &fasthttp.LBClient{
-		HealthCheck: func(req *fasthttp.Request, resp *fasthttp.Response, err error) bool {
-			return err == nil && int(resp.StatusCode()/100) != 5
-		},
-	}
 
 	if len(service.ServersTransport) > 0 {
 		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
 	}
 
-	var conf *tls.Config
-	if tlsConfigGetter, ok := m.roundTripperManager.(TLSConfigGetter); ok {
-		conf = tlsConfigGetter.GetTLSConfig(service.ServersTransport)
-	}
-
+	hosts := []string{}
 	for _, server := range service.Servers {
 		parse, err := url.Parse(server.URL)
-		if err != nil {
-			log.Error(err)
-			continue
+		if err == nil {
+			hosts = append(hosts, parse.Host)
 		}
-
-		hostClient := &fasthttp.HostClient{
-			Addr:                          parse.Host,
-			TLSConfig:                     conf,
-			IsTLS:                         parse.Scheme == "https",
-			ReadBufferSize:                64 * 1024,
-			WriteBufferSize:               64 * 1024,
-			DisableHeaderNamesNormalizing: true,
-			DisablePathNormalizing:        true,
-		}
-		var c fasthttp.BalancingClient = hostClient
-		c = &HostClientWrapper{HostClient: hostClient, Scheme: parse.Scheme, PassHostHeader: service.PassHostHeader == nil || !*service.PassHostHeader}
-		lb.Clients = append(lb.Clients, c)
+	}
+	fmt.Println(strings.Join(hosts, ","))
+	hostClient := &fasthttp.HostClient{
+		Addr: strings.Join(hosts, ","),
+		// TLSConfig:                     conf,
+		// IsTLS:                         parse.Scheme == "https",
+		ReadBufferSize:                64 * 1024,
+		WriteBufferSize:               64 * 1024,
+		DisableHeaderNamesNormalizing: true,
+		DisablePathNormalizing:        true,
 	}
 
-	fwd, err := newFastHTTPReverseProxy(lb)
+	fwd, err := newFastHTTPReverseProxy(hostClient)
 	if err != nil {
 		return nil, err
 	}
