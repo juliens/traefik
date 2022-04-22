@@ -10,7 +10,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/containous/alice"
@@ -292,7 +291,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		return nil, err
 	}
 
-	balancer, err := m.getLoadBalancer(ctx, serviceName, service, handler)
+	balancer, err := m.getLoadBalancer(ctx, serviceName, handler, service.Sticky, service.HealthCheck, service.Servers)
 	if err != nil {
 		return nil, err
 	}
@@ -319,30 +318,21 @@ func (h *HostClientWrapper) DoDeadline(req *fasthttp.Request, resp *fasthttp.Res
 }
 
 func (m *Manager) getLoadBalancerServiceFastHTTPHandler(ctx context.Context, serviceName string, service *dynamic.FastHTTPLoadBalancer) (http.Handler, error) {
-
 	if len(service.ServersTransport) > 0 {
 		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
 	}
 
-	hosts := []string{}
-	for _, server := range service.Servers {
-		parse, err := url.Parse(server.URL)
-		if err == nil {
-			hosts = append(hosts, parse.Host)
-		}
-	}
-	fmt.Println(strings.Join(hosts, ","))
-	hostClient := &fasthttp.HostClient{
-		Addr: strings.Join(hosts, ","),
-		// TLSConfig:                     conf,
-		// IsTLS:                         parse.Scheme == "https",
+	fwd, err := newFastHTTPReverseProxy(&fasthttp.Client{
 		ReadBufferSize:                64 * 1024,
 		WriteBufferSize:               64 * 1024,
 		DisableHeaderNamesNormalizing: true,
 		DisablePathNormalizing:        true,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	fwd, err := newFastHTTPReverseProxy(hostClient)
+	balancer, err := m.getLoadBalancer(ctx, serviceName, fwd, service.Sticky, service.HealthCheck, service.Servers)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +345,8 @@ func (m *Manager) getLoadBalancerServiceFastHTTPHandler(ctx context.Context, ser
 	if m.metricsRegistry != nil && m.metricsRegistry.IsSvcEnabled() {
 		chain = chain.Append(metricsMiddle.WrapServiceHandler(ctx, m.metricsRegistry, serviceName))
 	}
-	return chain.Append(alHandler).Then(fwd)
+
+	return chain.Append(alHandler).Then(balancer)
 }
 
 // LaunchHealthCheck launches the health checks.
@@ -453,20 +444,20 @@ func buildHealthCheckOptions(ctx context.Context, lb healthcheck.Balancer, backe
 	}
 }
 
-func (m *Manager) getLoadBalancer(ctx context.Context, serviceName string, service *dynamic.ServersLoadBalancer, fwd http.Handler) (healthcheck.BalancerStatusHandler, error) {
+func (m *Manager) getLoadBalancer(ctx context.Context, serviceName string, fwd http.Handler, sticky *dynamic.Sticky, serverHealthcheck *dynamic.ServerHealthCheck, servers []dynamic.Server) (healthcheck.BalancerStatusHandler, error) {
 	logger := log.FromContext(ctx)
 	logger.Debug("Creating load-balancer")
 
 	var options []roundrobin.LBOption
 
 	var cookieName string
-	if service.Sticky != nil && service.Sticky.Cookie != nil {
-		cookieName = cookie.GetName(service.Sticky.Cookie.Name, serviceName)
+	if sticky != nil && sticky.Cookie != nil {
+		cookieName = cookie.GetName(sticky.Cookie.Name, serviceName)
 
 		opts := roundrobin.CookieOptions{
-			HTTPOnly: service.Sticky.Cookie.HTTPOnly,
-			Secure:   service.Sticky.Cookie.Secure,
-			SameSite: convertSameSite(service.Sticky.Cookie.SameSite),
+			HTTPOnly: sticky.Cookie.HTTPOnly,
+			Secure:   sticky.Cookie.Secure,
+			SameSite: convertSameSite(sticky.Cookie.SameSite),
 		}
 
 		// Sticky Cookie Value
@@ -485,8 +476,8 @@ func (m *Manager) getLoadBalancer(ctx context.Context, serviceName string, servi
 		return nil, err
 	}
 
-	lbsu := healthcheck.NewLBStatusUpdater(lb, m.configs[serviceName], service.HealthCheck)
-	if err := m.upsertServers(ctx, lbsu, service.Servers); err != nil {
+	lbsu := healthcheck.NewLBStatusUpdater(lb, m.configs[serviceName], serverHealthcheck)
+	if err := m.upsertServers(ctx, lbsu, servers); err != nil {
 		return nil, fmt.Errorf("error configuring load balancer for service %s: %w", serviceName, err)
 	}
 

@@ -36,7 +36,7 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
-func newFastHTTPReverseProxy(client *fasthttp.HostClient) (http.Handler, error) {
+func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
 		for _, header := range hopHeaders {
@@ -45,8 +45,8 @@ func newFastHTTPReverseProxy(client *fasthttp.HostClient) (http.Handler, error) 
 		fasthttp.AcquireURI()
 		req.Header.Set("FastHTTP", "enable")
 		req.Header.SetHost(request.Host)
-
 		req.SetRequestURI(request.RequestURI)
+		req.SetHost(request.URL.Host)
 
 		for k, v := range request.Header {
 			req.Header.Set(k, strings.Join(v, ", "))
