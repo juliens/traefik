@@ -114,24 +114,32 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 	safe.Go(func() {
 		promState.ListenValueUpdates()
 	})
+	//
+	// collectors := make(chan *collector)
+	// go func() {
+	// 	for c := range collectors {
+	// 		promState.collectors <- c
+	// 	}
+	// }()
+	collectors := promState.collectors
 
-	configReloads := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+	configReloads := newCounterFrom(collectors, stdprometheus.CounterOpts{
 		Name: configReloadsTotalName,
 		Help: "Config reloads",
 	}, []string{})
-	configReloadsFailures := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+	configReloadsFailures := newCounterFrom(collectors, stdprometheus.CounterOpts{
 		Name: configReloadsFailuresTotalName,
 		Help: "Config failure reloads",
 	}, []string{})
-	lastConfigReloadSuccess := newGaugeFrom(promState.collectors, stdprometheus.GaugeOpts{
+	lastConfigReloadSuccess := newGaugeFrom(collectors, stdprometheus.GaugeOpts{
 		Name: configLastReloadSuccessName,
 		Help: "Last config reload success",
 	}, []string{})
-	lastConfigReloadFailure := newGaugeFrom(promState.collectors, stdprometheus.GaugeOpts{
+	lastConfigReloadFailure := newGaugeFrom(collectors, stdprometheus.GaugeOpts{
 		Name: configLastReloadFailureName,
 		Help: "Last config reload failure",
 	}, []string{})
-	tlsCertsNotAfterTimestamp := newGaugeFrom(promState.collectors, stdprometheus.GaugeOpts{
+	tlsCertsNotAfterTimestamp := newGaugeFrom(collectors, stdprometheus.GaugeOpts{
 		Name: tlsCertsNotAfterTimestamp,
 		Help: "Certificate expiration timestamp",
 	}, []string{"cn", "serial", "sans"})
@@ -156,20 +164,20 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 	}
 
 	if config.AddEntryPointsLabels {
-		entryPointReqs := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+		entryPointReqs := newCounterFrom(collectors, stdprometheus.CounterOpts{
 			Name: entryPointReqsTotalName,
 			Help: "How many HTTP requests processed on an entrypoint, partitioned by status code, protocol, and method.",
 		}, []string{"code", "method", "protocol", "entrypoint"})
-		entryPointReqsTLS := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+		entryPointReqsTLS := newCounterFrom(collectors, stdprometheus.CounterOpts{
 			Name: entryPointReqsTLSTotalName,
 			Help: "How many HTTP requests with TLS processed on an entrypoint, partitioned by TLS Version and TLS cipher Used.",
 		}, []string{"tls_version", "tls_cipher", "entrypoint"})
-		entryPointReqDurations := newHistogramFrom(promState.collectors, stdprometheus.HistogramOpts{
+		entryPointReqDurations := newHistogramFrom(collectors, stdprometheus.HistogramOpts{
 			Name:    entryPointReqDurationName,
 			Help:    "How long it took to process the request on an entrypoint, partitioned by status code, protocol, and method.",
 			Buckets: buckets,
 		}, []string{"code", "method", "protocol", "entrypoint"})
-		entryPointOpenConns := newGaugeFrom(promState.collectors, stdprometheus.GaugeOpts{
+		entryPointOpenConns := newGaugeFrom(collectors, stdprometheus.GaugeOpts{
 			Name: entryPointOpenConnsName,
 			Help: "How many open connections exist on an entrypoint, partitioned by method and protocol.",
 		}, []string{"method", "protocol", "entrypoint"})
@@ -188,20 +196,20 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 	}
 
 	if config.AddRoutersLabels {
-		routerReqs := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+		routerReqs := newCounterFrom(collectors, stdprometheus.CounterOpts{
 			Name: routerReqsTotalName,
 			Help: "How many HTTP requests are processed on a router, partitioned by service, status code, protocol, and method.",
 		}, []string{"code", "method", "protocol", "router", "service"})
-		routerReqsTLS := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+		routerReqsTLS := newCounterFrom(collectors, stdprometheus.CounterOpts{
 			Name: routerReqsTLSTotalName,
 			Help: "How many HTTP requests with TLS are processed on a router, partitioned by service, TLS Version, and TLS cipher Used.",
 		}, []string{"tls_version", "tls_cipher", "router", "service"})
-		routerReqDurations := newHistogramFrom(promState.collectors, stdprometheus.HistogramOpts{
+		routerReqDurations := newHistogramFrom(collectors, stdprometheus.HistogramOpts{
 			Name:    routerReqDurationName,
 			Help:    "How long it took to process the request on a router, partitioned by service, status code, protocol, and method.",
 			Buckets: buckets,
 		}, []string{"code", "method", "protocol", "router", "service"})
-		routerOpenConns := newGaugeFrom(promState.collectors, stdprometheus.GaugeOpts{
+		routerOpenConns := newGaugeFrom(collectors, stdprometheus.GaugeOpts{
 			Name: routerOpenConnsName,
 			Help: "How many open connections exist on a router, partitioned by service, method, and protocol.",
 		}, []string{"method", "protocol", "router", "service"})
@@ -219,28 +227,28 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 	}
 
 	if config.AddServicesLabels {
-		serviceReqs := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+		serviceReqs := newCounterFrom(collectors, stdprometheus.CounterOpts{
 			Name: serviceReqsTotalName,
 			Help: "How many HTTP requests processed on a service, partitioned by status code, protocol, and method.",
 		}, []string{"code", "method", "protocol", "service"})
-		serviceReqsTLS := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+		serviceReqsTLS := newCounterFrom(collectors, stdprometheus.CounterOpts{
 			Name: serviceReqsTLSTotalName,
 			Help: "How many HTTP requests with TLS processed on a service, partitioned by TLS version and TLS cipher.",
 		}, []string{"tls_version", "tls_cipher", "service"})
-		serviceReqDurations := newHistogramFrom(promState.collectors, stdprometheus.HistogramOpts{
+		serviceReqDurations := newHistogramFrom(collectors, stdprometheus.HistogramOpts{
 			Name:    serviceReqDurationName,
 			Help:    "How long it took to process the request on a service, partitioned by status code, protocol, and method.",
 			Buckets: buckets,
 		}, []string{"code", "method", "protocol", "service"})
-		serviceOpenConns := newGaugeFrom(promState.collectors, stdprometheus.GaugeOpts{
+		serviceOpenConns := newGaugeFrom(collectors, stdprometheus.GaugeOpts{
 			Name: serviceOpenConnsName,
 			Help: "How many open connections exist on a service, partitioned by method and protocol.",
 		}, []string{"method", "protocol", "service"})
-		serviceRetries := newCounterFrom(promState.collectors, stdprometheus.CounterOpts{
+		serviceRetries := newCounterFrom(collectors, stdprometheus.CounterOpts{
 			Name: serviceRetriesTotalName,
 			Help: "How many request retries happened on a service.",
 		}, []string{"service"})
-		serviceServerUp := newGaugeFrom(promState.collectors, stdprometheus.GaugeOpts{
+		serviceServerUp := newGaugeFrom(collectors, stdprometheus.GaugeOpts{
 			Name: serviceServerUpName,
 			Help: "service server is up, described by gauge value of 0 or 1.",
 		}, []string{"service", "url"})
@@ -311,7 +319,7 @@ func OnConfigurationUpdate(conf dynamic.Configuration, entryPoints []string) {
 
 func newPrometheusState() *prometheusState {
 	return &prometheusState{
-		collectors:    make(chan *collector),
+		collectors:    make(chan *collector, 1000),
 		dynamicConfig: newDynamicConfig(),
 		state:         make(map[string]*collector),
 	}
