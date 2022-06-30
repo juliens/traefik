@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -145,11 +146,11 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 	}, []string{"cn", "serial", "sans"})
 
 	promState.describers = []func(chan<- *stdprometheus.Desc){
-		configReloads.cv.Describe,
-		configReloadsFailures.cv.Describe,
-		lastConfigReloadSuccess.gv.Describe,
-		lastConfigReloadFailure.gv.Describe,
-		tlsCertsNotAfterTimestamp.gv.Describe,
+		configReloads.cv.cv.Describe,
+		configReloadsFailures.cv.cv.Describe,
+		lastConfigReloadSuccess.gv.gv.Describe,
+		lastConfigReloadFailure.gv.gv.Describe,
+		tlsCertsNotAfterTimestamp.gv.gv.Describe,
 	}
 
 	reg := &standardRegistry{
@@ -183,10 +184,10 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 		}, []string{"method", "protocol", "entrypoint"})
 
 		promState.describers = append(promState.describers, []func(chan<- *stdprometheus.Desc){
-			entryPointReqs.cv.Describe,
-			entryPointReqsTLS.cv.Describe,
-			entryPointReqDurations.hv.Describe,
-			entryPointOpenConns.gv.Describe,
+			entryPointReqs.cv.cv.Describe,
+			entryPointReqsTLS.cv.cv.Describe,
+			entryPointReqDurations.hv.hv.Describe,
+			entryPointOpenConns.gv.gv.Describe,
 		}...)
 
 		reg.entryPointReqsCounter = entryPointReqs
@@ -215,10 +216,10 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 		}, []string{"method", "protocol", "router", "service"})
 
 		promState.describers = append(promState.describers, []func(chan<- *stdprometheus.Desc){
-			routerReqs.cv.Describe,
-			routerReqsTLS.cv.Describe,
-			routerReqDurations.hv.Describe,
-			routerOpenConns.gv.Describe,
+			routerReqs.cv.cv.Describe,
+			routerReqsTLS.cv.cv.Describe,
+			routerReqDurations.hv.hv.Describe,
+			routerOpenConns.gv.gv.Describe,
 		}...)
 		reg.routerReqsCounter = routerReqs
 		reg.routerReqsTLSCounter = routerReqsTLS
@@ -254,12 +255,12 @@ func initStandardRegistry(config *types.Prometheus) Registry {
 		}, []string{"service", "url"})
 
 		promState.describers = append(promState.describers, []func(chan<- *stdprometheus.Desc){
-			serviceReqs.cv.Describe,
-			serviceReqsTLS.cv.Describe,
-			serviceReqDurations.hv.Describe,
-			serviceOpenConns.gv.Describe,
-			serviceRetries.cv.Describe,
-			serviceServerUp.gv.Describe,
+			serviceReqs.cv.cv.Describe,
+			serviceReqsTLS.cv.cv.Describe,
+			serviceReqDurations.hv.hv.Describe,
+			serviceOpenConns.gv.gv.Describe,
+			serviceRetries.cv.cv.Describe,
+			serviceServerUp.gv.gv.Describe,
 		}...)
 
 		reg.serviceReqsCounter = serviceReqs
@@ -332,6 +333,9 @@ type prometheusState struct {
 	mtx           sync.Mutex
 	dynamicConfig *dynamicConfig
 	state         map[string]*collector
+	cv            []*counterVec
+	gv            []*GaugeVec
+	hv            []*HistoVec
 }
 
 func (ps *prometheusState) SetDynamicConfig(dynamicConfig *dynamicConfig) {
@@ -343,8 +347,8 @@ func (ps *prometheusState) SetDynamicConfig(dynamicConfig *dynamicConfig) {
 func (ps *prometheusState) ListenValueUpdates() {
 	for collector := range ps.collectors {
 		ps.mtx.Lock()
-		id := buildMetricID(collector.metricsName, collector.labels)
-		ps.state[id] = collector
+		fmt.Println("??????")
+		ps.state[collector.id] = collector
 		ps.mtx.Unlock()
 	}
 }
@@ -366,18 +370,15 @@ func (ps *prometheusState) Collect(ch chan<- stdprometheus.Metric) {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 
-	var outdatedKeys []string
-	for key, cs := range ps.state {
-		cs.collector.Collect(ch)
-
-		if ps.isOutdated(cs) {
-			outdatedKeys = append(outdatedKeys, key)
-		}
+	// var outdatedKeys []string
+	for _, vec := range ps.cv {
+		vec.cv.Collect(ch)
 	}
-
-	for _, key := range outdatedKeys {
-		ps.state[key].delete()
-		delete(ps.state, key)
+	for _, vec := range ps.gv {
+		vec.gv.Collect(ch)
+	}
+	for _, vec := range ps.hv {
+		vec.hv.Collect(ch)
 	}
 }
 
@@ -470,6 +471,11 @@ type collector struct {
 	delete      func()
 }
 
+func buildMetricIDNew(metricName string, labels []string) string {
+	sort.Strings(labels)
+	return metricName + ":" + strings.Join(labels, "|")
+}
+
 func buildMetricID(metricName string, labels stdprometheus.Labels) string {
 	var labelNamesValues []string
 	for name, value := range labels {
@@ -479,13 +485,19 @@ func buildMetricID(metricName string, labels stdprometheus.Labels) string {
 	return metricName + ":" + strings.Join(labelNamesValues, "|")
 }
 
+type counterVec struct {
+	cv       *stdprometheus.CounterVec
+	counters map[string]*counter
+}
+
 func newCounterFrom(collectors chan<- *collector, opts stdprometheus.CounterOpts, labelNames []string) *counter {
 	cv := stdprometheus.NewCounterVec(opts, labelNames)
 	c := &counter{
 		name:       opts.Name,
-		cv:         cv,
+		cv:         &counterVec{cv: cv, counters: make(map[string]*counter)},
 		collectors: collectors,
 	}
+	promState.cv = append(promState.cv, c.cv)
 	if len(labelNames) == 0 {
 		c.Add(0)
 	}
@@ -494,123 +506,161 @@ func newCounterFrom(collectors chan<- *collector, opts stdprometheus.CounterOpts
 
 type counter struct {
 	name             string
-	cv               *stdprometheus.CounterVec
+	cv               *counterVec
 	labelNamesValues labelNamesValues
 	collectors       chan<- *collector
+	collector        stdprometheus.Counter
 }
 
 func (c *counter) With(labelValues ...string) metrics.Counter {
-	return &counter{
+	id := buildMetricIDNew(c.name, append([]string(c.labelNamesValues), labelValues...))
+	count, ok := c.cv.counters[id]
+	if ok {
+		return count
+	}
+	labs := c.labelNamesValues.With(labelValues...)
+	labels := labs.ToLabels()
+	collector := c.cv.cv.With(labels)
+
+	count = &counter{
 		name:             c.name,
 		cv:               c.cv,
-		labelNamesValues: c.labelNamesValues.With(labelValues...),
+		labelNamesValues: labs,
 		collectors:       c.collectors,
+		collector:        collector,
 	}
+	c.cv.counters[id] = count
+	return count
 }
 
 func (c *counter) Add(delta float64) {
-	labels := c.labelNamesValues.ToLabels()
-	collector := c.cv.With(labels)
-	collector.Add(delta)
-	c.collectors <- newCollector(c.name, labels, collector, func() {
-		c.cv.Delete(labels)
-	})
+	if c.collector == nil {
+		c.With().Add(delta)
+	} else {
+		c.collector.Add(delta)
+	}
 }
 
 func (c *counter) Describe(ch chan<- *stdprometheus.Desc) {
-	c.cv.Describe(ch)
+	c.cv.cv.Describe(ch)
 }
 
 func newGaugeFrom(collectors chan<- *collector, opts stdprometheus.GaugeOpts, labelNames []string) *gauge {
 	gv := stdprometheus.NewGaugeVec(opts, labelNames)
 	g := &gauge{
 		name:       opts.Name,
-		gv:         gv,
+		gv:         &GaugeVec{gv: gv, gauges: make(map[string]*gauge)},
 		collectors: collectors,
 	}
+	promState.gv = append(promState.gv, g.gv)
 	if len(labelNames) == 0 {
-		g.Set(0)
+		g.With().Set(0)
 	}
 	return g
 }
 
+type GaugeVec struct {
+	gv     *stdprometheus.GaugeVec
+	gauges map[string]*gauge
+}
+
 type gauge struct {
 	name             string
-	gv               *stdprometheus.GaugeVec
+	gv               *GaugeVec
 	labelNamesValues labelNamesValues
 	collectors       chan<- *collector
+	collector        stdprometheus.Gauge
 }
 
 func (g *gauge) With(labelValues ...string) metrics.Gauge {
-	return &gauge{
+	id := buildMetricIDNew(g.name, append([]string(g.labelNamesValues), labelValues...))
+	gau, ok := g.gv.gauges[id]
+	if ok {
+		return gau
+	}
+	labs := g.labelNamesValues.With(labelValues...)
+	labels := labs.ToLabels()
+	collector := g.gv.gv.With(labels)
+	gau = &gauge{
 		name:             g.name,
 		gv:               g.gv,
-		labelNamesValues: g.labelNamesValues.With(labelValues...),
+		labelNamesValues: labs,
 		collectors:       g.collectors,
+		collector:        collector,
 	}
+	g.gv.gauges[id] = gau
+	return gau
 }
 
 func (g *gauge) Add(delta float64) {
-	labels := g.labelNamesValues.ToLabels()
-	collector := g.gv.With(labels)
-	collector.Add(delta)
-	g.collectors <- newCollector(g.name, labels, collector, func() {
-		g.gv.Delete(labels)
-	})
+	g.collector.Add(delta)
 }
 
 func (g *gauge) Set(value float64) {
-	labels := g.labelNamesValues.ToLabels()
-	collector := g.gv.With(labels)
-	collector.Set(value)
-	g.collectors <- newCollector(g.name, labels, collector, func() {
-		g.gv.Delete(labels)
-	})
+	if g.collector == nil {
+		g.With().Set(value)
+		return
+	}
+	g.collector.Set(value)
 }
 
 func (g *gauge) Describe(ch chan<- *stdprometheus.Desc) {
-	g.gv.Describe(ch)
+	g.gv.gv.Describe(ch)
+}
+
+type HistoVec struct {
+	hv     *stdprometheus.HistogramVec
+	histos map[string]*histogram
 }
 
 func newHistogramFrom(collectors chan<- *collector, opts stdprometheus.HistogramOpts, labelNames []string) *histogram {
 	hv := stdprometheus.NewHistogramVec(opts, labelNames)
+	vec := &HistoVec{hv: hv, histos: make(map[string]*histogram)}
+	promState.hv = append(promState.hv, vec)
 	return &histogram{
 		name:       opts.Name,
-		hv:         hv,
+		hv:         vec,
 		collectors: collectors,
 	}
 }
 
 type histogram struct {
 	name             string
-	hv               *stdprometheus.HistogramVec
+	hv               *HistoVec
 	labelNamesValues labelNamesValues
 	collectors       chan<- *collector
+	collector        stdprometheus.Observer
 }
 
-func (h *histogram) With(labelValues ...string) metrics.Histogram {
-	return &histogram{
-		name:             h.name,
-		hv:               h.hv,
-		labelNamesValues: h.labelNamesValues.With(labelValues...),
-		collectors:       h.collectors,
+func (g *histogram) With(labelValues ...string) metrics.Histogram {
+	id := buildMetricIDNew(g.name, append([]string(g.labelNamesValues), labelValues...))
+	histogr, ok := g.hv.histos[id]
+	if ok {
+		return histogr
 	}
+
+	labs := g.labelNamesValues.With(labelValues...)
+	labels := labs.ToLabels()
+	collector := g.hv.hv.With(labels)
+	histogr = &histogram{
+		name:             g.name,
+		hv:               g.hv,
+		labelNamesValues: labs,
+		collectors:       g.collectors,
+		collector:        collector,
+	}
+
+	g.hv.histos[id] = histogr
+	return histogr
+
 }
 
 func (h *histogram) Observe(value float64) {
-	labels := h.labelNamesValues.ToLabels()
-	observer := h.hv.With(labels)
-	observer.Observe(value)
-	// Do a type assertion to be sure that prometheus will be able to call the Collect method.
-	if collector, ok := observer.(stdprometheus.Histogram); ok {
-		h.collectors <- newCollector(h.name, labels, collector, func() {
-			h.hv.Delete(labels)
-		})
-	}
+	h.collector.Observe(value)
 }
 
 func (h *histogram) Describe(ch chan<- *stdprometheus.Desc) {
-	h.hv.Describe(ch)
+	h.hv.hv.Describe(ch)
 }
 
 // labelNamesValues is a type alias that provides validation on its With method.
