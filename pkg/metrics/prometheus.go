@@ -319,7 +319,7 @@ func OnConfigurationUpdate(conf dynamic.Configuration, entryPoints []string) {
 
 func newPrometheusState() *prometheusState {
 	return &prometheusState{
-		collectors:    make(chan *collector, 1000),
+		collectors:    make(chan *collector, 100),
 		dynamicConfig: newDynamicConfig(),
 		state:         make(map[string]*collector),
 	}
@@ -343,7 +343,8 @@ func (ps *prometheusState) SetDynamicConfig(dynamicConfig *dynamicConfig) {
 func (ps *prometheusState) ListenValueUpdates() {
 	for collector := range ps.collectors {
 		ps.mtx.Lock()
-		ps.state[collector.id] = collector
+		id := buildMetricID(collector.metricsName, collector.labels)
+		ps.state[id] = collector
 		ps.mtx.Unlock()
 	}
 }
@@ -450,10 +451,11 @@ func (d *dynamicConfig) hasServerURL(serviceName, serverURL string) bool {
 
 func newCollector(metricName string, labels stdprometheus.Labels, c stdprometheus.Collector, deleteFn func()) *collector {
 	return &collector{
-		id:        buildMetricID(metricName, labels),
-		labels:    labels,
-		collector: c,
-		delete:    deleteFn,
+		// id:          buildMetricID(metricName, labels),
+		metricsName: metricName,
+		labels:      labels,
+		collector:   c,
+		delete:      deleteFn,
 	}
 }
 
@@ -461,10 +463,11 @@ func newCollector(metricName string, labels stdprometheus.Labels, c stdprometheu
 // It adds information on how many generations this metric should be present
 // in the /metrics output, relative to the time it was last tracked.
 type collector struct {
-	id        string
-	labels    stdprometheus.Labels
-	collector stdprometheus.Collector
-	delete    func()
+	id          string
+	metricsName string
+	labels      stdprometheus.Labels
+	collector   stdprometheus.Collector
+	delete      func()
 }
 
 func buildMetricID(metricName string, labels stdprometheus.Labels) string {
