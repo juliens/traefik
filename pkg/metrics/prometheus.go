@@ -319,7 +319,7 @@ func OnConfigurationUpdate(conf dynamic.Configuration, entryPoints []string) {
 
 func newPrometheusState() *prometheusState {
 	return &prometheusState{
-		collectors:    make(chan *collector, 100),
+		collectors:    make(chan *collector, 1000),
 		dynamicConfig: newDynamicConfig(),
 		state:         make(map[string]*collector),
 	}
