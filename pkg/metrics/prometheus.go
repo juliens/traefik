@@ -501,9 +501,11 @@ func (c *counter) Add(delta float64) {
 	labels := c.labelNamesValues.ToLabels()
 	collector := c.cv.With(labels)
 	collector.Add(delta)
-	c.collectors <- newCollector(c.name, labels, collector, func() {
-		c.cv.Delete(labels)
-	})
+	go func() {
+		c.collectors <- newCollector(c.name, labels, collector, func() {
+			c.cv.Delete(labels)
+		})
+	}()
 }
 
 func (c *counter) Describe(ch chan<- *stdprometheus.Desc) {
@@ -543,18 +545,22 @@ func (g *gauge) Add(delta float64) {
 	labels := g.labelNamesValues.ToLabels()
 	collector := g.gv.With(labels)
 	collector.Add(delta)
-	g.collectors <- newCollector(g.name, labels, collector, func() {
-		g.gv.Delete(labels)
-	})
+	go func() {
+		g.collectors <- newCollector(g.name, labels, collector, func() {
+			g.gv.Delete(labels)
+		})
+	}()
 }
 
 func (g *gauge) Set(value float64) {
 	labels := g.labelNamesValues.ToLabels()
 	collector := g.gv.With(labels)
 	collector.Set(value)
-	g.collectors <- newCollector(g.name, labels, collector, func() {
-		g.gv.Delete(labels)
-	})
+	go func() {
+		g.collectors <- newCollector(g.name, labels, collector, func() {
+			g.gv.Delete(labels)
+		})
+	}()
 }
 
 func (g *gauge) Describe(ch chan<- *stdprometheus.Desc) {
@@ -592,9 +598,11 @@ func (h *histogram) Observe(value float64) {
 	observer.Observe(value)
 	// Do a type assertion to be sure that prometheus will be able to call the Collect method.
 	if collector, ok := observer.(stdprometheus.Histogram); ok {
-		h.collectors <- newCollector(h.name, labels, collector, func() {
-			h.hv.Delete(labels)
-		})
+		go func() {
+			h.collectors <- newCollector(h.name, labels, collector, func() {
+				h.hv.Delete(labels)
+			})
+		}()
 	}
 }
 
