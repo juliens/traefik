@@ -67,29 +67,16 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 			// some servers need Sec-WebSocket-Key, Sec-WebSocket-Extensions, Sec-WebSocket-Accept,
 			// Sec-WebSocket-Protocol and Sec-WebSocket-Version to be case-sensitive.
 			// https://tools.ietf.org/html/rfc6455#page-20
-			val, ok := outReq.Header["Sec-Websocket-Key"]
-			if ok {
-				outReq.Header["Sec-WebSocket-Key"] = val
+			if isWebSocketUpgrade(outReq) {
+				outReq.Header["Sec-WebSocket-Key"] = outReq.Header["Sec-Websocket-Key"]
+				outReq.Header["Sec-WebSocket-Extensions"] = outReq.Header["Sec-Websocket-Extensions"]
+				outReq.Header["Sec-WebSocket-Accept"] = outReq.Header["Sec-Websocket-Accept"]
+				outReq.Header["Sec-WebSocket-Protocol"] = outReq.Header["Sec-Websocket-Protocol"]
+				outReq.Header["Sec-WebSocket-Version"] = outReq.Header["Sec-Websocket-Version"]
 				delete(outReq.Header, "Sec-Websocket-Key")
-			}
-			val, ok = outReq.Header["Sec-Websocket-Extensions"]
-			if ok {
-				outReq.Header["Sec-WebSocket-Extensions"] = val
 				delete(outReq.Header, "Sec-Websocket-Extensions")
-			}
-			val, ok = outReq.Header["Sec-Websocket-Accept"]
-			if ok {
-				outReq.Header["Sec-WebSocket-Accept"] = val
 				delete(outReq.Header, "Sec-Websocket-Accept")
-			}
-			val, ok = outReq.Header["Sec-Websocket-Protocol"]
-			if ok {
-				outReq.Header["Sec-WebSocket-Protocol"] = val
 				delete(outReq.Header, "Sec-Websocket-Protocol")
-			}
-			val, ok = outReq.Header["Sec-Websocket-Version"]
-			if ok {
-				outReq.Header["Sec-WebSocket-Version"] = val
 				delete(outReq.Header, "Sec-Websocket-Version")
 			}
 
