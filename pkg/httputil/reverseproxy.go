@@ -322,6 +322,9 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	res.Header.VisitAllTrailer(func(key []byte) {
 		rw.Header().Set(string(key), string(res.Header.Peek(string(key))))
 	})
+
+	fasthttp.ReleaseRequest(freq)
+	fasthttp.ReleaseResponse(res)
 }
 
 var inOurTests bool // whether we're in our own tests
