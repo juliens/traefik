@@ -5,15 +5,18 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
 	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
+	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http2"
 )
 
@@ -82,8 +85,75 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 	r.configs = newConfigs
 }
 
+type FastHTTPTransport struct {
+	client *fasthttp.Client
+}
+
+var hopHeaders = []string{
+	"Connection",
+	"Proxy-Connection", // non-standard but still sent by libcurl and rejected by e.g. google
+	"Keep-Alive",
+	"Proxy-Authenticate",
+	"Proxy-Authorization",
+	"Te",      // canonicalized version of "TE"
+	"Trailer", // not Trailers per URL above; https://www.rfc-editor.org/errata_search.php?eid=4522
+	"Transfer-Encoding",
+	"Upgrade",
+}
+
+func (f *FastHTTPTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+
+	req.Header.Set("FastHTTP", "enable")
+	req.Header.SetHost(request.Host)
+	req.SetRequestURI(request.URL.RequestURI())
+	req.SetHost(request.URL.Host)
+
+	for k, v := range request.Header {
+		req.Header.Set(k, strings.Join(v, ", "))
+	}
+
+	req.SetBodyStream(request.Body, int(request.ContentLength))
+
+	req.Header.SetMethod(request.Method)
+
+	err := f.client.Do(req, res)
+	if err != nil {
+		log.FromContext(request.Context()).Error(err)
+		return nil, err
+	}
+
+	resp := &http.Response{
+		Header: map[string][]string{},
+	}
+	res.Header.VisitAll(func(key, value []byte) {
+		resp.Header.Set(string(key), string(value))
+	})
+
+	resp.StatusCode = res.StatusCode()
+	reader, writer := io.Pipe()
+	resp.Body = reader
+
+	res.BodyWriter()
+	go func() {
+		res.BodyWriteTo(writer)
+		writer.Close()
+	}()
+
+	res.Header.VisitAllTrailer(func(key []byte) {
+		resp.Header.Set(string(key), string(res.Header.Peek(string(key))))
+	})
+	return resp, nil
+}
+
 // Get get a roundtripper by name.
 func (r *RoundTripperManager) Get(name string) (http.RoundTripper, error) {
+
+	return &FastHTTPTransport{client: &fasthttp.Client{
+		ReadBufferSize:  64 * 1024,
+		WriteBufferSize: 64 * 1024,
+	}}, nil
+
 	if len(name) == 0 {
 		name = "default@internal"
 	}
