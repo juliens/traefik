@@ -309,7 +309,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	freq.Header.Set("FastHTTP", "enable-new")
 	freq.Header.SetHost(req.Host)
-	freq.SetRequestURI(req.URL.RequestURI())
+	freq.SetRequestURI(req.RequestURI)
 	freq.SetHost(req.URL.Host)
 
 	for k, v := range req.Header {
