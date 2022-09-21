@@ -282,13 +282,13 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// 	return
 	// }
 
-	resp := &http.Response{Header: map[string][]string{}}
+	// resp := &http.Response{Header: map[string][]string{}}
 
 	res.Header.VisitAll(func(key, value []byte) {
-		resp.Header.Set(string(key), string(value))
+		rw.Header().Set(string(key), string(value))
 	})
 
-	copyHeader(rw.Header(), resp.Header)
+	// copyHeader(rw.Header(), resp.Header)
 
 	// The "Trailer" header isn't included in the Transport's response,
 	// at least for *http.Transport. Build it up from Trailer.
