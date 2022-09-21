@@ -14,6 +14,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/httputil"
 	"github.com/traefik/traefik/v2/pkg/log"
+	"golang.org/x/net/http/httpguts"
 	"github.com/valyala/fasthttp"
 )
 
@@ -170,16 +171,18 @@ func buildProxy(passHostHeader *bool, responseForwarding *dynamic.ResponseForwar
 			// some servers need Sec-WebSocket-Key, Sec-WebSocket-Extensions, Sec-WebSocket-Accept,
 			// Sec-WebSocket-Protocol and Sec-WebSocket-Version to be case-sensitive.
 			// https://tools.ietf.org/html/rfc6455#page-20
-			outReq.Header["Sec-WebSocket-Key"] = outReq.Header["Sec-Websocket-Key"]
-			outReq.Header["Sec-WebSocket-Extensions"] = outReq.Header["Sec-Websocket-Extensions"]
-			outReq.Header["Sec-WebSocket-Accept"] = outReq.Header["Sec-Websocket-Accept"]
-			outReq.Header["Sec-WebSocket-Protocol"] = outReq.Header["Sec-Websocket-Protocol"]
-			outReq.Header["Sec-WebSocket-Version"] = outReq.Header["Sec-Websocket-Version"]
-			delete(outReq.Header, "Sec-Websocket-Key")
-			delete(outReq.Header, "Sec-Websocket-Extensions")
-			delete(outReq.Header, "Sec-Websocket-Accept")
-			delete(outReq.Header, "Sec-Websocket-Protocol")
-			delete(outReq.Header, "Sec-Websocket-Version")
+			if isWebSocketUpgrade(outReq) {
+				outReq.Header["Sec-WebSocket-Key"] = outReq.Header["Sec-Websocket-Key"]
+				outReq.Header["Sec-WebSocket-Extensions"] = outReq.Header["Sec-Websocket-Extensions"]
+				outReq.Header["Sec-WebSocket-Accept"] = outReq.Header["Sec-Websocket-Accept"]
+				outReq.Header["Sec-WebSocket-Protocol"] = outReq.Header["Sec-Websocket-Protocol"]
+				outReq.Header["Sec-WebSocket-Version"] = outReq.Header["Sec-Websocket-Version"]
+				delete(outReq.Header, "Sec-Websocket-Key")
+				delete(outReq.Header, "Sec-Websocket-Extensions")
+				delete(outReq.Header, "Sec-Websocket-Accept")
+				delete(outReq.Header, "Sec-Websocket-Protocol")
+				delete(outReq.Header, "Sec-Websocket-Version")
+			}
 		},
 		Transport:     roundTripper,
 		FlushInterval: time.Duration(flushInterval),
@@ -213,6 +216,14 @@ func buildProxy(passHostHeader *bool, responseForwarding *dynamic.ResponseForwar
 	}
 
 	return proxy, nil
+}
+
+func isWebSocketUpgrade(req *http.Request) bool {
+	if !httpguts.HeaderValuesContainsToken(req.Header["Connection"], "Upgrade") {
+		return false
+	}
+
+	return strings.EqualFold(req.Header.Get("Upgrade"), "websocket")
 }
 
 func statusText(statusCode int) string {
