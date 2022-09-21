@@ -215,11 +215,6 @@ func (p *ReverseProxy) modifyResponse(rw http.ResponseWriter, res *http.Response
 }
 
 func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	transport := p.Transport
-	if transport == nil {
-		transport = http.DefaultTransport
-	}
-
 	ctx := req.Context()
 	if ctx.Done() != nil {
 		// CloseNotifier predates context.Context, and has been
@@ -312,7 +307,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	freq, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
 
-	freq.Header.Set("FastHTTP", "enable")
+	freq.Header.Set("FastHTTP", "enable-new")
 	freq.Header.SetHost(req.Host)
 	freq.SetRequestURI(req.URL.RequestURI())
 	freq.SetHost(req.URL.Host)
