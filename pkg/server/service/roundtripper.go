@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"reflect"
@@ -101,6 +100,20 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
+type Temp struct {
+	Response *fasthttp.Response
+}
+
+func (t *Temp) Read(p []byte) (n int, err error) {
+	body := t.Response.Body()
+	copy(p, body)
+	return len(body), nil
+}
+
+func (t *Temp) Close() error {
+	return nil
+}
+
 func (f *FastHTTPTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
 
@@ -131,14 +144,10 @@ func (f *FastHTTPTransport) RoundTrip(request *http.Request) (*http.Response, er
 	})
 
 	resp.StatusCode = res.StatusCode()
-	reader, writer := io.Pipe()
-	resp.Body = reader
 
-	res.BodyWriter()
-	go func() {
-		res.BodyWriteTo(writer)
-		writer.Close()
-	}()
+	resp.Body = &Temp{
+		Response: res,
+	}
 
 	res.Header.VisitAllTrailer(func(key []byte) {
 		resp.Header.Set(string(key), string(res.Header.Peek(string(key))))
