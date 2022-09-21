@@ -43,17 +43,17 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 	proxy := &httputil.ReverseProxy{
 		Director: func(outReq *http.Request) {
 			u := outReq.URL
-			// if outReq.RequestURI != "" {
-			// 	parsedURL, err := url.ParseRequestURI(outReq.RequestURI)
-			// 	if err == nil {
-			// 		u = parsedURL
-			// 	}
-			// }
+			if outReq.RequestURI != "" {
+				parsedURL, err := url.ParseRequestURI(outReq.RequestURI)
+				if err == nil {
+					u = parsedURL
+				}
+			}
 
 			outReq.URL.Path = u.Path
 			outReq.URL.RawPath = u.RawPath
 			outReq.URL.RawQuery = strings.ReplaceAll(u.RawQuery, ";", "&")
-			// outReq.RequestURI = "" // Outgoing request should not have RequestURI
+			outReq.RequestURI = "" // Outgoing request should not have RequestURI
 
 			outReq.Proto = "HTTP/1.1"
 			outReq.ProtoMajor = 1
