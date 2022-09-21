@@ -19,9 +19,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/traefik/traefik/v2/pkg/metrics"
 	"github.com/traefik/traefik/v2/pkg/middlewares/accesslog"
-	"github.com/traefik/traefik/v2/pkg/middlewares/emptybackendhandler"
 	metricsMiddle "github.com/traefik/traefik/v2/pkg/middlewares/metrics"
-	"github.com/traefik/traefik/v2/pkg/middlewares/pipelining"
 	"github.com/traefik/traefik/v2/pkg/safe"
 	"github.com/traefik/traefik/v2/pkg/server/cookie"
 	"github.com/traefik/traefik/v2/pkg/server/provider"
@@ -259,21 +257,21 @@ func (m *Manager) getWRRServiceHandler(ctx context.Context, serviceName string, 
 }
 
 func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName string, service *dynamic.ServersLoadBalancer) (http.Handler, error) {
-	if service.PassHostHeader == nil {
-		defaultPassHostHeader := true
-		service.PassHostHeader = &defaultPassHostHeader
-	}
-
 	if len(service.ServersTransport) > 0 {
 		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
 	}
 
-	roundTripper, err := m.roundTripperManager.Get(service.ServersTransport)
+	fwd, err := newFastHTTPReverseProxy(&fasthttp.Client{
+		ReadBufferSize:                64 * 1024,
+		WriteBufferSize:               64 * 1024,
+		DisableHeaderNamesNormalizing: true,
+		DisablePathNormalizing:        true,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	fwd, err := buildProxy(service.PassHostHeader, service.ResponseForwarding, roundTripper, m.bufferPool)
+	balancer, err := m.getLoadBalancer(ctx, serviceName, fwd, service.Sticky, service.HealthCheck, service.Servers)
 	if err != nil {
 		return nil, err
 	}
@@ -281,26 +279,13 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 	alHandler := func(next http.Handler) (http.Handler, error) {
 		return accesslog.NewFieldHandler(next, accesslog.ServiceName, serviceName, accesslog.AddServiceFields), nil
 	}
+
 	chain := alice.New()
 	if m.metricsRegistry != nil && m.metricsRegistry.IsSvcEnabled() {
 		chain = chain.Append(metricsMiddle.WrapServiceHandler(ctx, m.metricsRegistry, serviceName))
 	}
 
-	handler, err := chain.Append(alHandler).Then(pipelining.New(ctx, fwd, "pipelining"))
-	if err != nil {
-		return nil, err
-	}
-
-	balancer, err := m.getLoadBalancer(ctx, serviceName, handler, service.Sticky, service.HealthCheck, service.Servers)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO rename and checks
-	m.balancers[serviceName] = append(m.balancers[serviceName], balancer)
-
-	// Empty (backend with no servers)
-	return emptybackendhandler.New(balancer), nil
+	return chain.Append(alHandler).Then(balancer)
 }
 
 type HostClientWrapper struct {
