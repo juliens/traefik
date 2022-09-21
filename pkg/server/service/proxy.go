@@ -65,11 +65,16 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 			// some servers need Sec-WebSocket-Key, Sec-WebSocket-Extensions, Sec-WebSocket-Accept,
 			// Sec-WebSocket-Protocol and Sec-WebSocket-Version to be case-sensitive.
 			// https://tools.ietf.org/html/rfc6455#page-20
-			outReq.Header["Sec-WebSocket-Key"] = outReq.Header["Sec-Websocket-Key"]
-			outReq.Header["Sec-WebSocket-Extensions"] = outReq.Header["Sec-Websocket-Extensions"]
-			outReq.Header["Sec-WebSocket-Accept"] = outReq.Header["Sec-Websocket-Accept"]
-			outReq.Header["Sec-WebSocket-Protocol"] = outReq.Header["Sec-Websocket-Protocol"]
-			outReq.Header["Sec-WebSocket-Version"] = outReq.Header["Sec-Websocket-Version"]
+			val := outReq.Header["Sec-Websocket-Key"]
+			outReq.Header["Sec-WebSocket-Key"] = val
+			val = outReq.Header["Sec-Websocket-Extensions"]
+			outReq.Header["Sec-WebSocket-Extensions"] = val
+			val = outReq.Header["Sec-Websocket-Accept"]
+			outReq.Header["Sec-WebSocket-Accept"] = val
+			val = outReq.Header["Sec-Websocket-Protocol"]
+			outReq.Header["Sec-WebSocket-Protocol"] = val
+			val = outReq.Header["Sec-Websocket-Version"]
+			outReq.Header["Sec-WebSocket-Version"] = val
 			// delete(outReq.Header, "Sec-Websocket-Key")
 			// delete(outReq.Header, "Sec-Websocket-Extensions")
 			// delete(outReq.Header, "Sec-Websocket-Accept")
