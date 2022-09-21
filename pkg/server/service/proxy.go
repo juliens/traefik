@@ -67,33 +67,30 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 			// https://tools.ietf.org/html/rfc6455#page-20
 			val, ok := outReq.Header["Sec-Websocket-Key"]
 			if ok {
-
 				outReq.Header["Sec-WebSocket-Key"] = val
+				delete(outReq.Header, "Sec-Websocket-Key")
 			}
 			val, ok = outReq.Header["Sec-Websocket-Extensions"]
 			if ok {
-
 				outReq.Header["Sec-WebSocket-Extensions"] = val
+				delete(outReq.Header, "Sec-Websocket-Extensions")
 			}
 			val, ok = outReq.Header["Sec-Websocket-Accept"]
 			if ok {
-
 				outReq.Header["Sec-WebSocket-Accept"] = val
+				delete(outReq.Header, "Sec-Websocket-Accept")
 			}
 			val, ok = outReq.Header["Sec-Websocket-Protocol"]
 			if ok {
-
 				outReq.Header["Sec-WebSocket-Protocol"] = val
+				delete(outReq.Header, "Sec-Websocket-Protocol")
 			}
 			val, ok = outReq.Header["Sec-Websocket-Version"]
 			if ok {
 				outReq.Header["Sec-WebSocket-Version"] = val
+				delete(outReq.Header, "Sec-Websocket-Version")
 			}
-			// delete(outReq.Header, "Sec-Websocket-Key")
-			// delete(outReq.Header, "Sec-Websocket-Extensions")
-			// delete(outReq.Header, "Sec-Websocket-Accept")
-			// delete(outReq.Header, "Sec-Websocket-Protocol")
-			// delete(outReq.Header, "Sec-Websocket-Version")
+
 		},
 		Transport:     http.DefaultTransport,
 		FlushInterval: time.Duration(flushInterval),
