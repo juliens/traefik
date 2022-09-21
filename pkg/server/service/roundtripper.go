@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -151,9 +152,7 @@ func (f *FastHTTPTransport) RoundTrip(request *http.Request) (*http.Response, er
 
 	resp.StatusCode = res.StatusCode()
 
-	resp.Body = &Temp{
-		Response: res,
-	}
+	resp.Body = io.NopCloser(bytes.NewReader(res.Body()))
 
 	res.Header.VisitAllTrailer(func(key []byte) {
 		resp.Header.Set(string(key), string(res.Header.Peek(string(key))))
