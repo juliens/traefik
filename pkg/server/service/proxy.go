@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -14,8 +15,8 @@ import (
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/httputil"
 	"github.com/traefik/traefik/v2/pkg/log"
-	"golang.org/x/net/http/httpguts"
 	"github.com/valyala/fasthttp"
+	"golang.org/x/net/http/httpguts"
 )
 
 // StatusClientClosedRequest non-standard HTTP status code for client disconnection.
@@ -142,17 +143,17 @@ func buildProxy(passHostHeader *bool, responseForwarding *dynamic.ResponseForwar
 	proxy := &httputil.ReverseProxy{
 		Director: func(outReq *http.Request) {
 			u := outReq.URL
-			// if outReq.RequestURI != "" {
-			// 	parsedURL, err := url.ParseRequestURI(outReq.RequestURI)
-			// 	if err == nil {
-			// 		u = parsedURL
-			// 	}
-			// }
+			if outReq.RequestURI != "" {
+				parsedURL, err := url.ParseRequestURI(outReq.RequestURI)
+				if err == nil {
+					u = parsedURL
+				}
+			}
 
 			outReq.URL.Path = u.Path
 			outReq.URL.RawPath = u.RawPath
 			outReq.URL.RawQuery = strings.ReplaceAll(u.RawQuery, ";", "&")
-			// outReq.RequestURI = "" // Outgoing request should not have RequestURI
+			outReq.RequestURI = "" // Outgoing request should not have RequestURI
 
 			outReq.Proto = "HTTP/1.1"
 			outReq.ProtoMajor = 1
