@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"reflect"
@@ -102,9 +103,14 @@ var hopHeaders = []string{
 
 type Temp struct {
 	Response *fasthttp.Response
+	read     bool
 }
 
 func (t *Temp) Read(p []byte) (n int, err error) {
+	if t.read {
+		return 0, io.EOF
+	}
+	t.read = true
 	body := t.Response.Body()
 	copy(p, body)
 	return len(body), nil
