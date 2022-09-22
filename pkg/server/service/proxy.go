@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
+	"net/textproto"
 	"strings"
 	"time"
 
@@ -16,6 +16,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/valyala/fasthttp"
+	"golang.org/x/net/http/httpguts"
 )
 
 // StatusClientClosedRequest non-standard HTTP status code for client disconnection.
@@ -36,20 +37,65 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
+// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
+// See RFC 7230, section 6.1
+func removeConnectionHeaders(h http.Header) {
+	for _, f := range h["Connection"] {
+		for _, sf := range strings.Split(f, ",") {
+			if sf = textproto.TrimString(sf); sf != "" {
+				h.Del(sf)
+			}
+		}
+	}
+}
+
+// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
+// See RFC 7230, section 6.1
+func removeConnectionHeadersFastHTTP(h fasthttp.ResponseHeader) {
+	f := h.Peek(fasthttp.HeaderConnection)
+	for _, sf := range strings.Split(string(f), ",") {
+		if sf = textproto.TrimString(sf); sf != "" {
+			h.Del(sf)
+		}
+	}
+}
+
 func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+		req := fasthttp.AcquireRequest()
+		defer fasthttp.ReleaseRequest(req)
+
+		if request.Body != nil {
+			defer request.Body.Close()
+		}
+
+		// FIXME try to handle websocket
+
+		announcedTrailer := httpguts.HeaderValuesContainsToken(request.Header["Te"], "trailers")
+
+		removeConnectionHeaders(request.Header)
+
 		for _, header := range hopHeaders {
 			request.Header.Del(header)
 		}
-		fasthttp.AcquireURI()
-		req.Header.Set("FastHTTP", "enable")
-		req.Header.SetHost(request.Host)
-		req.SetRequestURI(request.RequestURI)
-		req.SetHost(request.URL.Host)
 
+		if announcedTrailer {
+			req.Header.Set("Te", "trailers")
+		}
+
+		req.Header.Set("FastHTTP", "enabled")
+
+		req.Header.SetHost(request.Host)
+		req.SetHost(request.URL.Host)
+		req.SetRequestURI(request.URL.RequestURI())
+
+		// for k, v := range request.Header {
+		// 	req.Header.Set(k, strings.Join(v, ", "))
+		// }
 		for k, v := range request.Header {
-			req.Header.Set(k, strings.Join(v, ", "))
+			for _, s := range v {
+				req.Header.Add(k, s)
+			}
 		}
 
 		req.SetBodyStream(request.Body, int(request.ContentLength))
@@ -70,21 +116,55 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 			}
 		}
 
+		res := fasthttp.AcquireResponse()
+		defer fasthttp.ReleaseResponse(res)
+
 		err := client.Do(req, res)
 		if err != nil {
+			statusCode := http.StatusInternalServerError
+
+			switch {
+			case errors.Is(err, io.EOF):
+				statusCode = http.StatusBadGateway
+			case errors.Is(err, context.Canceled):
+				statusCode = StatusClientClosedRequest
+			default:
+				var netErr net.Error
+				if errors.As(err, &netErr) {
+					if netErr.Timeout() {
+						statusCode = http.StatusGatewayTimeout
+					} else {
+						statusCode = http.StatusBadGateway
+					}
+				}
+			}
+
+			log.Debugf("'%d %s' caused by: %v", statusCode, statusText(statusCode), err)
+			writer.WriteHeader(statusCode)
+			_, werr := writer.Write([]byte(statusText(statusCode)))
+			if werr != nil {
+				log.Debugf("Error while writing status code", werr)
+			}
 			log.FromContext(request.Context()).Error(err)
 			return
 		}
 
-		// TODO: Remove Connection Headers
+		removeConnectionHeadersFastHTTP(res.Header)
+
 		for _, header := range hopHeaders {
 			res.Header.Del(header)
 		}
+
 		res.Header.VisitAll(func(key, value []byte) {
-			writer.Header().Set(string(key), string(value))
+			// FIXME Add or Set
+			writer.Header().Add(string(key), string(value))
 		})
 
+		// FIXME Trailer
+
 		writer.WriteHeader(res.StatusCode())
+
+		// FIXME test stream
 		res.BodyWriteTo(writer)
 
 		res.Header.VisitAllTrailer(func(key []byte) {
@@ -94,7 +174,7 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 	}), nil
 }
 
-func buildProxy(passHostHeader *bool, responseForwarding *dynamic.ResponseForwarding, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) (http.Handler, error) {
+func buildProxy(responseForwarding *dynamic.ResponseForwarding, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) (http.Handler, error) {
 	var flushInterval ptypes.Duration
 	if responseForwarding != nil {
 		err := flushInterval.Set(responseForwarding.FlushInterval)
@@ -107,48 +187,7 @@ func buildProxy(passHostHeader *bool, responseForwarding *dynamic.ResponseForwar
 	}
 
 	proxy := &httputil.ReverseProxy{
-		Director: func(outReq *http.Request) {
-			u := outReq.URL
-			if outReq.RequestURI != "" {
-				parsedURL, err := url.ParseRequestURI(outReq.RequestURI)
-				if err == nil {
-					u = parsedURL
-				}
-			}
-
-			outReq.URL.Path = u.Path
-			outReq.URL.RawPath = u.RawPath
-			outReq.URL.RawQuery = strings.ReplaceAll(u.RawQuery, ";", "&")
-			outReq.RequestURI = "" // Outgoing request should not have RequestURI
-
-			outReq.Proto = "HTTP/1.1"
-			outReq.ProtoMajor = 1
-			outReq.ProtoMinor = 1
-
-			if _, ok := outReq.Header["User-Agent"]; !ok {
-				outReq.Header.Set("User-Agent", "")
-			}
-
-			// Do not pass client Host header unless optsetter PassHostHeader is set.
-			if passHostHeader != nil && !*passHostHeader {
-				outReq.Host = outReq.URL.Host
-			}
-
-			// Even if the websocket RFC says that headers should be case-insensitive,
-			// some servers need Sec-WebSocket-Key, Sec-WebSocket-Extensions, Sec-WebSocket-Accept,
-			// Sec-WebSocket-Protocol and Sec-WebSocket-Version to be case-sensitive.
-			// https://tools.ietf.org/html/rfc6455#page-20
-			outReq.Header["Sec-WebSocket-Key"] = outReq.Header["Sec-Websocket-Key"]
-			outReq.Header["Sec-WebSocket-Extensions"] = outReq.Header["Sec-Websocket-Extensions"]
-			outReq.Header["Sec-WebSocket-Accept"] = outReq.Header["Sec-Websocket-Accept"]
-			outReq.Header["Sec-WebSocket-Protocol"] = outReq.Header["Sec-Websocket-Protocol"]
-			outReq.Header["Sec-WebSocket-Version"] = outReq.Header["Sec-Websocket-Version"]
-			delete(outReq.Header, "Sec-Websocket-Key")
-			delete(outReq.Header, "Sec-Websocket-Extensions")
-			delete(outReq.Header, "Sec-Websocket-Accept")
-			delete(outReq.Header, "Sec-Websocket-Protocol")
-			delete(outReq.Header, "Sec-Websocket-Version")
-		},
+		Director:      func(outReq *http.Request) {},
 		Transport:     roundTripper,
 		FlushInterval: time.Duration(flushInterval),
 		BufferPool:    bufferPool,
@@ -188,4 +227,12 @@ func statusText(statusCode int) string {
 		return StatusClientClosedRequestText
 	}
 	return http.StatusText(statusCode)
+}
+
+func isWebSocketUpgrade(req *http.Request) bool {
+	if !httpguts.HeaderValuesContainsToken(req.Header["Connection"], "Upgrade") {
+		return false
+	}
+
+	return strings.EqualFold(req.Header.Get("Upgrade"), "websocket")
 }

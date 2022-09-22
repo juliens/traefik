@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/containous/alice"
@@ -44,6 +46,7 @@ const defaultMaxBodySize int64 = -1
 type RoundTripperGetter interface {
 	Get(name string) (http.RoundTripper, error)
 	GetConfig(name string) *dynamic.ServersTransport
+	GetTLSConfig(name string) *tls.Config
 }
 
 type TLSConfigGetter interface {
@@ -265,12 +268,53 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 	var fwd http.Handler
 	var err error
 	serverTransport := m.roundTripperManager.GetConfig(service.ServersTransport)
-	if serverTransport.FastHTTP {
+	if serverTransport.FastHTTP != nil {
+
+		// ignored HTTP/2
+		// serverTransport.ForwardingTimeouts.PingTimeout
+		// serverTransport.ForwardingTimeouts.ReadIdleTimeout
+
+		// ignored
+		// serverTransport.MaxIdleConnsPerHost
+		// serverTransport.ForwardingTimeouts.ResponseHeaderTimeout
+
+		dialer := &net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}
+
+		var maxIdleConnTimeout time.Duration
+		if serverTransport.ForwardingTimeouts != nil {
+			dialer.Timeout = time.Duration(serverTransport.ForwardingTimeouts.DialTimeout)
+			maxIdleConnTimeout = time.Duration(serverTransport.ForwardingTimeouts.IdleConnTimeout)
+		}
+
 		fwd, err = newFastHTTPReverseProxy(&fasthttp.Client{
-			ReadBufferSize:                64 * 1024,
-			WriteBufferSize:               64 * 1024,
+			Dial: func(addr string) (net.Conn, error) {
+				return dialer.Dial("tcp", addr)
+			},
+			TLSConfig:           m.roundTripperManager.GetTLSConfig(service.ServersTransport),
+			MaxIdleConnDuration: maxIdleConnTimeout,
+			ReadBufferSize:      64 * 1024,
+			WriteBufferSize:     64 * 1024,
+
 			DisableHeaderNamesNormalizing: true,
 			DisablePathNormalizing:        true,
+			NoDefaultUserAgentHeader:      false,
+
+			// Ignored until needed
+			Name:               "",
+			DialDualStack:      false,
+			MaxConnsPerHost:    0,
+			MaxConnDuration:    0,
+			ReadTimeout:        0,
+			WriteTimeout:       0,
+			MaxConnWaitTimeout: 0,
+
+			// Replace some middlewares
+			MaxIdemponentCallAttempts: 0,
+			MaxResponseBodySize:       0,
+			RetryIf:                   nil,
 		})
 		if err != nil {
 			return nil, err
@@ -281,21 +325,72 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 			return nil, err
 		}
 
-		fwd, err = buildProxy(service.PassHostHeader, service.ResponseForwarding, roundTripper, m.bufferPool)
+		fwd, err = buildProxy(service.ResponseForwarding, roundTripper, m.bufferPool)
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	chain := alice.New()
+
 	alHandler := func(next http.Handler) (http.Handler, error) {
 		return accesslog.NewFieldHandler(next, accesslog.ServiceName, serviceName, accesslog.AddServiceFields), nil
 	}
-	chain := alice.New()
+
 	if m.metricsRegistry != nil && m.metricsRegistry.IsSvcEnabled() {
 		chain = chain.Append(metricsMiddle.WrapServiceHandler(ctx, m.metricsRegistry, serviceName))
 	}
 
-	handler, err := chain.Append(alHandler).Then(pipelining.New(ctx, fwd, "pipelining"))
+	directorHandler := func(next http.Handler) (http.Handler, error) {
+		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			u := req.URL
+			if req.RequestURI != "" {
+				parsedURL, err := url.ParseRequestURI(req.RequestURI)
+				if err == nil {
+					u = parsedURL
+				}
+			}
+
+			req.URL.Path = u.Path
+			req.URL.RawPath = u.RawPath
+			req.URL.RawQuery = strings.ReplaceAll(u.RawQuery, ";", "&")
+			req.RequestURI = "" // Outgoing request should not have RequestURI
+
+			req.Proto = "HTTP/1.1"
+			req.ProtoMajor = 1
+			req.ProtoMinor = 1
+
+			if _, ok := req.Header["User-Agent"]; !ok {
+				req.Header.Set("User-Agent", "")
+			}
+
+			// Do not pass client Host header unless optsetter PassHostHeader is set.
+			if service.PassHostHeader != nil && !*service.PassHostHeader {
+				req.Host = req.URL.Host
+			}
+
+			// Even if the websocket RFC says that headers should be case-insensitive,
+			// some servers need Sec-WebSocket-Key, Sec-WebSocket-Extensions, Sec-WebSocket-Accept,
+			// Sec-WebSocket-Protocol and Sec-WebSocket-Version to be case-sensitive.
+			// https://tools.ietf.org/html/rfc6455#page-20
+			if isWebSocketUpgrade(req) {
+				req.Header["Sec-WebSocket-Key"] = req.Header["Sec-Websocket-Key"]
+				req.Header["Sec-WebSocket-Extensions"] = req.Header["Sec-Websocket-Extensions"]
+				req.Header["Sec-WebSocket-Accept"] = req.Header["Sec-Websocket-Accept"]
+				req.Header["Sec-WebSocket-Protocol"] = req.Header["Sec-Websocket-Protocol"]
+				req.Header["Sec-WebSocket-Version"] = req.Header["Sec-Websocket-Version"]
+				delete(req.Header, "Sec-Websocket-Key")
+				delete(req.Header, "Sec-Websocket-Extensions")
+				delete(req.Header, "Sec-Websocket-Accept")
+				delete(req.Header, "Sec-Websocket-Protocol")
+				delete(req.Header, "Sec-Websocket-Version")
+			}
+
+			next.ServeHTTP(rw, req)
+		}), nil
+	}
+
+	handler, err := chain.Append(alHandler).Append(directorHandler).Then(pipelining.New(ctx, fwd, "pipelining"))
 	if err != nil {
 		return nil, err
 	}
@@ -310,52 +405,6 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 
 	// Empty (backend with no servers)
 	return emptybackendhandler.New(balancer), nil
-}
-
-type HostClientWrapper struct {
-	*fasthttp.HostClient
-	PassHostHeader bool
-	Scheme         string
-}
-
-func (h *HostClientWrapper) DoDeadline(req *fasthttp.Request, resp *fasthttp.Response, deadline time.Time) error {
-	req.URI().SetScheme(h.Scheme)
-	if !h.PassHostHeader {
-		req.Header.SetHost(h.HostClient.Addr)
-	}
-	return h.HostClient.DoDeadline(req, resp, deadline)
-}
-
-func (m *Manager) getLoadBalancerServiceFastHTTPHandler(ctx context.Context, serviceName string, service *dynamic.FastHTTPLoadBalancer) (http.Handler, error) {
-	if len(service.ServersTransport) > 0 {
-		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
-	}
-
-	fwd, err := newFastHTTPReverseProxy(&fasthttp.Client{
-		ReadBufferSize:                64 * 1024,
-		WriteBufferSize:               64 * 1024,
-		DisableHeaderNamesNormalizing: true,
-		DisablePathNormalizing:        true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	balancer, err := m.getLoadBalancer(ctx, serviceName, fwd, service.Sticky, service.HealthCheck, service.Servers)
-	if err != nil {
-		return nil, err
-	}
-
-	alHandler := func(next http.Handler) (http.Handler, error) {
-		return accesslog.NewFieldHandler(next, accesslog.ServiceName, serviceName, accesslog.AddServiceFields), nil
-	}
-
-	chain := alice.New()
-	if m.metricsRegistry != nil && m.metricsRegistry.IsSvcEnabled() {
-		chain = chain.Append(metricsMiddle.WrapServiceHandler(ctx, m.metricsRegistry, serviceName))
-	}
-
-	return chain.Append(alHandler).Then(balancer)
 }
 
 // LaunchHealthCheck launches the health checks.

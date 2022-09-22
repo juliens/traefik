@@ -271,6 +271,9 @@ type HealthCheck struct{}
 
 // +k8s:deepcopy-gen=true
 
+type FastHTTPConfig struct {
+}
+
 // ServersTransport options to configure communication between Traefik and the servers.
 type ServersTransport struct {
 	ServerName          string                     `description:"ServerName used to contact the server." json:"serverName,omitempty" toml:"serverName,omitempty" yaml:"serverName,omitempty"`
@@ -281,7 +284,7 @@ type ServersTransport struct {
 	ForwardingTimeouts  *ForwardingTimeouts        `description:"Timeouts for requests forwarded to the backend servers." json:"forwardingTimeouts,omitempty" toml:"forwardingTimeouts,omitempty" yaml:"forwardingTimeouts,omitempty" export:"true"`
 	DisableHTTP2        bool                       `description:"Disable HTTP/2 for connections with backend servers." json:"disableHTTP2,omitempty" toml:"disableHTTP2,omitempty" yaml:"disableHTTP2,omitempty" export:"true"`
 	PeerCertURI         string                     `description:"URI used to match against SAN URI during the peer certificate verification." json:"peerCertURI,omitempty" toml:"peerCertURI,omitempty" yaml:"peerCertURI,omitempty" export:"true"`
-	FastHTTP            bool                       `description:"enable fastHTTP." json:"fasthttp,omitempty" toml:"fasthttp,omitempty" yaml:"fasthttp,omitempty" export:"true"`
+	FastHTTP            *FastHTTPConfig            `description:"enable fastHTTP." json:"fasthttp,omitempty" toml:"fasthttp,omitempty" yaml:"fasthttp,omitempty" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true
