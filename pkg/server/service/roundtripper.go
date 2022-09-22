@@ -114,6 +114,17 @@ func (r *RoundTripperManager) GetTLSConfig(name string) *tls.Config {
 	return nil
 }
 
+func (r *RoundTripperManager) GetConfig(name string) *dynamic.ServersTransport {
+	if len(name) == 0 {
+		name = "default@internal"
+	}
+
+	r.rtLock.RLock()
+	defer r.rtLock.RUnlock()
+
+	return r.configs[name]
+}
+
 // createRoundTripper creates an http.RoundTripper configured with the Transport configuration settings.
 // For the settings that can't be configured in Traefik it uses the default http.Transport settings.
 // An exception to this is the MaxIdleConns setting as we only provide the option MaxIdleConnsPerHost in Traefik at this point in time.

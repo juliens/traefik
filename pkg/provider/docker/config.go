@@ -158,12 +158,7 @@ func (p *Provider) buildServiceConfiguration(ctx context.Context, container dock
 	for name, service := range configuration.Services {
 		ctx := log.With(ctx, log.Str(log.ServiceName, name))
 
-		var err error
-		if service.FastHTTPLB != nil {
-			err = p.addServerFastHTTP(ctx, container, service.FastHTTPLB)
-		} else {
-			err = p.addServer(ctx, container, service.LoadBalancer)
-		}
+		err := p.addServer(ctx, container, service.LoadBalancer)
 		if err != nil {
 			return fmt.Errorf("service %q error: %w", name, err)
 		}
@@ -255,39 +250,6 @@ func (p *Provider) addServerUDP(ctx context.Context, container dockerData, loadB
 	}
 
 	loadBalancer.Servers[0].Address = net.JoinHostPort(ip, port)
-	return nil
-}
-
-func (p *Provider) addServerFastHTTP(ctx context.Context, container dockerData, loadBalancer *dynamic.FastHTTPLoadBalancer) error {
-	if loadBalancer == nil {
-		return errors.New("load-balancer is not defined")
-	}
-
-	var serverPort string
-	if len(loadBalancer.Servers) > 0 {
-		serverPort = loadBalancer.Servers[0].Port
-		loadBalancer.Servers[0].Port = ""
-	}
-
-	ip, port, err := p.getIPPort(ctx, container, serverPort)
-	if err != nil {
-		return err
-	}
-
-	if len(loadBalancer.Servers) == 0 {
-		server := dynamic.Server{}
-		server.SetDefaults()
-
-		loadBalancer.Servers = []dynamic.Server{server}
-	}
-
-	if port == "" {
-		return errors.New("port is missing")
-	}
-
-	loadBalancer.Servers[0].URL = fmt.Sprintf("%s://%s", loadBalancer.Servers[0].Scheme, net.JoinHostPort(ip, port))
-	loadBalancer.Servers[0].Scheme = ""
-
 	return nil
 }
 

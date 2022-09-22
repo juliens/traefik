@@ -43,6 +43,7 @@ const defaultMaxBodySize int64 = -1
 // RoundTripperGetter is a roundtripper getter interface.
 type RoundTripperGetter interface {
 	Get(name string) (http.RoundTripper, error)
+	GetConfig(name string) *dynamic.ServersTransport
 }
 
 type TLSConfigGetter interface {
@@ -108,13 +109,6 @@ func (m *Manager) BuildHTTP(rootCtx context.Context, serviceName string) (http.H
 	case conf.LoadBalancer != nil:
 		var err error
 		lb, err = m.getLoadBalancerServiceHandler(ctx, serviceName, conf.LoadBalancer)
-		if err != nil {
-			conf.AddError(err, true)
-			return nil, err
-		}
-	case conf.FastHTTPLB != nil:
-		var err error
-		lb, err = m.getLoadBalancerServiceFastHTTPHandler(ctx, serviceName, conf.FastHTTPLB)
 		if err != nil {
 			conf.AddError(err, true)
 			return nil, err
@@ -268,14 +262,29 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
 	}
 
-	roundTripper, err := m.roundTripperManager.Get(service.ServersTransport)
-	if err != nil {
-		return nil, err
-	}
+	var fwd http.Handler
+	var err error
+	serverTransport := m.roundTripperManager.GetConfig(service.ServersTransport)
+	if serverTransport.FastHTTP {
+		fwd, err = newFastHTTPReverseProxy(&fasthttp.Client{
+			ReadBufferSize:                64 * 1024,
+			WriteBufferSize:               64 * 1024,
+			DisableHeaderNamesNormalizing: true,
+			DisablePathNormalizing:        true,
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		roundTripper, err := m.roundTripperManager.Get(service.ServersTransport)
+		if err != nil {
+			return nil, err
+		}
 
-	fwd, err := buildProxy(service.PassHostHeader, service.ResponseForwarding, roundTripper, m.bufferPool)
-	if err != nil {
-		return nil, err
+		fwd, err = buildProxy(service.PassHostHeader, service.ResponseForwarding, roundTripper, m.bufferPool)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	alHandler := func(next http.Handler) (http.Handler, error) {

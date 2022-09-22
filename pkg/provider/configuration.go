@@ -296,23 +296,6 @@ func AddService(configuration *dynamic.HTTPConfiguration, serviceName string, se
 		}
 	}
 
-	if service.FastHTTPLB != nil {
-		if !configuration.Services[serviceName].FastHTTPLB.Mergeable(service.FastHTTPLB) {
-			return false
-		}
-
-		uniq := map[string]struct{}{}
-		for _, server := range configuration.Services[serviceName].FastHTTPLB.Servers {
-			uniq[server.URL] = struct{}{}
-		}
-
-		for _, server := range service.FastHTTPLB.Servers {
-			if _, ok := uniq[server.URL]; !ok {
-				configuration.Services[serviceName].FastHTTPLB.Servers = append(configuration.Services[serviceName].FastHTTPLB.Servers, server)
-			}
-		}
-	}
-
 	return true
 }
 

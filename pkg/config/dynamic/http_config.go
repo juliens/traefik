@@ -32,11 +32,10 @@ type Model struct {
 
 // Service holds a service configuration (can only be of one type at the same time).
 type Service struct {
-	FastHTTPLB   *FastHTTPLoadBalancer `json:"fasthttplb,omitempty" toml:"fasthttplb,omitempty" yaml:"fasthttplb,omitempty" export:"true"`
-	LoadBalancer *ServersLoadBalancer  `json:"loadBalancer,omitempty" toml:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty" export:"true"`
-	Weighted     *WeightedRoundRobin   `json:"weighted,omitempty" toml:"weighted,omitempty" yaml:"weighted,omitempty" label:"-" export:"true"`
-	Mirroring    *Mirroring            `json:"mirroring,omitempty" toml:"mirroring,omitempty" yaml:"mirroring,omitempty" label:"-" export:"true"`
-	Failover     *Failover             `json:"failover,omitempty" toml:"failover,omitempty" yaml:"failover,omitempty" label:"-" export:"true"`
+	LoadBalancer *ServersLoadBalancer `json:"loadBalancer,omitempty" toml:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty" export:"true"`
+	Weighted     *WeightedRoundRobin  `json:"weighted,omitempty" toml:"weighted,omitempty" yaml:"weighted,omitempty" label:"-" export:"true"`
+	Mirroring    *Mirroring           `json:"mirroring,omitempty" toml:"mirroring,omitempty" yaml:"mirroring,omitempty" label:"-" export:"true"`
+	Failover     *Failover            `json:"failover,omitempty" toml:"failover,omitempty" yaml:"failover,omitempty" label:"-" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -282,6 +281,7 @@ type ServersTransport struct {
 	ForwardingTimeouts  *ForwardingTimeouts        `description:"Timeouts for requests forwarded to the backend servers." json:"forwardingTimeouts,omitempty" toml:"forwardingTimeouts,omitempty" yaml:"forwardingTimeouts,omitempty" export:"true"`
 	DisableHTTP2        bool                       `description:"Disable HTTP/2 for connections with backend servers." json:"disableHTTP2,omitempty" toml:"disableHTTP2,omitempty" yaml:"disableHTTP2,omitempty" export:"true"`
 	PeerCertURI         string                     `description:"URI used to match against SAN URI during the peer certificate verification." json:"peerCertURI,omitempty" toml:"peerCertURI,omitempty" yaml:"peerCertURI,omitempty" export:"true"`
+	FastHTTP            bool                       `description:"enable fastHTTP." json:"fasthttp,omitempty" toml:"fasthttp,omitempty" yaml:"fasthttp,omitempty" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true

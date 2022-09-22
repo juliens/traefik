@@ -320,6 +320,7 @@ func (i *Provider) serverTransport(cfg *dynamic.Configuration) {
 		InsecureSkipVerify:  i.staticCfg.ServersTransport.InsecureSkipVerify,
 		RootCAs:             i.staticCfg.ServersTransport.RootCAs,
 		MaxIdleConnsPerHost: i.staticCfg.ServersTransport.MaxIdleConnsPerHost,
+		FastHTTP:            i.staticCfg.ServersTransport.FastHTTP,
 	}
 
 	if i.staticCfg.ServersTransport.ForwardingTimeouts != nil {
