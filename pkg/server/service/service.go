@@ -2,11 +2,9 @@ package service
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"math/rand"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -30,7 +28,6 @@ import (
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/failover"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/mirror"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/wrr"
-	"github.com/valyala/fasthttp"
 	"github.com/vulcand/oxy/roundrobin"
 	"github.com/vulcand/oxy/roundrobin/stickycookie"
 )
@@ -44,13 +41,8 @@ const defaultMaxBodySize int64 = -1
 
 // RoundTripperGetter is a roundtripper getter interface.
 type RoundTripperGetter interface {
+	GetProxy(name string) (http.Handler, error)
 	Get(name string) (http.RoundTripper, error)
-	GetConfig(name string) *dynamic.ServersTransport
-	GetTLSConfig(name string) *tls.Config
-}
-
-type TLSConfigGetter interface {
-	GetTLSConfig(name string) *tls.Config
 }
 
 // NewManager creates a new Manager.
@@ -265,70 +257,9 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
 	}
 
-	var fwd http.Handler
-	var err error
-	serverTransport := m.roundTripperManager.GetConfig(service.ServersTransport)
-	if serverTransport.FastHTTP != nil {
-
-		// ignored HTTP/2
-		// serverTransport.ForwardingTimeouts.PingTimeout
-		// serverTransport.ForwardingTimeouts.ReadIdleTimeout
-
-		// ignored
-		// serverTransport.MaxIdleConnsPerHost
-		// serverTransport.ForwardingTimeouts.ResponseHeaderTimeout
-
-		dialer := &net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}
-
-		var maxIdleConnTimeout time.Duration
-		if serverTransport.ForwardingTimeouts != nil {
-			dialer.Timeout = time.Duration(serverTransport.ForwardingTimeouts.DialTimeout)
-			maxIdleConnTimeout = time.Duration(serverTransport.ForwardingTimeouts.IdleConnTimeout)
-		}
-
-		fwd, err = newFastHTTPReverseProxy(&fasthttp.Client{
-			Dial: func(addr string) (net.Conn, error) {
-				return dialer.Dial("tcp", addr)
-			},
-			TLSConfig:           m.roundTripperManager.GetTLSConfig(service.ServersTransport),
-			MaxIdleConnDuration: maxIdleConnTimeout,
-			ReadBufferSize:      64 * 1024,
-			WriteBufferSize:     64 * 1024,
-
-			DisableHeaderNamesNormalizing: true,
-			DisablePathNormalizing:        true,
-			NoDefaultUserAgentHeader:      false,
-
-			// Ignored until needed
-			Name:               "",
-			DialDualStack:      false,
-			MaxConnsPerHost:    0,
-			MaxConnDuration:    0,
-			ReadTimeout:        0,
-			WriteTimeout:       0,
-			MaxConnWaitTimeout: 0,
-
-			// Replace some middlewares
-			MaxIdemponentCallAttempts: 0,
-			MaxResponseBodySize:       0,
-			RetryIf:                   nil,
-		})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		roundTripper, err := m.roundTripperManager.Get(service.ServersTransport)
-		if err != nil {
-			return nil, err
-		}
-
-		fwd, err = buildProxy(service.ResponseForwarding, roundTripper, m.bufferPool)
-		if err != nil {
-			return nil, err
-		}
+	fwd, err := m.roundTripperManager.GetProxy(service.ServersTransport)
+	if err != nil {
+		return nil, err
 	}
 
 	chain := alice.New()
@@ -421,6 +352,8 @@ func (m *Manager) LaunchHealthCheck() {
 		if hcOpts == nil {
 			continue
 		}
+
+		// TODO healthCheck transport
 		hcOpts.Transport, _ = m.roundTripperManager.Get(service.ServersTransport)
 		log.FromContext(ctx).Debugf("Setting up healthcheck for service %s with %s", serviceName, *hcOpts)
 

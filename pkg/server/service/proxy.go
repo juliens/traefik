@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	ptypes "github.com/traefik/paerser/types"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http/httpguts"
@@ -37,7 +35,7 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
-func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
+func newFastHTTPReverseProxy(client *fasthttp.Client) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		outReq := fasthttp.AcquireRequest()
 		defer fasthttp.ReleaseRequest(outReq)
@@ -62,9 +60,11 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 
 		outReq.Header.Set("FastHTTP", "enabled")
 
-		outReq.Header.SetHost(request.Host)
-		outReq.SetHost(request.URL.Host)
+		// SetRequestURI must be called before outReq.SetHost because it re-triggers uri parsing.
 		outReq.SetRequestURI(request.URL.RequestURI())
+
+		outReq.SetHost(request.URL.Host)
+		outReq.Header.SetHost(request.Host)
 
 		// for k, v := range request.Header {
 		// 	outReq.Header.Set(k, strings.Join(v, ", "))
@@ -147,17 +147,10 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 		res.Header.VisitAllTrailer(func(key []byte) {
 			writer.Header().Set(string(key), string(res.Header.Peek(string(key))))
 		})
-	}), nil
+	})
 }
 
-func buildProxy(responseForwarding *dynamic.ResponseForwarding, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) (http.Handler, error) {
-	var flushInterval ptypes.Duration
-	if responseForwarding != nil {
-		err := flushInterval.Set(responseForwarding.FlushInterval)
-		if err != nil {
-			return nil, fmt.Errorf("error creating flush interval: %w", err)
-		}
-	}
+func buildProxy(flushInterval ptypes.Duration, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) http.Handler {
 	if flushInterval == 0 {
 		flushInterval = ptypes.Duration(100 * time.Millisecond)
 	}
@@ -195,7 +188,7 @@ func buildProxy(responseForwarding *dynamic.ResponseForwarding, roundTripper htt
 		},
 	}
 
-	return proxy, nil
+	return proxy
 }
 
 func statusText(statusCode int) string {

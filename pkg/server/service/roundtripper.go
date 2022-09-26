@@ -14,6 +14,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
 	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
+	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http2"
 )
 
@@ -26,19 +27,26 @@ func (t *h2cTransportWrapper) RoundTrip(req *http.Request) (*http.Response, erro
 	return t.Transport.RoundTrip(req)
 }
 
+// FIXME rename to proxyManager
 // NewRoundTripperManager creates a new RoundTripperManager.
 func NewRoundTripperManager() *RoundTripperManager {
 	return &RoundTripperManager{
 		roundTrippers: make(map[string]http.RoundTripper),
 		configs:       make(map[string]*dynamic.ServersTransport),
+		proxies:       make(map[string]http.Handler),
+		bufferPool:    newBufferPool(),
 	}
 }
 
 // RoundTripperManager handles roundtripper for the reverse proxy.
 type RoundTripperManager struct {
-	rtLock        sync.RWMutex
-	roundTrippers map[string]http.RoundTripper
-	configs       map[string]*dynamic.ServersTransport
+	rtLock         sync.RWMutex
+	roundTrippers  map[string]http.RoundTripper
+	configs        map[string]*dynamic.ServersTransport
+	fasthttpClient map[string]*fasthttp.Client
+
+	proxies    map[string]http.Handler
+	bufferPool *bufferPool
 }
 
 // Update updates the roundtrippers configurations.
@@ -46,43 +54,67 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 	r.rtLock.Lock()
 	defer r.rtLock.Unlock()
 
-	for configName, config := range r.configs {
-		newConfig, ok := newConfigs[configName]
-		if !ok {
+	for configName := range r.configs {
+		if _, ok := newConfigs[configName]; !ok {
 			delete(r.configs, configName)
 			delete(r.roundTrippers, configName)
-			continue
-		}
-
-		if reflect.DeepEqual(newConfig, config) {
-			continue
-		}
-
-		var err error
-		r.roundTrippers[configName], err = createRoundTripper(newConfig)
-		if err != nil {
-			log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", configName, err)
-			r.roundTrippers[configName] = http.DefaultTransport
+			delete(r.proxies, configName)
 		}
 	}
 
 	for newConfigName, newConfig := range newConfigs {
-		if _, ok := r.configs[newConfigName]; ok {
+		if reflect.DeepEqual(newConfig, r.configs[newConfigName]) {
 			continue
 		}
 
-		var err error
-		r.roundTrippers[newConfigName], err = createRoundTripper(newConfig)
+		transport, err := createRoundTripper(newConfig)
 		if err != nil {
 			log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
-			r.roundTrippers[newConfigName] = http.DefaultTransport
+			transport = http.DefaultTransport
+		}
+		r.roundTrippers[newConfigName] = transport
+
+		if newConfig.FastHTTP == nil {
+			// FIXME Handle flushInterval on serversTransport
+			r.proxies[newConfigName] = buildProxy(0, transport, r.bufferPool)
+		} else {
+			dialer := &net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
+
+			var maxIdleConnTimeout time.Duration
+			if newConfig.ForwardingTimeouts != nil {
+				dialer.Timeout = time.Duration(newConfig.ForwardingTimeouts.DialTimeout)
+				maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
+			}
+
+			tlsConfig, err := createTLSConfig(newConfig)
+			if err != nil {
+				log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
+
+			}
+
+			r.proxies[newConfigName] = newFastHTTPReverseProxy(&fasthttp.Client{
+				Dial: func(addr string) (net.Conn, error) {
+					return dialer.Dial("tcp", addr)
+				},
+
+				TLSConfig:           tlsConfig,
+				MaxIdleConnDuration: maxIdleConnTimeout,
+				ReadBufferSize:      64 * 1024,
+				WriteBufferSize:     64 * 1024,
+
+				DisableHeaderNamesNormalizing: true,
+				DisablePathNormalizing:        true,
+				NoDefaultUserAgentHeader:      false,
+			})
 		}
 	}
 
 	r.configs = newConfigs
 }
 
-// Get get a roundtripper by name.
 func (r *RoundTripperManager) Get(name string) (http.RoundTripper, error) {
 	if len(name) == 0 {
 		name = "default@internal"
@@ -98,7 +130,7 @@ func (r *RoundTripperManager) Get(name string) (http.RoundTripper, error) {
 	return nil, fmt.Errorf("servers transport not found %s", name)
 }
 
-func (r *RoundTripperManager) GetTLSConfig(name string) *tls.Config {
+func (r *RoundTripperManager) GetProxy(name string) (http.Handler, error) {
 	if len(name) == 0 {
 		name = "default@internal"
 	}
@@ -106,23 +138,11 @@ func (r *RoundTripperManager) GetTLSConfig(name string) *tls.Config {
 	r.rtLock.RLock()
 	defer r.rtLock.RUnlock()
 
-	if rt, ok := r.roundTrippers[name]; ok {
-		if srt, ok := rt.(*smartRoundTripper); ok {
-			return srt.http.TLSClientConfig
-		}
-	}
-	return nil
-}
-
-func (r *RoundTripperManager) GetConfig(name string) *dynamic.ServersTransport {
-	if len(name) == 0 {
-		name = "default@internal"
+	if rt, ok := r.proxies[name]; ok {
+		return rt, nil
 	}
 
-	r.rtLock.RLock()
-	defer r.rtLock.RUnlock()
-
-	return r.configs[name]
+	return nil, fmt.Errorf("servers transport not found %s", name)
 }
 
 // createRoundTripper creates an http.RoundTripper configured with the Transport configuration settings.
@@ -159,19 +179,10 @@ func createRoundTripper(cfg *dynamic.ServersTransport) (http.RoundTripper, error
 		transport.IdleConnTimeout = time.Duration(cfg.ForwardingTimeouts.IdleConnTimeout)
 	}
 
-	if cfg.InsecureSkipVerify || len(cfg.RootCAs) > 0 || len(cfg.ServerName) > 0 || len(cfg.Certificates) > 0 || cfg.PeerCertURI != "" {
-		transport.TLSClientConfig = &tls.Config{
-			ServerName:         cfg.ServerName,
-			InsecureSkipVerify: cfg.InsecureSkipVerify,
-			RootCAs:            createRootCACertPool(cfg.RootCAs),
-			Certificates:       cfg.Certificates.GetCertificates(),
-		}
-
-		if cfg.PeerCertURI != "" {
-			transport.TLSClientConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
-				return traefiktls.VerifyPeerCertificate(cfg.PeerCertURI, transport.TLSClientConfig, rawCerts)
-			}
-		}
+	var err error
+	transport.TLSClientConfig, err = createTLSConfig(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	// Return directly HTTP/1.1 transport when HTTP/2 is disabled
@@ -180,6 +191,25 @@ func createRoundTripper(cfg *dynamic.ServersTransport) (http.RoundTripper, error
 	}
 
 	return newSmartRoundTripper(transport, cfg.ForwardingTimeouts)
+}
+
+func createTLSConfig(cfg *dynamic.ServersTransport) (*tls.Config, error) {
+	var tlsConfig *tls.Config
+	if cfg.InsecureSkipVerify || len(cfg.RootCAs) > 0 || len(cfg.ServerName) > 0 || len(cfg.Certificates) > 0 || cfg.PeerCertURI != "" {
+		tlsConfig = &tls.Config{
+			ServerName:         cfg.ServerName,
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            createRootCACertPool(cfg.RootCAs),
+			Certificates:       cfg.Certificates.GetCertificates(),
+		}
+
+		if cfg.PeerCertURI != "" {
+			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
+				return traefiktls.VerifyPeerCertificate(cfg.PeerCertURI, tlsConfig, rawCerts)
+			}
+		}
+	}
+	return tlsConfig, nil
 }
 
 func createRootCACertPool(rootCAs []traefiktls.FileOrContent) *x509.CertPool {
