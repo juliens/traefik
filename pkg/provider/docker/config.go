@@ -157,9 +157,7 @@ func (p *Provider) buildServiceConfiguration(ctx context.Context, container dock
 
 	for name, service := range configuration.Services {
 		ctx := log.With(ctx, log.Str(log.ServiceName, name))
-
-		err := p.addServer(ctx, container, service.LoadBalancer)
-		if err != nil {
+		if err := p.addServer(ctx, container, service.LoadBalancer); err != nil {
 			return fmt.Errorf("service %q error: %w", name, err)
 		}
 	}

@@ -320,7 +320,6 @@ func (i *Provider) serverTransport(cfg *dynamic.Configuration) {
 		InsecureSkipVerify:  i.staticCfg.ServersTransport.InsecureSkipVerify,
 		RootCAs:             i.staticCfg.ServersTransport.RootCAs,
 		MaxIdleConnsPerHost: i.staticCfg.ServersTransport.MaxIdleConnsPerHost,
-		FastHTTP:            i.staticCfg.ServersTransport.FastHTTP,
 	}
 
 	if i.staticCfg.ServersTransport.ForwardingTimeouts != nil {
@@ -329,6 +328,11 @@ func (i *Provider) serverTransport(cfg *dynamic.Configuration) {
 			ResponseHeaderTimeout: i.staticCfg.ServersTransport.ForwardingTimeouts.ResponseHeaderTimeout,
 			IdleConnTimeout:       i.staticCfg.ServersTransport.ForwardingTimeouts.IdleConnTimeout,
 		}
+	}
+
+	// FIXME make sure that all properties are set if we are using an object
+	if i.staticCfg.ServersTransport.FastHTTP != nil {
+		st.FastHTTP = &dynamic.FastHTTPConfig{}
 	}
 
 	cfg.HTTP.ServersTransports["default"] = st

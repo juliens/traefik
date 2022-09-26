@@ -37,33 +37,10 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
-// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
-// See RFC 7230, section 6.1
-func removeConnectionHeaders(h http.Header) {
-	for _, f := range h["Connection"] {
-		for _, sf := range strings.Split(f, ",") {
-			if sf = textproto.TrimString(sf); sf != "" {
-				h.Del(sf)
-			}
-		}
-	}
-}
-
-// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
-// See RFC 7230, section 6.1
-func removeConnectionHeadersFastHTTP(h fasthttp.ResponseHeader) {
-	f := h.Peek(fasthttp.HeaderConnection)
-	for _, sf := range strings.Split(string(f), ",") {
-		if sf = textproto.TrimString(sf); sf != "" {
-			h.Del(sf)
-		}
-	}
-}
-
 func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		req := fasthttp.AcquireRequest()
-		defer fasthttp.ReleaseRequest(req)
+		outReq := fasthttp.AcquireRequest()
+		defer fasthttp.ReleaseRequest(outReq)
 
 		if request.Body != nil {
 			defer request.Body.Close()
@@ -80,27 +57,27 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 		}
 
 		if announcedTrailer {
-			req.Header.Set("Te", "trailers")
+			outReq.Header.Set("Te", "trailers")
 		}
 
-		req.Header.Set("FastHTTP", "enabled")
+		outReq.Header.Set("FastHTTP", "enabled")
 
-		req.Header.SetHost(request.Host)
-		req.SetHost(request.URL.Host)
-		req.SetRequestURI(request.URL.RequestURI())
+		outReq.Header.SetHost(request.Host)
+		outReq.SetHost(request.URL.Host)
+		outReq.SetRequestURI(request.URL.RequestURI())
 
 		// for k, v := range request.Header {
-		// 	req.Header.Set(k, strings.Join(v, ", "))
+		// 	outReq.Header.Set(k, strings.Join(v, ", "))
 		// }
 		for k, v := range request.Header {
 			for _, s := range v {
-				req.Header.Add(k, s)
+				outReq.Header.Add(k, s)
 			}
 		}
 
-		req.SetBodyStream(request.Body, int(request.ContentLength))
+		outReq.SetBodyStream(request.Body, int(request.ContentLength))
 
-		req.Header.SetMethod(request.Method)
+		outReq.Header.SetMethod(request.Method)
 
 		if clientIP, _, err := net.SplitHostPort(request.RemoteAddr); err == nil {
 			// If we aren't the first proxy retain prior
@@ -112,14 +89,14 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 				clientIP = strings.Join(prior, ", ") + ", " + clientIP
 			}
 			if !omit {
-				req.Header.Set("X-Forwarded-For", clientIP)
+				outReq.Header.Set("X-Forwarded-For", clientIP)
 			}
 		}
 
 		res := fasthttp.AcquireResponse()
 		defer fasthttp.ReleaseResponse(res)
 
-		err := client.Do(req, res)
+		err := client.Do(outReq, res)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 
@@ -170,7 +147,6 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) (http.Handler, error) {
 		res.Header.VisitAllTrailer(func(key []byte) {
 			writer.Header().Set(string(key), string(res.Header.Peek(string(key))))
 		})
-
 	}), nil
 }
 
@@ -235,4 +211,27 @@ func isWebSocketUpgrade(req *http.Request) bool {
 	}
 
 	return strings.EqualFold(req.Header.Get("Upgrade"), "websocket")
+}
+
+// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
+// See RFC 7230, section 6.1
+func removeConnectionHeaders(h http.Header) {
+	for _, f := range h["Connection"] {
+		for _, sf := range strings.Split(f, ",") {
+			if sf = textproto.TrimString(sf); sf != "" {
+				h.Del(sf)
+			}
+		}
+	}
+}
+
+// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
+// See RFC 7230, section 6.1
+func removeConnectionHeadersFastHTTP(h fasthttp.ResponseHeader) {
+	f := h.Peek(fasthttp.HeaderConnection)
+	for _, sf := range strings.Split(string(f), ",") {
+		if sf = textproto.TrimString(sf); sf != "" {
+			h.Del(sf)
+		}
+	}
 }

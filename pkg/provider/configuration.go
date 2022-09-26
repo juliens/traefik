@@ -279,20 +279,18 @@ func AddService(configuration *dynamic.HTTPConfiguration, serviceName string, se
 		return true
 	}
 
-	if service.LoadBalancer != nil {
-		if !configuration.Services[serviceName].LoadBalancer.Mergeable(service.LoadBalancer) {
-			return false
-		}
+	if !configuration.Services[serviceName].LoadBalancer.Mergeable(service.LoadBalancer) {
+		return false
+	}
 
-		uniq := map[string]struct{}{}
-		for _, server := range configuration.Services[serviceName].LoadBalancer.Servers {
-			uniq[server.URL] = struct{}{}
-		}
+	uniq := map[string]struct{}{}
+	for _, server := range configuration.Services[serviceName].LoadBalancer.Servers {
+		uniq[server.URL] = struct{}{}
+	}
 
-		for _, server := range service.LoadBalancer.Servers {
-			if _, ok := uniq[server.URL]; !ok {
-				configuration.Services[serviceName].LoadBalancer.Servers = append(configuration.Services[serviceName].LoadBalancer.Servers, server)
-			}
+	for _, server := range service.LoadBalancer.Servers {
+		if _, ok := uniq[server.URL]; !ok {
+			configuration.Services[serviceName].LoadBalancer.Servers = append(configuration.Services[serviceName].LoadBalancer.Servers, server)
 		}
 	}
 
