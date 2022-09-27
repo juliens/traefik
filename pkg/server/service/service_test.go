@@ -67,7 +67,7 @@ func TestGetLoadBalancer(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
-			handler, err := sm.getLoadBalancer(context.Background(), test.serviceName, test.service, test.fwd)
+			handler, err := sm.getLoadBalancer(context.Background(), test.serviceName, test.fwd, test.service.Sticky, test.service.HealthCheck, test.service.Servers)
 			if test.expectError {
 				require.Error(t, err)
 				assert.Nil(t, handler)
@@ -81,8 +81,9 @@ func TestGetLoadBalancer(t *testing.T) {
 
 func TestGetLoadBalancerServiceHandler(t *testing.T) {
 	sm := NewManager(nil, nil, nil, &RoundTripperManager{
-		roundTrippers: map[string]http.RoundTripper{
-			"default@internal": http.DefaultTransport,
+		proxies: map[string]http.Handler{
+			"default@internal":             buildProxy(0, http.DefaultTransport, nil, Bool(true)),
+			"passhostheaderfalse@internal": buildProxy(0, http.DefaultTransport, nil, Bool(false)),
 		},
 	})
 
@@ -224,8 +225,7 @@ func TestGetLoadBalancerServiceHandler(t *testing.T) {
 			desc:        "PassHost passes the host instead of the IP",
 			serviceName: "test",
 			service: &dynamic.ServersLoadBalancer{
-				Sticky:         &dynamic.Sticky{Cookie: &dynamic.Cookie{}},
-				PassHostHeader: func(v bool) *bool { return &v }(true),
+				Sticky: &dynamic.Sticky{Cookie: &dynamic.Cookie{}},
 				Servers: []dynamic.Server{
 					{
 						URL: serverPassHost.URL,
@@ -243,8 +243,8 @@ func TestGetLoadBalancerServiceHandler(t *testing.T) {
 			desc:        "PassHost doesn't pass the host instead of the IP",
 			serviceName: "test",
 			service: &dynamic.ServersLoadBalancer{
-				PassHostHeader: Bool(false),
-				Sticky:         &dynamic.Sticky{Cookie: &dynamic.Cookie{}},
+				Sticky:           &dynamic.Sticky{Cookie: &dynamic.Cookie{}},
+				ServersTransport: "passhostheaderfalse@internal",
 				Servers: []dynamic.Server{
 					{
 						URL: serverPassHostFalse.URL,
@@ -384,8 +384,8 @@ func TestManager_Build(t *testing.T) {
 			t.Parallel()
 
 			manager := NewManager(test.configs, nil, nil, &RoundTripperManager{
-				roundTrippers: map[string]http.RoundTripper{
-					"default@internal": http.DefaultTransport,
+				proxies: map[string]http.Handler{
+					"default@internal": buildProxy(0, http.DefaultTransport, nil, Bool(true)),
 				},
 			})
 

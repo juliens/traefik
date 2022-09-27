@@ -42,6 +42,7 @@ type ServersTransportSpec struct {
 	DisableHTTP2 bool `json:"disableHTTP2,omitempty"`
 	// PeerCertURI defines the peer cert URI used to match against SAN URI during the peer certificate verification.
 	PeerCertURI string `json:"peerCertURI,omitempty"`
+	// FIXME passHostHeader flushInterval
 }
 
 // +k8s:deepcopy-gen=true

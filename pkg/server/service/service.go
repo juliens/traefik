@@ -9,7 +9,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/containous/alice"
@@ -248,11 +247,6 @@ func (m *Manager) getWRRServiceHandler(ctx context.Context, serviceName string, 
 }
 
 func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName string, service *dynamic.ServersLoadBalancer) (http.Handler, error) {
-	if service.PassHostHeader == nil {
-		defaultPassHostHeader := true
-		service.PassHostHeader = &defaultPassHostHeader
-	}
-
 	if len(service.ServersTransport) > 0 {
 		service.ServersTransport = provider.GetQualifiedName(ctx, service.ServersTransport)
 	}
@@ -272,56 +266,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		chain = chain.Append(metricsMiddle.WrapServiceHandler(ctx, m.metricsRegistry, serviceName))
 	}
 
-	directorHandler := func(next http.Handler) (http.Handler, error) {
-		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			u := req.URL
-			if req.RequestURI != "" {
-				parsedURL, err := url.ParseRequestURI(req.RequestURI)
-				if err == nil {
-					u = parsedURL
-				}
-			}
-
-			req.URL.Path = u.Path
-			req.URL.RawPath = u.RawPath
-			req.URL.RawQuery = strings.ReplaceAll(u.RawQuery, ";", "&")
-			req.RequestURI = "" // Outgoing request should not have RequestURI
-
-			req.Proto = "HTTP/1.1"
-			req.ProtoMajor = 1
-			req.ProtoMinor = 1
-
-			if _, ok := req.Header["User-Agent"]; !ok {
-				req.Header.Set("User-Agent", "")
-			}
-
-			// Do not pass client Host header unless optsetter PassHostHeader is set.
-			if service.PassHostHeader != nil && !*service.PassHostHeader {
-				req.Host = req.URL.Host
-			}
-
-			// Even if the websocket RFC says that headers should be case-insensitive,
-			// some servers need Sec-WebSocket-Key, Sec-WebSocket-Extensions, Sec-WebSocket-Accept,
-			// Sec-WebSocket-Protocol and Sec-WebSocket-Version to be case-sensitive.
-			// https://tools.ietf.org/html/rfc6455#page-20
-			if isWebSocketUpgrade(req) {
-				req.Header["Sec-WebSocket-Key"] = req.Header["Sec-Websocket-Key"]
-				req.Header["Sec-WebSocket-Extensions"] = req.Header["Sec-Websocket-Extensions"]
-				req.Header["Sec-WebSocket-Accept"] = req.Header["Sec-Websocket-Accept"]
-				req.Header["Sec-WebSocket-Protocol"] = req.Header["Sec-Websocket-Protocol"]
-				req.Header["Sec-WebSocket-Version"] = req.Header["Sec-Websocket-Version"]
-				delete(req.Header, "Sec-Websocket-Key")
-				delete(req.Header, "Sec-Websocket-Extensions")
-				delete(req.Header, "Sec-Websocket-Accept")
-				delete(req.Header, "Sec-Websocket-Protocol")
-				delete(req.Header, "Sec-Websocket-Version")
-			}
-
-			next.ServeHTTP(rw, req)
-		}), nil
-	}
-
-	handler, err := chain.Append(alHandler).Append(directorHandler).Then(pipelining.New(ctx, fwd, "pipelining"))
+	handler, err := chain.Append(alHandler).Then(pipelining.New(ctx, fwd, "pipelining"))
 	if err != nil {
 		return nil, err
 	}

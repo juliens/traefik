@@ -2,10 +2,8 @@ package router
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/containous/alice"
@@ -820,93 +818,94 @@ func (t *staticTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
 	return t.res, nil
 }
 
-func BenchmarkRouterServe(b *testing.B) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+// FIXME think about benchmark
+// func BenchmarkRouterServe(b *testing.B) {
+// 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+//
+// 	b.Cleanup(func() { server.Close() })
+//
+// 	res := &http.Response{
+// 		StatusCode: http.StatusOK,
+// 		Body:       io.NopCloser(strings.NewReader("")),
+// 	}
+//
+// 	routersConfig := map[string]*dynamic.Router{
+// 		"foo": {
+// 			EntryPoints: []string{"web"},
+// 			Service:     "foo-service",
+// 			Rule:        "Host(`foo.bar`) && Path(`/`)",
+// 		},
+// 	}
+// 	serviceConfig := map[string]*dynamic.Service{
+// 		"foo-service": {
+// 			LoadBalancer: &dynamic.ServersLoadBalancer{
+// 				Servers: []dynamic.Server{
+// 					{
+// 						URL: server.URL,
+// 					},
+// 				},
+// 			},
+// 		},
+// 	}
+// 	entryPoints := []string{"web"}
+//
+// 	rtConf := runtime.NewConfig(dynamic.Configuration{
+// 		HTTP: &dynamic.HTTPConfiguration{
+// 			Services:    serviceConfig,
+// 			Routers:     routersConfig,
+// 			Middlewares: map[string]*dynamic.Middleware{},
+// 		},
+// 	})
+//
+// 	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticRoundTripperGetter{res})
+// 	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
+// 	chainBuilder := middleware.NewChainBuilder(nil, nil, nil, nil)
+//
+// 	routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, chainBuilder, metrics.NewVoidRegistry())
+//
+// 	handlers := routerManager.BuildHandlers(context.Background(), entryPoints, false)
+//
+// 	w := httptest.NewRecorder()
+// 	req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
+//
+// 	reqHost := requestdecorator.New(nil)
+// 	b.ReportAllocs()
+// 	for i := 0; i < b.N; i++ {
+// 		reqHost.ServeHTTP(w, req, handlers["web"].ServeHTTP)
+// 	}
+// }
 
-	b.Cleanup(func() { server.Close() })
-
-	res := &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
-	routersConfig := map[string]*dynamic.Router{
-		"foo": {
-			EntryPoints: []string{"web"},
-			Service:     "foo-service",
-			Rule:        "Host(`foo.bar`) && Path(`/`)",
-		},
-	}
-	serviceConfig := map[string]*dynamic.Service{
-		"foo-service": {
-			LoadBalancer: &dynamic.ServersLoadBalancer{
-				Servers: []dynamic.Server{
-					{
-						URL: server.URL,
-					},
-				},
-			},
-		},
-	}
-	entryPoints := []string{"web"}
-
-	rtConf := runtime.NewConfig(dynamic.Configuration{
-		HTTP: &dynamic.HTTPConfiguration{
-			Services:    serviceConfig,
-			Routers:     routersConfig,
-			Middlewares: map[string]*dynamic.Middleware{},
-		},
-	})
-
-	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticRoundTripperGetter{res})
-	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
-	chainBuilder := middleware.NewChainBuilder(nil, nil, nil, nil)
-
-	routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, chainBuilder, metrics.NewVoidRegistry())
-
-	handlers := routerManager.BuildHandlers(context.Background(), entryPoints, false)
-
-	w := httptest.NewRecorder()
-	req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
-
-	reqHost := requestdecorator.New(nil)
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		reqHost.ServeHTTP(w, req, handlers["web"].ServeHTTP)
-	}
-}
-
-func BenchmarkService(b *testing.B) {
-	res := &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
-	serviceConfig := map[string]*dynamic.Service{
-		"foo-service": {
-			LoadBalancer: &dynamic.ServersLoadBalancer{
-				Servers: []dynamic.Server{
-					{
-						URL: "tchouck",
-					},
-				},
-			},
-		},
-	}
-
-	rtConf := runtime.NewConfig(dynamic.Configuration{
-		HTTP: &dynamic.HTTPConfiguration{
-			Services: serviceConfig,
-		},
-	})
-
-	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticRoundTripperGetter{res})
-	w := httptest.NewRecorder()
-	req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
-
-	handler, _ := serviceManager.BuildHTTP(context.Background(), "foo-service")
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		handler.ServeHTTP(w, req)
-	}
-}
+// func BenchmarkService(b *testing.B) {
+// 	res := &http.Response{
+// 		StatusCode: http.StatusOK,
+// 		Body:       io.NopCloser(strings.NewReader("")),
+// 	}
+//
+// 	serviceConfig := map[string]*dynamic.Service{
+// 		"foo-service": {
+// 			LoadBalancer: &dynamic.ServersLoadBalancer{
+// 				Servers: []dynamic.Server{
+// 					{
+// 						URL: "tchouck",
+// 					},
+// 				},
+// 			},
+// 		},
+// 	}
+//
+// 	rtConf := runtime.NewConfig(dynamic.Configuration{
+// 		HTTP: &dynamic.HTTPConfiguration{
+// 			Services: serviceConfig,
+// 		},
+// 	})
+//
+// 	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticRoundTripperGetter{res})
+// 	w := httptest.NewRecorder()
+// 	req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
+//
+// 	handler, _ := serviceManager.BuildHTTP(context.Background(), "foo-service")
+// 	b.ReportAllocs()
+// 	for i := 0; i < b.N; i++ {
+// 		handler.ServeHTTP(w, req)
+// 	}
+// }

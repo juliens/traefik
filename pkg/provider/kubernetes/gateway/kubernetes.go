@@ -1444,9 +1444,7 @@ func loadServices(client Client, namespace string, backendRefs []v1alpha2.HTTPBa
 		}
 
 		svc := dynamic.Service{
-			LoadBalancer: &dynamic.ServersLoadBalancer{
-				PassHostHeader: pointer.Bool(true),
-			},
+			LoadBalancer: &dynamic.ServersLoadBalancer{},
 		}
 
 		// TODO support cross namespace through ReferencePolicy

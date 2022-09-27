@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -35,8 +36,8 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
-func newFastHTTPReverseProxy(client *fasthttp.Client) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http.Handler {
+	return directorBuilder(passHostHeader, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		outReq := fasthttp.AcquireRequest()
 		defer fasthttp.ReleaseRequest(outReq)
 
@@ -66,6 +67,7 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) http.Handler {
 		outReq.SetHost(request.URL.Host)
 		outReq.Header.SetHost(request.Host)
 
+		// FIXME compare performance
 		// for k, v := range request.Header {
 		// 	outReq.Header.Set(k, strings.Join(v, ", "))
 		// }
@@ -133,7 +135,6 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) http.Handler {
 		}
 
 		res.Header.VisitAll(func(key, value []byte) {
-			// FIXME Add or Set
 			writer.Header().Add(string(key), string(value))
 		})
 
@@ -142,15 +143,17 @@ func newFastHTTPReverseProxy(client *fasthttp.Client) http.Handler {
 		writer.WriteHeader(res.StatusCode())
 
 		// FIXME test stream
-		res.BodyWriteTo(writer)
-
+		// res.BodyWriteTo(writer)
+		writer.Write(res.Body())
+		fmt.Println("TRAILER")
 		res.Header.VisitAllTrailer(func(key []byte) {
-			writer.Header().Set(string(key), string(res.Header.Peek(string(key))))
+			fmt.Println(string(key))
+			// writer.Header().Set(http.TrailerPrefix+string(key), string(res.Header.Peek(string(key))))
 		})
-	})
+	}))
 }
 
-func buildProxy(flushInterval ptypes.Duration, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) http.Handler {
+func buildProxy(flushInterval ptypes.Duration, roundTripper http.RoundTripper, bufferPool httputil.BufferPool, passHostHeader *bool) http.Handler {
 	if flushInterval == 0 {
 		flushInterval = ptypes.Duration(100 * time.Millisecond)
 	}
@@ -188,7 +191,7 @@ func buildProxy(flushInterval ptypes.Duration, roundTripper http.RoundTripper, b
 		},
 	}
 
-	return proxy
+	return directorBuilder(passHostHeader, proxy)
 }
 
 func statusText(statusCode int) string {

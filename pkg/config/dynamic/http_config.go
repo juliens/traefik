@@ -153,10 +153,8 @@ type ServersLoadBalancer struct {
 	// children servers of this load-balancer. To propagate status changes (e.g. all
 	// servers of this service are down) upwards, HealthCheck must also be enabled on
 	// the parent(s) of this service.
-	HealthCheck        *ServerHealthCheck  `json:"healthCheck,omitempty" toml:"healthCheck,omitempty" yaml:"healthCheck,omitempty" export:"true"`
-	PassHostHeader     *bool               `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
-	ResponseForwarding *ResponseForwarding `json:"responseForwarding,omitempty" toml:"responseForwarding,omitempty" yaml:"responseForwarding,omitempty" export:"true"`
-	ServersTransport   string              `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
+	HealthCheck      *ServerHealthCheck `json:"healthCheck,omitempty" toml:"healthCheck,omitempty" yaml:"healthCheck,omitempty" export:"true"`
+	ServersTransport string             `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
 }
 
 // Mergeable tells if the given service is mergeable.
@@ -178,51 +176,6 @@ func (l *ServersLoadBalancer) Mergeable(loadBalancer *ServersLoadBalancer) bool 
 
 // SetDefaults Default values for a ServersLoadBalancer.
 func (l *ServersLoadBalancer) SetDefaults() {
-	defaultPassHostHeader := true
-	l.PassHostHeader = &defaultPassHostHeader
-}
-
-// ServersLoadBalancer holds the ServersLoadBalancer configuration.
-type FastHTTPLoadBalancer struct {
-	Sticky  *Sticky  `json:"sticky,omitempty" toml:"sticky,omitempty" yaml:"sticky,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
-	Servers []Server `json:"servers,omitempty" toml:"servers,omitempty" yaml:"servers,omitempty" label-slice-as-struct:"server" export:"true"`
-	// HealthCheck enables regular active checks of the responsiveness of the
-	// children servers of this load-balancer. To propagate status changes (e.g. all
-	// servers of this service are down) upwards, HealthCheck must also be enabled on
-	// the parent(s) of this service.
-	HealthCheck    *ServerHealthCheck `json:"healthCheck,omitempty" toml:"healthCheck,omitempty" yaml:"healthCheck,omitempty" export:"true"`
-	PassHostHeader *bool              `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
-	// ResponseForwarding *ResponseForwarding `json:"responseForwarding,omitempty" toml:"responseForwarding,omitempty" yaml:"responseForwarding,omitempty" export:"true"`
-	ServersTransport string `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
-}
-
-// Mergeable tells if the given service is mergeable.
-func (l *FastHTTPLoadBalancer) Mergeable(loadBalancer *FastHTTPLoadBalancer) bool {
-	savedServers := l.Servers
-	defer func() {
-		l.Servers = savedServers
-	}()
-	l.Servers = nil
-
-	savedServersLB := loadBalancer.Servers
-	defer func() {
-		loadBalancer.Servers = savedServersLB
-	}()
-	loadBalancer.Servers = nil
-
-	return reflect.DeepEqual(l, loadBalancer)
-}
-
-// +k8s:deepcopy-gen=true
-
-// ResponseForwarding holds the response forwarding configuration.
-type ResponseForwarding struct {
-	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
-	// A negative value means to flush immediately after each write to the client.
-	// This configuration is ignored when ReverseProxy recognizes a response as a streaming response;
-	// for such responses, writes are flushed to the client immediately.
-	// Default: 100ms
-	FlushInterval string `json:"flushInterval,omitempty" toml:"flushInterval,omitempty" yaml:"flushInterval,omitempty" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -281,7 +234,20 @@ type ServersTransport struct {
 	ForwardingTimeouts  *ForwardingTimeouts        `description:"Timeouts for requests forwarded to the backend servers." json:"forwardingTimeouts,omitempty" toml:"forwardingTimeouts,omitempty" yaml:"forwardingTimeouts,omitempty" export:"true"`
 	DisableHTTP2        bool                       `description:"Disable HTTP/2 for connections with backend servers." json:"disableHTTP2,omitempty" toml:"disableHTTP2,omitempty" yaml:"disableHTTP2,omitempty" export:"true"`
 	PeerCertURI         string                     `description:"URI used to match against SAN URI during the peer certificate verification." json:"peerCertURI,omitempty" toml:"peerCertURI,omitempty" yaml:"peerCertURI,omitempty" export:"true"`
-	FastHTTP            *FastHTTPConfig            `description:"Enable FastHTTP." json:"fasthttp,omitempty" toml:"fasthttp,omitempty" yaml:"fasthttp,omitempty" export:"true"`
+	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
+	// A negative value means to flush immediately after each write to the client.
+	// This configuration is ignored when ReverseProxy recognizes a response as a streaming response;
+	// for such responses, writes are flushed to the client immediately.
+	// Default: 100ms
+	FlushInterval  string `json:"flushInterval,omitempty" toml:"flushInterval,omitempty" yaml:"flushInterval,omitempty" export:"true"`
+	PassHostHeader *bool  `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
+
+	FastHTTP *FastHTTPConfig `description:"Enable FastHTTP." json:"fasthttp,omitempty" toml:"fasthttp,omitempty" yaml:"fasthttp,omitempty" export:"true"`
+}
+
+func (s *ServersTransport) SetDefaults() {
+	defaultPassHostHeader := true
+	s.PassHostHeader = &defaultPassHostHeader
 }
 
 // +k8s:deepcopy-gen=true

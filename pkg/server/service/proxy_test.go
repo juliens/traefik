@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
 	"github.com/valyala/fasthttp"
 )
@@ -31,7 +30,7 @@ func BenchmarkProxy(b *testing.B) {
 	req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
 
 	pool := newBufferPool()
-	handler := buildProxy(nil, &staticTransport{res}, pool)
+	handler := buildProxy(0, &staticTransport{res}, pool, Bool(true))
 
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -41,30 +40,68 @@ func BenchmarkProxy(b *testing.B) {
 
 func TestFastHTTPTrailer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Add("Te", "trailers")
+		rw.Header().Add("Te", "trailer")
 		rw.Header().Add("Trailer", "X-Test")
+
 		rw.Write([]byte("test"))
+		rw.(http.Flusher).Flush()
 
 		rw.Header().Add("X-Test", "Toto")
+		rw.Header().Add(http.TrailerPrefix+"X-Nontest", "Toto")
+
 		rw.Write([]byte("test"))
 
 	}))
 
-	/*
-		resp, err := http.Get(srv.URL)
-		require.NoError(t, err)
-		ioutil.ReadAll(resp.Body)
-		fmt.Println(resp.Trailer)
-
-		// */
-
 	req, resp := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
 	req.SetRequestURI(srv.URL)
-	err := fasthttp.Do(req, resp)
-	require.NoError(t, err)
-	fmt.Println(resp.Body())
-	resp.Header.VisitAllTrailer(func(value []byte) {
-		fmt.Println("trailer", string(value))
-		fmt.Println(string(resp.Header.PeekBytes(value)))
+	client := fasthttp.Client{}
+	client.Do(req, resp)
+
+	resp.Body()
+	resp.Header.VisitAllTrailer(func(key []byte) {
+		fmt.Println(string(key))
 	})
+
+	return
+	// proxy := buildProxy(0, http.DefaultTransport, nil, Bool(true))
+	// proxy := NewFastHTTPReverseProxy(&fasthttp.Client{}, Bool(true))
+	//
+	// go func() {
+	// 	log.Fatal(http.ListenAndServe(":8090", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	// 		url, _ := url2.Parse(srv.URL)
+	// 		req.URL = url
+	// 		proxy.ServeHTTP(rw, req)
+	// 	})))
+	// }()
+	// time.Sleep(10 * time.Millisecond)
+	//
+	// resp, err := http.Get("http://127.0.0.1:8090")
+	// require.NoError(t, err)
+	// fmt.Println(resp.Trailer)
+	// io.Copy(io.Discard, resp.Body)
+	//
+	// fmt.Println(resp.Trailer)
+	//
+	// ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	// <-ctx.Done()
+	// /*
+	// 	resp, err := http.Get(srv.URL)
+	// 	require.NoError(t, err)
+	// 	ioutil.ReadAll(resp.Body)
+	// 	fmt.Println(resp.Trailer)
+	//
+	// 	// */
+	//
+	// req, resp := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+	// req.SetRequestURI(srv.URL)
+	// err := fasthttp.Do(req, resp)
+	// require.NoError(t, err)
+	//
+	// fmt.Println(resp.Body())
+	//
+	// resp.Header.VisitAllTrailer(func(key []byte) {
+	// 	fmt.Println("trailer", string(key))
+	// 	fmt.Println(string(resp.Header.PeekBytes(key)))
+	// })
 }

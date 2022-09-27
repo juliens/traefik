@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
 	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
@@ -76,7 +77,13 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 
 		if newConfig.FastHTTP == nil {
 			// FIXME Handle flushInterval on serversTransport
-			r.proxies[newConfigName] = buildProxy(0, transport, r.bufferPool)
+			var flushInterval ptypes.Duration
+			err := flushInterval.Set(newConfig.FlushInterval)
+			if err != nil {
+				log.WithoutContext().Errorf("Error creating flushInterval: %v", newConfigName, err)
+			}
+
+			r.proxies[newConfigName] = buildProxy(flushInterval, transport, r.bufferPool, newConfig.PassHostHeader)
 		} else {
 			dialer := &net.Dialer{
 				Timeout:   30 * time.Second,
@@ -95,7 +102,7 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 
 			}
 
-			r.proxies[newConfigName] = newFastHTTPReverseProxy(&fasthttp.Client{
+			r.proxies[newConfigName] = NewFastHTTPReverseProxy(&fasthttp.Client{
 				Dial: func(addr string) (net.Conn, error) {
 					return dialer.Dial("tcp", addr)
 				},
@@ -108,7 +115,7 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 				DisableHeaderNamesNormalizing: true,
 				DisablePathNormalizing:        true,
 				NoDefaultUserAgentHeader:      false,
-			})
+			}, newConfig.PassHostHeader)
 		}
 	}
 
