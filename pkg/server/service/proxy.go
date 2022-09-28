@@ -67,14 +67,14 @@ func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http
 		outReq.Header.SetHost(request.Host)
 
 		// FIXME compare performance
-		// for k, v := range request.Header {
-		// 	outReq.Header.Set(k, strings.Join(v, ", "))
-		// }
 		for k, v := range request.Header {
-			for _, s := range v {
-				outReq.Header.Add(k, s)
-			}
+			outReq.Header.Set(k, strings.Join(v, ", "))
 		}
+		//for k, v := range request.Header {
+		//	for _, s := range v {
+		//		outReq.Header.Add(k, s)
+		//	}
+		//}
 
 		outReq.SetBodyStream(request.Body, int(request.ContentLength))
 
