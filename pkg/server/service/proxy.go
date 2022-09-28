@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -139,17 +138,15 @@ func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http
 		})
 
 		// FIXME Trailer
-
 		writer.WriteHeader(res.StatusCode())
 
 		// FIXME test stream
-		// res.BodyWriteTo(writer)
-		writer.Write(res.Body())
-		fmt.Println("TRAILER")
-		res.Header.VisitAllTrailer(func(key []byte) {
-			fmt.Println(string(key))
-			// writer.Header().Set(http.TrailerPrefix+string(key), string(res.Header.Peek(string(key))))
-		})
+		res.BodyWriteTo(writer)
+		//writer.Write(res.Body())
+		//res.Header.VisitAllTrailer(func(key []byte) {
+		//	fmt.Println(string(key))
+		//	// writer.Header().Set(http.TrailerPrefix+string(key), string(res.Header.Peek(string(key))))
+		//})
 	}))
 }
 
