@@ -40,10 +40,29 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
+type Pool[T any] struct {
+	pool sync.Pool
+}
+
+func (p *Pool[T]) Get() T {
+	var res T
+	if temp := p.pool.Get(); temp != nil {
+		res = temp.(T)
+	}
+	return res
+}
+
+func (p *Pool[T]) Put(x T) {
+	p.pool.Put(x)
+}
+
 func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 	hc := NewHostChooser()
-	var readerPool sync.Pool
-	var writerPool sync.Pool
+	var readerPool Pool[*bufio.Reader]
+	var writerPool Pool[*bufio.Writer]
+
+	bufferPool := newBufferPool()
+	var limitReaderPool Pool[*io.LimitedReader]
 
 	return directorBuilder(passHostHeader, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		outReq := fasthttp.AcquireRequest()
@@ -107,11 +126,10 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 		conn := pool.AcquireConn()
 		defer pool.ReleaseConn(conn)
 
-		v := writerPool.Get()
-		if v == nil {
-			v = bufio.NewWriterSize(conn, 4096)
+		bw := writerPool.Get()
+		if bw == nil {
+			bw = bufio.NewWriterSize(conn, 4096)
 		}
-		bw := v.(*bufio.Writer)
 
 		bw.Reset(conn)
 		err := outReq.Write(bw)
@@ -147,11 +165,10 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 			return
 		}
 
-		r := readerPool.Get()
-		if r == nil {
-			r = bufio.NewReaderSize(conn, 4096)
+		br := readerPool.Get()
+		if br == nil {
+			br = bufio.NewReaderSize(conn, 4096)
 		}
-		br := r.(*bufio.Reader)
 
 		br.Reset(conn)
 
@@ -171,10 +188,19 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 
 		writer.WriteHeader(res.StatusCode())
 
-		brl := io.LimitReader(br, int64(res.Header.ContentLength()))
+		brl := limitReaderPool.Get()
+		if brl == nil {
+			brl = &io.LimitedReader{}
+		}
 
-		io.Copy(writer, brl)
+		brl.R = br
+		brl.N = int64(res.Header.ContentLength())
 
+		b := bufferPool.Get()
+		io.CopyBuffer(writer, brl, b)
+		bufferPool.Put(b)
+
+		limitReaderPool.Put(brl)
 		readerPool.Put(br)
 
 	}))
