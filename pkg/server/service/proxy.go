@@ -1,6 +1,8 @@
 package service
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -8,13 +10,14 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/textproto"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/traefik/traefik/v2/pkg/server/service/fasthttp"
-	"github.com/vulcand/oxy/utils"
+	"github.com/valyala/fasthttp"
 
 	"golang.org/x/net/http/httpguts"
 )
@@ -37,7 +40,11 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
-func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http.Handler {
+func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
+	hc := NewHostChooser()
+	var readerPool sync.Pool
+	var writerPool sync.Pool
+
 	return directorBuilder(passHostHeader, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		outReq := fasthttp.AcquireRequest()
 		defer fasthttp.ReleaseRequest(outReq)
@@ -96,22 +103,20 @@ func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http
 			}
 		}
 
-		// res := fasthttp.AcquireResponse()
-		// defer fasthttp.ReleaseResponse(res)
+		pool := hc.GetPool(string(outReq.URI().Scheme()), addMissingPort(string(outReq.URI().Host()), bytes.EqualFold(outReq.URI().Scheme(), []byte("https"))))
+		conn := pool.AcquireConn()
+		defer pool.ReleaseConn(conn)
 
-		hc, err := client.GetHostClient(outReq)
-		if err != nil {
-			log.Fatal(err)
+		v := writerPool.Get()
+		if v == nil {
+			v = bufio.NewWriterSize(conn, 4096)
 		}
+		bw := v.(*bufio.Writer)
 
-		c, err := hc.AcquireconnObject()
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = outReq.Write(c.Bw)
-		c.Bw.Flush()
+		bw.Reset(conn)
+		err := outReq.Write(bw)
+		bw.Flush()
+		writerPool.Put(bw)
 
 		if err != nil {
 			statusCode := http.StatusInternalServerError
@@ -142,48 +147,49 @@ func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http
 			return
 		}
 
-		resp, err := http.ReadResponse(c.Br, nil)
+		r := readerPool.Get()
+		if r == nil {
+			r = bufio.NewReaderSize(conn, 4096)
+		}
+		br := r.(*bufio.Reader)
 
-		utils.CopyHeaders(writer.Header(), resp.Header)
-		io.Copy(writer, resp.Body)
+		br.Reset(conn)
 
-		hc.ReleaseConnObject(c)
+		res := fasthttp.AcquireResponse()
+		defer fasthttp.ReleaseResponse(res)
 
-		// fmt.Println("READ RESPONSE HEADER")
-		// res.Header.Read(br)
-		// fmt.Println("READ RESPONSE HEADER OK")
-		// removeConnectionHeadersFastHTTP(res.Header)
+		res.Header.Read(br)
+		removeConnectionHeadersFastHTTP(res.Header)
 
-		// for _, header := range hopHeaders {
-		// res.Header.Del(header)
-		// }
+		for _, header := range hopHeaders {
+			res.Header.Del(header)
+		}
 
-		// res.Header.VisitAll(func(key, value []byte) {
-		// 	fmt.Println("BEFORE", string(key), string(value))
-		// 	writer.Header().Add(string(key), string(value))
-		// })
+		res.Header.VisitAll(func(key, value []byte) {
+			writer.Header().Add(string(key), string(value))
+		})
 
-		// FIXME Trailer
+		writer.WriteHeader(res.StatusCode())
 
-		// writer.WriteHeader(res.StatusCode())
+		brl := io.LimitReader(br, int64(res.Header.ContentLength()))
 
-		// FIXME test stream
-		// res.BodyWriteTo(writer)
-		// fmt.Println("COPY BODY")
-		// all, err := io.ReadAll(br)
+		io.Copy(writer, brl)
 
-		// brl := io.LimitReader(br, int64(res.Header.ContentLength()))
-
-		// io.Copy(writer, brl)
-		// fmt.Println("COPY BODY OK")
-		// res.Header.VisitAll(func(key, value []byte) {
-		// 	fmt.Println("HEADER", string(key), string(value))
-		// 	// writer.Header().Add(string(key), string(value))
-		// })
+		readerPool.Put(br)
 
 	}))
 }
-
+func addMissingPort(addr string, isTLS bool) string {
+	n := strings.Index(addr, ":")
+	if n >= 0 {
+		return addr
+	}
+	port := 80
+	if isTLS {
+		port = 443
+	}
+	return net.JoinHostPort(addr, strconv.Itoa(port))
+}
 func buildProxy(flushInterval ptypes.Duration, roundTripper http.RoundTripper, bufferPool httputil.BufferPool, passHostHeader *bool) http.Handler {
 	if flushInterval == 0 {
 		flushInterval = ptypes.Duration(100 * time.Millisecond)

@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
-	"github.com/valyala/fasthttp"
 )
 
 type staticTransport struct {
@@ -69,7 +68,8 @@ func TestFastHTTPTrailer(t *testing.T) {
 	//
 	// return
 	// proxy := buildProxy(0, http.DefaultTransport, nil, Bool(true))
-	proxy := NewFastHTTPReverseProxy(&fasthttp.Client{}, Bool(true))
+
+	proxy := NewFastHTTPReverseProxy(Bool(true))
 	//
 	go func() {
 		log.Fatal(http.ListenAndServe(":8090", http.HandlerFunc(func(rw http.ResponseWriter, hreq *http.Request) {

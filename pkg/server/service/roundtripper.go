@@ -14,7 +14,6 @@ import (
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/traefik/traefik/v2/pkg/server/service/fasthttp"
 	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
 	"golang.org/x/net/http2"
 )
@@ -41,10 +40,9 @@ func NewRoundTripperManager() *RoundTripperManager {
 
 // RoundTripperManager handles roundtripper for the reverse proxy.
 type RoundTripperManager struct {
-	rtLock         sync.RWMutex
-	roundTrippers  map[string]http.RoundTripper
-	configs        map[string]*dynamic.ServersTransport
-	fasthttpClient map[string]*fasthttp.Client
+	rtLock        sync.RWMutex
+	roundTrippers map[string]http.RoundTripper
+	configs       map[string]*dynamic.ServersTransport
 
 	proxies    map[string]http.Handler
 	bufferPool *bufferPool
@@ -85,37 +83,39 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 
 			r.proxies[newConfigName] = buildProxy(flushInterval, transport, r.bufferPool, newConfig.PassHostHeader)
 		} else {
-			dialer := &net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}
+			// dialer := &net.Dialer{
+			// 	Timeout:   30 * time.Second,
+			// 	KeepAlive: 30 * time.Second,
+			// }
 
-			var maxIdleConnTimeout time.Duration
-			if newConfig.ForwardingTimeouts != nil {
-				dialer.Timeout = time.Duration(newConfig.ForwardingTimeouts.DialTimeout)
-				maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
-			}
+			// var maxIdleConnTimeout time.Duration
+			// if newConfig.ForwardingTimeouts != nil {
+			// 	dialer.Timeout = time.Duration(newConfig.ForwardingTimeouts.DialTimeout)
+			// 	maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
+			// }
+			//
+			// tlsConfig, err := createTLSConfig(newConfig)
+			// if err != nil {
+			// 	log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
+			//
+			// }
 
-			tlsConfig, err := createTLSConfig(newConfig)
-			if err != nil {
-				log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
+			// &fasthttp.Client{
+			// 	Dial: func(addr string) (net.Conn, error) {
+			// 		return dialer.Dial("tcp", addr)
+			// 	},
+			//
+			// 	TLSConfig:           tlsConfig,
+			// 	MaxIdleConnDuration: maxIdleConnTimeout,
+			// 	ReadBufferSize:      64 * 1024,
+			// 	WriteBufferSize:     64 * 1024,
+			//
+			// 	DisableHeaderNamesNormalizing: true,
+			// 	DisablePathNormalizing:        true,
+			// 	NoDefaultUserAgentHeader:      false,
+			// }
 
-			}
-
-			r.proxies[newConfigName] = NewFastHTTPReverseProxy(&fasthttp.Client{
-				Dial: func(addr string) (net.Conn, error) {
-					return dialer.Dial("tcp", addr)
-				},
-
-				TLSConfig:           tlsConfig,
-				MaxIdleConnDuration: maxIdleConnTimeout,
-				ReadBufferSize:      64 * 1024,
-				WriteBufferSize:     64 * 1024,
-
-				DisableHeaderNamesNormalizing: true,
-				DisablePathNormalizing:        true,
-				NoDefaultUserAgentHeader:      false,
-			}, newConfig.PassHostHeader)
+			r.proxies[newConfigName] = NewFastHTTPReverseProxy(newConfig.PassHostHeader)
 		}
 	}
 
