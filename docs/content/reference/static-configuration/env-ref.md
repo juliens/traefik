@@ -957,6 +957,9 @@ Root key used for KV store. (Default: ```traefik```)
 `TRAEFIK_PROVIDERS_ZOOKEEPER_USERNAME`:  
 Username for authentication.
 
+`TRAEFIK_SERVERSTRANSPORT_FASTHTTP`:  
+Enable fastHTTP. (Default: ```true```)
+
 `TRAEFIK_SERVERSTRANSPORT_FORWARDINGTIMEOUTS_DIALTIMEOUT`:  
 The amount of time to wait until a connection to a backend server can be established. If zero, no timeout exists. (Default: ```30```)
 

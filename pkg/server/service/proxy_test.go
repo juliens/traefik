@@ -3,11 +3,15 @@ package service
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
 	"github.com/valyala/fasthttp"
 )
@@ -47,41 +51,51 @@ func TestFastHTTPTrailer(t *testing.T) {
 		rw.(http.Flusher).Flush()
 
 		rw.Header().Add("X-Test", "Toto")
-		rw.Header().Add(http.TrailerPrefix+"X-Nontest", "Toto")
+		rw.Header().Add(http.TrailerPrefix+"X-Nontest", "Tata")
 
 		rw.Write([]byte("test"))
 
 	}))
 
-	req, resp := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
-	req.SetRequestURI(srv.URL)
-	client := fasthttp.Client{}
-	client.Do(req, resp)
-
-	resp.Body()
-	resp.Header.VisitAllTrailer(func(key []byte) {
-		fmt.Println(string(key))
-	})
-
-	return
+	// req, resp := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+	// req.SetRequestURI(srv.URL)
+	// client := fasthttp.Client{}
+	// client.Do(req, resp)
+	//
+	// resp.Body()
+	// resp.Header.VisitAllTrailer(func(key []byte) {
+	// 	fmt.Println(string(key))
+	// })
+	//
+	// return
 	// proxy := buildProxy(0, http.DefaultTransport, nil, Bool(true))
-	// proxy := NewFastHTTPReverseProxy(&fasthttp.Client{}, Bool(true))
+	proxy := NewFastHTTPReverseProxy(&fasthttp.Client{}, Bool(true))
 	//
-	// go func() {
-	// 	log.Fatal(http.ListenAndServe(":8090", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-	// 		url, _ := url2.Parse(srv.URL)
-	// 		req.URL = url
-	// 		proxy.ServeHTTP(rw, req)
-	// 	})))
-	// }()
-	// time.Sleep(10 * time.Millisecond)
-	//
-	// resp, err := http.Get("http://127.0.0.1:8090")
-	// require.NoError(t, err)
-	// fmt.Println(resp.Trailer)
-	// io.Copy(io.Discard, resp.Body)
-	//
-	// fmt.Println(resp.Trailer)
+	go func() {
+		log.Fatal(http.ListenAndServe(":8090", http.HandlerFunc(func(rw http.ResponseWriter, hreq *http.Request) {
+			// req, resp := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+			// req.SetRequestURI(srv.URL)
+			// client := fasthttp.Client{}
+			// client.Do(req, resp)
+			//
+			// b := resp.Body()
+			// resp.Header.VisitAllTrailer(func(key []byte) {
+			// 	fmt.Println(string(key))
+			// })
+			// rw.Write(b)
+
+			hreq.URL, _ = url.Parse(srv.URL)
+			proxy.ServeHTTP(rw, hreq)
+		})))
+	}()
+	time.Sleep(10 * time.Millisecond)
+
+	resp, err := http.Get("http://127.0.0.1:8090")
+	require.NoError(t, err)
+	fmt.Println(resp.Trailer)
+	io.Copy(io.Discard, resp.Body)
+
+	fmt.Println(resp.Trailer)
 	//
 	// ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	// <-ctx.Done()

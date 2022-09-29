@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -14,7 +13,9 @@ import (
 
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/valyala/fasthttp"
+	"github.com/traefik/traefik/v2/pkg/server/service/fasthttp"
+	"github.com/vulcand/oxy/utils"
+
 	"golang.org/x/net/http/httpguts"
 )
 
@@ -77,7 +78,7 @@ func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http
 			}
 		}
 
-		outReq.SetBodyStream(request.Body, int(request.ContentLength))
+		// outReq.SetBodyStream(request.Body, int(request.ContentLength))
 
 		outReq.Header.SetMethod(request.Method)
 
@@ -95,10 +96,23 @@ func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http
 			}
 		}
 
-		res := fasthttp.AcquireResponse()
-		defer fasthttp.ReleaseResponse(res)
+		// res := fasthttp.AcquireResponse()
+		// defer fasthttp.ReleaseResponse(res)
 
-		err := client.Do(outReq, res)
+		hc, err := client.GetHostClient(outReq)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		c, err := hc.AcquireconnObject()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = outReq.Write(c.Bw)
+		c.Bw.Flush()
+
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 
@@ -128,28 +142,45 @@ func NewFastHTTPReverseProxy(client *fasthttp.Client, passHostHeader *bool) http
 			return
 		}
 
-		removeConnectionHeadersFastHTTP(res.Header)
+		resp, err := http.ReadResponse(c.Br, nil)
 
-		for _, header := range hopHeaders {
-			res.Header.Del(header)
-		}
+		utils.CopyHeaders(writer.Header(), resp.Header)
+		io.Copy(writer, resp.Body)
 
-		res.Header.VisitAll(func(key, value []byte) {
-			writer.Header().Add(string(key), string(value))
-		})
+		hc.ReleaseConnObject(c)
+
+		// fmt.Println("READ RESPONSE HEADER")
+		// res.Header.Read(br)
+		// fmt.Println("READ RESPONSE HEADER OK")
+		// removeConnectionHeadersFastHTTP(res.Header)
+
+		// for _, header := range hopHeaders {
+		// res.Header.Del(header)
+		// }
+
+		// res.Header.VisitAll(func(key, value []byte) {
+		// 	fmt.Println("BEFORE", string(key), string(value))
+		// 	writer.Header().Add(string(key), string(value))
+		// })
 
 		// FIXME Trailer
 
-		writer.WriteHeader(res.StatusCode())
+		// writer.WriteHeader(res.StatusCode())
 
 		// FIXME test stream
 		// res.BodyWriteTo(writer)
-		writer.Write(res.Body())
-		fmt.Println("TRAILER")
-		res.Header.VisitAllTrailer(func(key []byte) {
-			fmt.Println(string(key))
-			// writer.Header().Set(http.TrailerPrefix+string(key), string(res.Header.Peek(string(key))))
-		})
+		// fmt.Println("COPY BODY")
+		// all, err := io.ReadAll(br)
+
+		// brl := io.LimitReader(br, int64(res.Header.ContentLength()))
+
+		// io.Copy(writer, brl)
+		// fmt.Println("COPY BODY OK")
+		// res.Header.VisitAll(func(key, value []byte) {
+		// 	fmt.Println("HEADER", string(key), string(value))
+		// 	// writer.Header().Add(string(key), string(value))
+		// })
+
 	}))
 }
 

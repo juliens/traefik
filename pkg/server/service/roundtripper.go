@@ -14,8 +14,8 @@ import (
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
+	"github.com/traefik/traefik/v2/pkg/server/service/fasthttp"
 	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
-	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http2"
 )
 
