@@ -90,13 +90,13 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 			// 	Timeout:   30 * time.Second,
 			// 	KeepAlive: 30 * time.Second,
 			// }
-
+			//
 			// var maxIdleConnTimeout time.Duration
 			// if newConfig.ForwardingTimeouts != nil {
 			// 	dialer.Timeout = time.Duration(newConfig.ForwardingTimeouts.DialTimeout)
 			// 	maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
 			// }
-			//
+			// //
 			// tlsConfig, err := createTLSConfig(newConfig)
 			// if err != nil {
 			// 	log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)

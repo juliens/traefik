@@ -108,7 +108,7 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 
 		bw := writerPool.Get()
 		if bw == nil {
-			bw = bufio.NewWriterSize(conn, 4096)
+			bw = bufio.NewWriterSize(conn, 64*1024)
 		}
 
 		bw.Reset(conn)
@@ -147,7 +147,7 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 
 		br := readerPool.Get()
 		if br == nil {
-			br = bufio.NewReaderSize(conn, 4096)
+			br = bufio.NewReaderSize(conn, 64*1024)
 		}
 
 		br.Reset(conn)
