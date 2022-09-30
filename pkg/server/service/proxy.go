@@ -40,8 +40,8 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
-func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
-	hc := NewHostChooser()
+func NewFastHTTPReverseProxy(hc *HostChooser, passHostHeader *bool) http.Handler {
+
 	var readerPool Pool[*bufio.Reader]
 	var writerPool Pool[*bufio.Writer]
 
@@ -51,6 +51,10 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 	return directorBuilder(passHostHeader, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		outReq := fasthttp.AcquireRequest()
 		defer fasthttp.ReleaseRequest(outReq)
+
+		outReq.Header.DisableNormalizing()
+
+		outReq.URI().DisablePathNormalizing = true
 
 		if request.Body != nil {
 			defer request.Body.Close()

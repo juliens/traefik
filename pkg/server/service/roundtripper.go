@@ -86,39 +86,29 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 
 			r.proxies[newConfigName] = buildProxy(flushInterval, transport, r.bufferPool, newConfig.PassHostHeader)
 		} else {
-			// dialer := &net.Dialer{
-			// 	Timeout:   30 * time.Second,
-			// 	KeepAlive: 30 * time.Second,
-			// }
+			dialer := &net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
 			//
 			// var maxIdleConnTimeout time.Duration
-			// if newConfig.ForwardingTimeouts != nil {
-			// 	dialer.Timeout = time.Duration(newConfig.ForwardingTimeouts.DialTimeout)
-			// 	maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
-			// }
+			if newConfig.ForwardingTimeouts != nil {
+				dialer.Timeout = time.Duration(newConfig.ForwardingTimeouts.DialTimeout)
+				// maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
+			}
 			// //
-			// tlsConfig, err := createTLSConfig(newConfig)
-			// if err != nil {
-			// 	log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
-			//
-			// }
+			tlsConfig, err := createTLSConfig(newConfig)
+			if err != nil {
+				log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
 
+			}
 			// &fasthttp.Client{
-			// 	Dial: func(addr string) (net.Conn, error) {
-			// 		return dialer.Dial("tcp", addr)
-			// 	},
 			//
-			// 	TLSConfig:           tlsConfig,
 			// 	MaxIdleConnDuration: maxIdleConnTimeout,
-			// 	ReadBufferSize:      64 * 1024,
-			// 	WriteBufferSize:     64 * 1024,
 			//
-			// 	DisableHeaderNamesNormalizing: true,
-			// 	DisablePathNormalizing:        true,
-			// 	NoDefaultUserAgentHeader:      false,
 			// }
-
-			r.proxies[newConfigName] = NewFastHTTPReverseProxy(newConfig.PassHostHeader)
+			hc := NewHostChooser(dialer.Dial, newConfig.MaxIdleConnsPerHost, tlsConfig)
+			r.proxies[newConfigName] = NewFastHTTPReverseProxy(hc, newConfig.PassHostHeader)
 		}
 	}
 
