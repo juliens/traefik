@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 	"net/textproto"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	ptypes "github.com/traefik/paerser/types"
@@ -38,22 +38,6 @@ var hopHeaders = []string{
 	"Trailer", // not Trailers per URL above; https://www.rfc-editor.org/errata_search.php?eid=4522
 	"Transfer-Encoding",
 	"Upgrade",
-}
-
-type Pool[T any] struct {
-	pool sync.Pool
-}
-
-func (p *Pool[T]) Get() T {
-	var res T
-	if temp := p.pool.Get(); temp != nil {
-		res = temp.(T)
-	}
-	return res
-}
-
-func (p *Pool[T]) Put(x T) {
-	p.pool.Put(x)
 }
 
 func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
@@ -94,17 +78,13 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 		outReq.SetHost(request.URL.Host)
 		outReq.Header.SetHost(request.Host)
 
-		// FIXME compare performance
-		// for k, v := range request.Header {
-		// 	outReq.Header.Set(k, strings.Join(v, ", "))
-		// }
 		for k, v := range request.Header {
 			for _, s := range v {
 				outReq.Header.Add(k, s)
 			}
 		}
 
-		// outReq.SetBodyStream(request.Body, int(request.ContentLength))
+		outReq.SetBodyStream(request.Body, int(request.ContentLength))
 
 		outReq.Header.SetMethod(request.Method)
 
@@ -122,9 +102,9 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 			}
 		}
 
-		pool := hc.GetPool(string(outReq.URI().Scheme()), addMissingPort(string(outReq.URI().Host()), bytes.EqualFold(outReq.URI().Scheme(), []byte("https"))))
+		host := addMissingPort(string(outReq.URI().Host()), bytes.EqualFold(outReq.URI().Scheme(), []byte("https")))
+		pool := hc.GetPool(string(outReq.URI().Scheme()), host)
 		conn := pool.AcquireConn()
-		defer pool.ReleaseConn(conn)
 
 		bw := writerPool.Get()
 		if bw == nil {
@@ -175,11 +155,22 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 		res := fasthttp.AcquireResponse()
 		defer fasthttp.ReleaseResponse(res)
 
-		res.Header.Read(br)
+		err = res.Header.Read(br)
+		if err != nil {
+			conn.Close()
+			return
+		}
+		announcedTrailers := res.Header.Peek("Trailer")
+		announcedTrailersKey := strings.Split(string(announcedTrailers), ",")
+
 		removeConnectionHeadersFastHTTP(res.Header)
 
 		for _, header := range hopHeaders {
 			res.Header.Del(header)
+		}
+
+		if len(announcedTrailers) > 0 {
+			res.Header.Add("Trailer", string(announcedTrailers))
 		}
 
 		res.Header.VisitAll(func(key, value []byte) {
@@ -188,23 +179,82 @@ func NewFastHTTPReverseProxy(passHostHeader *bool) http.Handler {
 
 		writer.WriteHeader(res.StatusCode())
 
-		brl := limitReaderPool.Get()
-		if brl == nil {
-			brl = &io.LimitedReader{}
+		if res.Header.ContentLength() == -1 {
+			// READ CHUNK BODY
+			cbr := NewChunkedReader(br)
+
+			b := bufferPool.Get()
+			_, err := io.CopyBuffer(&WriteFlusher{writer}, cbr, b)
+			if err != nil {
+				conn.Close()
+				return
+			}
+			res.Header.Reset()
+			res.Header.SetNoDefaultContentType(true)
+			err = res.Header.ReadTrailer(br)
+			if err != nil {
+				conn.Close()
+				return
+			}
+
+			res.Header.VisitAll(func(key, value []byte) {
+				for _, s := range announcedTrailersKey {
+					if strings.EqualFold(s, strings.TrimSpace(string(key))) {
+						writer.Header().Add(string(key), string(value))
+						return
+					}
+				}
+				writer.Header().Add(http.TrailerPrefix+string(key), string(value))
+			})
+			bufferPool.Put(b)
+
+		} else {
+
+			brl := limitReaderPool.Get()
+			if brl == nil {
+				brl = &io.LimitedReader{}
+			}
+			brl.R = br
+			brl.N = int64(res.Header.ContentLength())
+
+			b := bufferPool.Get()
+			_, err := io.CopyBuffer(writer, brl, b)
+			if err != nil {
+				if err != nil {
+					conn.Close()
+					return
+				}
+			}
+
+			bufferPool.Put(b)
+
+			limitReaderPool.Put(brl)
 		}
-
-		brl.R = br
-		brl.N = int64(res.Header.ContentLength())
-
-		b := bufferPool.Get()
-		io.CopyBuffer(writer, brl, b)
-		bufferPool.Put(b)
-
-		limitReaderPool.Put(brl)
 		readerPool.Put(br)
-
+		pool.ReleaseConn(conn)
 	}))
 }
+
+type DebugReader struct {
+	r io.Reader
+}
+
+func (d *DebugReader) Read(b []byte) (int, error) {
+	n, err := d.r.Read(b)
+	fmt.Println("DEBUG", n, err, string(b[:n]), "DEBUG END")
+	return n, err
+}
+
+type WriteFlusher struct {
+	w io.Writer
+}
+
+func (w *WriteFlusher) Write(b []byte) (int, error) {
+	n, err := w.w.Write(b)
+	w.w.(http.Flusher).Flush()
+	return n, err
+}
+
 func addMissingPort(addr string, isTLS bool) string {
 	n := strings.Index(addr, ":")
 	if n >= 0 {

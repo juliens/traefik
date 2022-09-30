@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -292,4 +293,24 @@ func TestDisableHTTP2(t *testing.T) {
 			assert.Equal(t, test.expectedProto, resp.Proto)
 		})
 	}
+}
+
+func BenchmarkName(b *testing.B) {
+	b.ReportAllocs()
+	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Write([]byte("TEST"))
+	}))
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL, http.NoBody)
+	if err != nil {
+		b.Fatalf("ERR")
+	}
+
+	// tr := FastHTTPTransport{hc: NewHostChooser()}
+	tr := &http.Transport{}
+	var resp *http.Response
+	for i := 0; i < b.N; i++ {
+		resp, _ = tr.RoundTrip(req)
+	}
+	fmt.Println(resp)
 }

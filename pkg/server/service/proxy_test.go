@@ -1,6 +1,8 @@
 package service
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
+	"github.com/valyala/fasthttp"
 )
 
 type staticTransport struct {
@@ -43,19 +46,30 @@ func BenchmarkProxy(b *testing.B) {
 
 func TestFastHTTPTrailer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Add("Te", "trailer")
+		rw.Header().Add("Transfer-Encoding", "chunked")
 		rw.Header().Add("Trailer", "X-Test")
+		rw.Header().Add("Te", "trailers")
 
-		rw.Write([]byte("test"))
+		rw.Write([]byte("one"))
 		rw.(http.Flusher).Flush()
 
+		time.Sleep(time.Second)
 		rw.Header().Add("X-Test", "Toto")
 		rw.Header().Add(http.TrailerPrefix+"X-Nontest", "Tata")
+		rw.(http.Flusher).Flush()
 
-		rw.Write([]byte("test"))
+		time.Sleep(time.Second)
 
+		rw.Write([]byte("two"))
+		rw.(http.Flusher).Flush()
+		time.Sleep(time.Second)
+
+		rw.Write([]byte("three"))
+		rw.(http.Flusher).Flush()
 	}))
 
+	fmt.Println(srv.URL)
+	time.Sleep(time.Minute)
 	// req, resp := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
 	// req.SetRequestURI(srv.URL)
 	// client := fasthttp.Client{}
@@ -72,30 +86,32 @@ func TestFastHTTPTrailer(t *testing.T) {
 	proxy := NewFastHTTPReverseProxy(Bool(true))
 	//
 	go func() {
-		log.Fatal(http.ListenAndServe(":8090", http.HandlerFunc(func(rw http.ResponseWriter, hreq *http.Request) {
-			// req, resp := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
-			// req.SetRequestURI(srv.URL)
-			// client := fasthttp.Client{}
-			// client.Do(req, resp)
-			//
-			// b := resp.Body()
-			// resp.Header.VisitAllTrailer(func(key []byte) {
-			// 	fmt.Println(string(key))
-			// })
-			// rw.Write(b)
-
+		log.Fatal(http.ListenAndServe(":8091", http.HandlerFunc(func(rw http.ResponseWriter, hreq *http.Request) {
 			hreq.URL, _ = url.Parse(srv.URL)
 			proxy.ServeHTTP(rw, hreq)
 		})))
 	}()
 	time.Sleep(10 * time.Millisecond)
 
-	resp, err := http.Get("http://127.0.0.1:8090")
+	resp, err := http.Get("http://127.0.0.1:8091")
 	require.NoError(t, err)
-	fmt.Println(resp.Trailer)
-	io.Copy(io.Discard, resp.Body)
+	b := make([]byte, 1024)
+	n, err := resp.Body.Read(b)
+	fmt.Println(n, err, string(b[:n]))
+	b = make([]byte, 1024)
+	n, err = resp.Body.Read(b)
+	fmt.Println(n, err, string(b[:n]))
+	n, err = resp.Body.Read(b)
+	fmt.Println(n, err, string(b[:n]))
+	n, err = resp.Body.Read(b)
+	fmt.Println(n, err, string(b[:n]))
 
-	fmt.Println(resp.Trailer)
+	for k, v := range resp.Trailer {
+		fmt.Println(k, v)
+	}
+	for k, v := range resp.Header {
+		fmt.Println(k, v)
+	}
 	//
 	// ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	// <-ctx.Done()
@@ -118,4 +134,55 @@ func TestFastHTTPTrailer(t *testing.T) {
 	// 	fmt.Println("trailer", string(key))
 	// 	fmt.Println(string(resp.Header.PeekBytes(key)))
 	// })
+}
+
+func BenchmarkRequest(b *testing.B) {
+	// req, err := http.NewRequest(http.MethodGet, "http://localhost", nil)
+	// if err != nil {
+	// 	b.Fatalf("ERR")
+	// }
+	req := fasthttp.AcquireRequest()
+	req.Header.SetMethod(http.MethodGet)
+	req.SetRequestURI("http://localhost")
+
+	bw := bufio.NewWriter(io.Discard)
+
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		req.Write(bw)
+	}
+}
+
+func BenchmarkResponse(b *testing.B) {
+	content := "HTTP/1.1 200 OK\nConnection: keep-alive\nContent-Type: text/plain\nDate: Thu, 29 Sep 2022 08:25:34 GMT\nContent-Length: 1\n\n1\n"
+	// content := "HTTP/1.1 200 OK\nTe: trailers\nTrailer: X-Test\nDate: Fri, 30 Sep 2022 09:10:58 GMT\nTransfer-Encoding: chunked\n\n3\none\n3\ntwo\n5\nthree\n0\nX-Nontest: Tata\nX-Test: Toto\n\n"
+	b.ReportAllocs()
+
+	resp := fasthttp.AcquireResponse()
+	// resp.SkipBody = true
+
+	br := bufio.NewReader(bytes.NewReader([]byte(content)))
+	// var resp *http.Response
+
+	// toto := func() {
+	// 	resp.Header.Read(br)
+	// }
+
+	for i := 0; i < b.N; i++ {
+		br.Reset(bytes.NewReader([]byte(content)))
+
+		// resp, _ = http.ReadResponse(br, nil)
+		// io.ReadAll(resp.Body)
+
+		resp.Header.Read(br)
+		brl := NewChunkedReader(br)
+		io.ReadAll(brl)
+		// resp.Read(br)
+		resp.Reset()
+		// resp.ResetBody()
+		// resp.ReadLimitBody(br, 1000)
+	}
+
+	// fmt.Println(resp)
 }

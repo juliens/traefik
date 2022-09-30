@@ -5,33 +5,42 @@ import (
 	"sync"
 )
 
+type Pool[T any] struct {
+	pool sync.Pool
+}
+
+func (p *Pool[T]) Get() T {
+	var res T
+	if temp := p.pool.Get(); temp != nil {
+		return temp.(T)
+	}
+	return res
+}
+
+func (p *Pool[T]) Put(x T) {
+	p.pool.Put(x)
+}
+
 type ConnectionPool struct {
 	address  string
 	idleConn chan net.Conn
-	newConn  chan func() net.Conn
+	dialer   func() (net.Conn, error)
 }
 
-func NewConnectionPool(addr string, maxIdleConn int) *ConnectionPool {
-	conns := make(chan func() net.Conn)
-	go func() {
-		for {
-			select {
-			case conns <- newConn(addr):
-			}
-		}
-	}()
+// TODO handle errors ( and timeout )
+// TODO handle idleConnLifetime
+
+func NewConnectionPool(dial func() (net.Conn, error), maxIdleConn int) *ConnectionPool {
 	return &ConnectionPool{
-		address:  addr,
+		dialer:   dial,
 		idleConn: make(chan net.Conn, maxIdleConn),
-		newConn:  conns,
 	}
 }
 
-func newConn(addr string) func() net.Conn {
-	return func() net.Conn {
-		dial, _ := net.Dial("tcp", addr)
-		return dial
-	}
+func (c *ConnectionPool) askForNewConn() {
+	conn, _ := c.dialer()
+
+	c.ReleaseConn(conn)
 }
 
 func (c *ConnectionPool) AcquireConn() net.Conn {
@@ -39,10 +48,9 @@ func (c *ConnectionPool) AcquireConn() net.Conn {
 	select {
 	case conn = <-c.idleConn:
 	default:
+		go c.askForNewConn()
 		select {
 		case conn = <-c.idleConn:
-		case connFn := <-c.newConn:
-			conn = connFn()
 		}
 	}
 	return conn
@@ -74,7 +82,9 @@ func (h *HostChooser) GetPool(scheme string, url string) *ConnectionPool {
 	pool := h.pools[key]
 	h.poolMu.RUnlock()
 	if pool == nil {
-		pool = NewConnectionPool(url, 200)
+		pool = NewConnectionPool(func() (net.Conn, error) {
+			return net.Dial("tcp", url)
+		}, 200)
 		h.poolMu.Lock()
 		h.pools[key] = pool
 		h.poolMu.Unlock()
