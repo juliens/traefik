@@ -93,19 +93,14 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 				dialer.Timeout = time.Duration(newConfig.ForwardingTimeouts.DialTimeout)
 				// maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
 			}
-			// //
+
 			tlsConfig, err := createTLSConfig(newConfig)
 			if err != nil {
 				log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
 
 			}
-			// &fasthttp.Client{
-			//
-			// 	MaxIdleConnDuration: maxIdleConnTimeout,
-			//
-			// }
-			hc := NewHostChooser(dialer.Dial, newConfig.MaxIdleConnsPerHost, tlsConfig)
-			r.proxies[newConfigName] = NewFastHTTPReverseProxy(hc, newConfig.PassHostHeader)
+
+			r.proxies[newConfigName] = NewFastHTTPReverseProxy(dialer.Dial, newConfig.MaxIdleConnsPerHost, tlsConfig, newConfig.PassHostHeader)
 		}
 
 	}

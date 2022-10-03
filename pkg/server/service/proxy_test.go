@@ -264,8 +264,7 @@ func TestErrorConn(t *testing.T) {
 		return nil, errors.New("ERROR")
 	}
 
-	hc := NewHostChooser(dialer, 200, nil)
-	proxy := NewFastHTTPReverseProxy(hc, Bool(true))
+	proxy := NewFastHTTPReverseProxy(dialer, 100, nil, Bool(true))
 
 	rw := httptest.NewRecorder()
 
@@ -281,12 +280,10 @@ func BenchmarkProxyFast(b *testing.B) {
 
 	content := "HTTP/1.1 200 OK\nConnection: keep-alive\nContent-Type: text/plain\nDate: Thu, 29 Sep 2022 08:25:34 GMT\nContent-Length: 1\n\n1"
 	dialer := func(network, address string) (net.Conn, error) {
-		fmt.Println("DIAL")
 		return &DiscardConn{w: io.Discard, r: bytes.NewReader([]byte(content)), block: make(chan struct{}, 1)}, nil
 	}
 
-	hc := NewHostChooser(dialer, 200, nil)
-	proxy := NewFastHTTPReverseProxy(hc, Bool(true))
+	proxy := NewFastHTTPReverseProxy(dialer, 200, nil, Bool(true))
 
 	// proxy := buildProxy(0, &http.Transport{Dial: dialer}, newBufferPool(), Bool(true))
 

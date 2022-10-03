@@ -1,10 +1,7 @@
 package service
 
 import (
-	"crypto/tls"
 	"net"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 )
@@ -40,7 +37,9 @@ type conn struct {
 }
 
 func (c *conn) isExpired() bool {
-	return time.Now().After(c.lastUsed.Add(60 * time.Second))
+	lu := c.lastUsed
+	after := lu.Add(60 * time.Second)
+	return time.Now().After(after)
 }
 
 func NewConnectionPool(dial func() (net.Conn, error), maxIdleConn int) *ConnectionPool {
@@ -60,7 +59,7 @@ func (c *ConnectionPool) cleanIdleConns() {
 		select {
 		case conn := <-c.idleConn:
 			if conn.isExpired() {
-				c.ReleaseConn(conn)
+				c.ReleaseConn(conn.Conn)
 				return
 			}
 			_ = conn.Close()
@@ -75,29 +74,26 @@ func (c *ConnectionPool) askForNewConn(errChan chan<- error) {
 	co, err := c.dialer()
 	if err != nil {
 		errChan <- err
+		return
 	}
-	close(errChan)
 
-	c.ReleaseConn(&conn{Conn: co})
+	c.ReleaseConn(co)
 }
 
 func (c *ConnectionPool) acquireConn() (*conn, error) {
-	var co net.Conn
+	var co *conn
 	select {
 	case co = <-c.idleConn:
 	default:
 		errChan := make(chan error, 1)
-
-		go func() {
-			c.askForNewConn(errChan)
-		}()
+		go c.askForNewConn(errChan)
 		select {
 		case co = <-c.idleConn:
 		case err := <-errChan:
 			return nil, err
 		}
 	}
-	return &conn{Conn: co}, nil
+	return co, nil
 }
 
 func (c *ConnectionPool) AcquireConn() (net.Conn, error) {
@@ -106,14 +102,14 @@ func (c *ConnectionPool) AcquireConn() (net.Conn, error) {
 		if err != nil {
 			return nil, err
 		}
-		if conn.isExpired() {
+
+		if !conn.isExpired() {
 			return conn.Conn, nil
 		}
 	}
 }
 
 func (c *ConnectionPool) ReleaseConn(co net.Conn) {
-
 	select {
 	case c.idleConn <- &conn{Conn: co, lastUsed: time.Now()}:
 
@@ -121,52 +117,4 @@ func (c *ConnectionPool) ReleaseConn(co net.Conn) {
 		// DROP IDLE CONN
 		co.Close()
 	}
-}
-
-func NewHostChooser(dialer func(network, address string) (net.Conn, error), maxIdleConnPerHost int, tlsConfig *tls.Config) *HostChooser {
-	return &HostChooser{
-		dialer:             dialer,
-		pools:              make(map[string]*ConnectionPool),
-		maxIdleConnPerHost: maxIdleConnPerHost,
-		TLSConfig:          tlsConfig,
-	}
-}
-
-type HostChooser struct {
-	dialer             func(network, address string) (net.Conn, error)
-	maxIdleConnPerHost int
-	pools              map[string]*ConnectionPool
-	poolMu             sync.RWMutex
-	TLSConfig          *tls.Config
-}
-
-func (h *HostChooser) GetPool(req http.Request) *ConnectionPool {
-	h.poolMu.RLock()
-	req.URL.Port()
-
-	key := req.URL.Scheme + "|" + req.URL.Host
-	url := addMissingPort(req.URL.Host, strings.EqualFold(req.URL.Scheme, "https"))
-	pool := h.pools[key]
-	h.poolMu.RUnlock()
-	if pool != nil {
-		return pool
-	}
-
-	if req.URL.Scheme == "https" {
-		pool = NewConnectionPool(func() (net.Conn, error) {
-			conn, err := h.dialer("tcp", url)
-			if err != nil {
-				return nil, err
-			}
-			return tls.Client(conn, h.TLSConfig), nil
-		}, h.maxIdleConnPerHost)
-	} else {
-		pool = NewConnectionPool(func() (net.Conn, error) {
-			return h.dialer("tcp", url)
-		}, h.maxIdleConnPerHost)
-	}
-	h.poolMu.Lock()
-	h.pools[key] = pool
-	h.poolMu.Unlock()
-	return pool
 }
