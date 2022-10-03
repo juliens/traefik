@@ -65,7 +65,7 @@ func TestConnectionReuse(t *testing.T) {
 		{
 			desc: "Simple case",
 			poolFn: func(pool *ConnectionPool) {
-				c1 := pool.AcquireConn()
+				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 
 			},
@@ -74,10 +74,10 @@ func TestConnectionReuse(t *testing.T) {
 		{
 			desc: "Simple with reuse",
 			poolFn: func(pool *ConnectionPool) {
-				c1 := pool.AcquireConn()
+				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 
-				c2 := pool.AcquireConn()
+				c2, _ := pool.AcquireConn()
 				pool.ReleaseConn(c2)
 			},
 			expected: 1,
@@ -85,8 +85,8 @@ func TestConnectionReuse(t *testing.T) {
 		{
 			desc: "Two connection at the same time",
 			poolFn: func(pool *ConnectionPool) {
-				c1 := pool.AcquireConn()
-				c2 := pool.AcquireConn()
+				c1, _ := pool.AcquireConn()
+				c2, _ := pool.AcquireConn()
 
 				pool.ReleaseConn(c1)
 				pool.ReleaseConn(c2)
@@ -122,7 +122,7 @@ func TestMaxIdleConn(t *testing.T) {
 		{
 			desc: "Simple case",
 			poolFn: func(pool *ConnectionPool) {
-				c1 := pool.AcquireConn()
+				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 			},
 			maxIdleConn: 1,
@@ -132,7 +132,7 @@ func TestMaxIdleConn(t *testing.T) {
 			desc: "Multiple conn with release",
 			poolFn: func(pool *ConnectionPool) {
 				for i := 0; i < 7; i++ {
-					c := pool.AcquireConn()
+					c, _ := pool.AcquireConn()
 					defer pool.ReleaseConn(c)
 				}
 			},

@@ -3,12 +3,12 @@ package service
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
-	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -83,36 +83,36 @@ func TestFastHTTPTrailer(t *testing.T) {
 	// return
 	// proxy := buildProxy(0, http.DefaultTransport, nil, Bool(true))
 
-	proxy := NewFastHTTPReverseProxy(Bool(true))
+	// proxy := NewFastHTTPReverseProxy(Bool(true))
+	// //
+	// go func() {
+	// 	log.Fatal(http.ListenAndServe(":8091", http.HandlerFunc(func(rw http.ResponseWriter, hreq *http.Request) {
+	// 		hreq.URL, _ = url.Parse(srv.URL)
+	// 		proxy.ServeHTTP(rw, hreq)
+	// 	})))
+	// }()
+	// time.Sleep(10 * time.Millisecond)
 	//
-	go func() {
-		log.Fatal(http.ListenAndServe(":8091", http.HandlerFunc(func(rw http.ResponseWriter, hreq *http.Request) {
-			hreq.URL, _ = url.Parse(srv.URL)
-			proxy.ServeHTTP(rw, hreq)
-		})))
-	}()
-	time.Sleep(10 * time.Millisecond)
-
-	resp, err := http.Get("http://127.0.0.1:8091")
-	require.NoError(t, err)
-	b := make([]byte, 1024)
-	n, err := resp.Body.Read(b)
-	fmt.Println(n, err, string(b[:n]))
-	b = make([]byte, 1024)
-	n, err = resp.Body.Read(b)
-	fmt.Println(n, err, string(b[:n]))
-	n, err = resp.Body.Read(b)
-	fmt.Println(n, err, string(b[:n]))
-	n, err = resp.Body.Read(b)
-	fmt.Println(n, err, string(b[:n]))
-
-	for k, v := range resp.Trailer {
-		fmt.Println(k, v)
-	}
-	for k, v := range resp.Header {
-		fmt.Println(k, v)
-	}
+	// resp, err := http.Get("http://127.0.0.1:8091")
+	// require.NoError(t, err)
+	// b := make([]byte, 1024)
+	// n, err := resp.Body.Read(b)
+	// fmt.Println(n, err, string(b[:n]))
+	// b = make([]byte, 1024)
+	// n, err = resp.Body.Read(b)
+	// fmt.Println(n, err, string(b[:n]))
+	// n, err = resp.Body.Read(b)
+	// fmt.Println(n, err, string(b[:n]))
+	// n, err = resp.Body.Read(b)
+	// fmt.Println(n, err, string(b[:n]))
 	//
+	// for k, v := range resp.Trailer {
+	// 	fmt.Println(k, v)
+	// }
+	// for k, v := range resp.Header {
+	// 	fmt.Println(k, v)
+	// }
+	// //
 	// ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	// <-ctx.Done()
 	// /*
@@ -185,4 +185,121 @@ func BenchmarkResponse(b *testing.B) {
 	}
 
 	// fmt.Println(resp)
+}
+
+type DiscardConn struct {
+	block chan struct{}
+	w     io.Writer
+	r     *bytes.Reader
+
+	mode bool
+}
+
+func (d *DiscardConn) Write(b []byte) (n int, err error) {
+	// fmt.Println("WRITE", len(b))
+	d.block <- struct{}{}
+	return d.w.Write(b)
+}
+
+func (d *DiscardConn) Read(b []byte) (n int, err error) {
+	// fmt.Println("READ")
+	<-d.block
+
+	d.r.Seek(0, 0)
+	n, err = d.r.Read(b)
+	// fmt.Println(n)
+	return n, err
+}
+
+func (d *DiscardConn) LocalAddr() net.Addr {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (d *DiscardConn) RemoteAddr() net.Addr {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (d *DiscardConn) SetDeadline(t time.Time) error {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (d *DiscardConn) SetReadDeadline(t time.Time) error {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (d *DiscardConn) SetWriteDeadline(t time.Time) error {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (d *DiscardConn) Close() error {
+	return nil
+}
+
+type ResponseWriter struct {
+	h http.Header
+}
+
+func (r *ResponseWriter) Header() http.Header {
+	// TODO implement me
+	return r.h
+}
+
+func (r *ResponseWriter) Write(i []byte) (int, error) {
+	// TODO implement me
+	// panic("implement me")
+	return len(i), nil
+}
+
+func (r *ResponseWriter) WriteHeader(statusCode int) {
+
+}
+
+func TestErrorConn(t *testing.T) {
+	dialer := func(network, address string) (net.Conn, error) {
+		return nil, errors.New("ERROR")
+	}
+
+	hc := NewHostChooser(dialer, 200, nil)
+	proxy := NewFastHTTPReverseProxy(hc, Bool(true))
+
+	rw := httptest.NewRecorder()
+
+	req, err := http.NewRequest(http.MethodGet, "http://localhost", nil)
+	require.NoError(t, err)
+
+	proxy.ServeHTTP(rw, req)
+	require.Equal(t, http.StatusInternalServerError, rw.Result().StatusCode)
+
+}
+func BenchmarkProxyFast(b *testing.B) {
+	b.ReportAllocs()
+
+	content := "HTTP/1.1 200 OK\nConnection: keep-alive\nContent-Type: text/plain\nDate: Thu, 29 Sep 2022 08:25:34 GMT\nContent-Length: 1\n\n1"
+	dialer := func(network, address string) (net.Conn, error) {
+		fmt.Println("DIAL")
+		return &DiscardConn{w: io.Discard, r: bytes.NewReader([]byte(content)), block: make(chan struct{}, 1)}, nil
+	}
+
+	hc := NewHostChooser(dialer, 200, nil)
+	proxy := NewFastHTTPReverseProxy(hc, Bool(true))
+
+	// proxy := buildProxy(0, &http.Transport{Dial: dialer}, newBufferPool(), Bool(true))
+
+	rw := &ResponseWriter{
+		h: http.Header{},
+	}
+
+	req, err := http.NewRequest(http.MethodGet, "http://localhost", nil)
+	if err != nil {
+		b.Fatalf("ERR")
+	}
+
+	for i := 0; i < b.N; i++ {
+		proxy.ServeHTTP(rw, req)
+	}
 }

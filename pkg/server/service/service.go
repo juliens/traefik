@@ -267,6 +267,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 	}
 
 	handler, err := chain.Append(alHandler).Then(pipelining.New(ctx, fwd, "pipelining"))
+	// handler, err := chain.Append(alHandler).Then(fwd)
 	if err != nil {
 		return nil, err
 	}

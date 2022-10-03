@@ -82,33 +82,37 @@ func NewFastHTTPReverseProxy(hc *HostChooser, passHostHeader *bool) http.Handler
 		outReq.SetHost(request.URL.Host)
 		outReq.Header.SetHost(request.Host)
 
-		for k, v := range request.Header {
-			for _, s := range v {
-				outReq.Header.Add(k, s)
-			}
-		}
+		// for k, v := range request.Header {
+		// 	for _, s := range v {
+		// outReq.Header.Add(k, s)
+		// }
+		// }
 
-		outReq.SetBodyStream(request.Body, int(request.ContentLength))
+		// outReq.SetBodyStream(request.Body, int(request.ContentLength))
 
-		outReq.Header.SetMethod(request.Method)
+		// outReq.Header.SetMethod(request.Method)
 
-		if clientIP, _, err := net.SplitHostPort(request.RemoteAddr); err == nil {
-			// If we aren't the first proxy retain prior
-			// X-Forwarded-For information as a comma+space
-			// separated list and fold multiple headers into one.
-			prior, ok := request.Header["X-Forwarded-For"]
-			omit := ok && prior == nil // Issue 38079: nil now means don't populate the header
-			if len(prior) > 0 {
-				clientIP = strings.Join(prior, ", ") + ", " + clientIP
-			}
-			if !omit {
-				outReq.Header.Set("X-Forwarded-For", clientIP)
-			}
-		}
+		// if clientIP, _, err := net.SplitHostPort(request.RemoteAddr); err == nil {
+		// 	// If we aren't the first proxy retain prior
+		// 	// X-Forwarded-For information as a comma+space
+		// 	// separated list and fold multiple headers into one.
+		// 	prior, ok := request.Header["X-Forwarded-For"]
+		// 	omit := ok && prior == nil // Issue 38079: nil now means don't populate the header
+		// 	if len(prior) > 0 {
+		// 		clientIP = strings.Join(prior, ", ") + ", " + clientIP
+		// 	}
+		// 	if !omit {
+		// 		outReq.Header.Set("X-Forwarded-For", clientIP)
+		// 	}
+		// }
 
 		host := addMissingPort(string(outReq.URI().Host()), bytes.EqualFold(outReq.URI().Scheme(), []byte("https")))
 		pool := hc.GetPool(string(outReq.URI().Scheme()), host)
-		conn := pool.AcquireConn()
+		conn, err := pool.AcquireConn()
+		if err != nil {
+			handleError(request.Context(), writer, err)
+			return
+		}
 
 		bw := writerPool.Get()
 		if bw == nil {
@@ -116,36 +120,12 @@ func NewFastHTTPReverseProxy(hc *HostChooser, passHostHeader *bool) http.Handler
 		}
 
 		bw.Reset(conn)
-		err := outReq.Write(bw)
+		err = outReq.Write(bw)
 		bw.Flush()
 		writerPool.Put(bw)
 
 		if err != nil {
-			statusCode := http.StatusInternalServerError
-
-			switch {
-			case errors.Is(err, io.EOF):
-				statusCode = http.StatusBadGateway
-			case errors.Is(err, context.Canceled):
-				statusCode = StatusClientClosedRequest
-			default:
-				var netErr net.Error
-				if errors.As(err, &netErr) {
-					if netErr.Timeout() {
-						statusCode = http.StatusGatewayTimeout
-					} else {
-						statusCode = http.StatusBadGateway
-					}
-				}
-			}
-
-			log.Debugf("'%d %s' caused by: %v", statusCode, statusText(statusCode), err)
-			writer.WriteHeader(statusCode)
-			_, werr := writer.Write([]byte(statusText(statusCode)))
-			if werr != nil {
-				log.Debugf("Error while writing status code", werr)
-			}
-			log.FromContext(request.Context()).Error(err)
+			handleError(request.Context(), writer, err)
 			return
 		}
 
@@ -234,9 +214,38 @@ func NewFastHTTPReverseProxy(hc *HostChooser, passHostHeader *bool) http.Handler
 
 			limitReaderPool.Put(brl)
 		}
+
 		readerPool.Put(br)
 		pool.ReleaseConn(conn)
 	}))
+}
+
+func handleError(ctx context.Context, writer http.ResponseWriter, err error) {
+	statusCode := http.StatusInternalServerError
+
+	switch {
+	case errors.Is(err, io.EOF):
+		statusCode = http.StatusBadGateway
+	case errors.Is(err, context.Canceled):
+		statusCode = StatusClientClosedRequest
+	default:
+		var netErr net.Error
+		if errors.As(err, &netErr) {
+			if netErr.Timeout() {
+				statusCode = http.StatusGatewayTimeout
+			} else {
+				statusCode = http.StatusBadGateway
+			}
+		}
+	}
+
+	log.Debugf("'%d %s' caused by: %v", statusCode, statusText(statusCode), err)
+	writer.WriteHeader(statusCode)
+	_, werr := writer.Write([]byte(statusText(statusCode)))
+	if werr != nil {
+		log.Debugf("Error while writing status code", werr)
+	}
+	log.FromContext(ctx).Error(err)
 }
 
 type DebugReader struct {

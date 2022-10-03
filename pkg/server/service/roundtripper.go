@@ -1,12 +1,10 @@
 package service
 
 import (
-	"bufio"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"reflect"
@@ -17,7 +15,6 @@ import (
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
 	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
-	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http2"
 )
 
@@ -110,6 +107,7 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 			hc := NewHostChooser(dialer.Dial, newConfig.MaxIdleConnsPerHost, tlsConfig)
 			r.proxies[newConfigName] = NewFastHTTPReverseProxy(hc, newConfig.PassHostHeader)
 		}
+
 	}
 
 	r.configs = newConfigs
@@ -229,87 +227,4 @@ func createRootCACertPool(rootCAs []traefiktls.FileOrContent) *x509.CertPool {
 	}
 
 	return roots
-}
-
-type FastHTTPTransport struct {
-	hc     *HostChooser
-	brPool Pool[*bufio.Reader]
-	wrPool Pool[*bufio.Writer]
-	lrPool Pool[*io.LimitedReader]
-}
-
-func (f *FastHTTPTransport) RoundTrip(request *http.Request) (*http.Response, error) {
-	pool := f.hc.GetPool(request.URL.Scheme, request.URL.Host)
-	conn := pool.AcquireConn()
-
-	outReq := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(outReq)
-
-	if request.Body != nil {
-		defer request.Body.Close()
-	}
-
-	outReq.Header.Set("FastHTTP", "enabled")
-
-	// SetRequestURI must be called before outReq.SetHost because it re-triggers uri parsing.
-	outReq.SetRequestURI(request.URL.RequestURI())
-
-	outReq.SetHost(request.URL.Host)
-	outReq.Header.SetHost(request.Host)
-
-	for k, v := range request.Header {
-		for _, s := range v {
-			outReq.Header.Add(k, s)
-		}
-	}
-
-	outReq.SetBodyStream(request.Body, int(request.ContentLength))
-
-	outReq.Header.SetMethod(request.Method)
-
-	bw := f.wrPool.Get()
-	if bw == nil {
-		bw = bufio.NewWriterSize(conn, 4096)
-	}
-
-	defer f.wrPool.Put(bw)
-
-	bw.Reset(conn)
-	err := outReq.Write(bw)
-	bw.Flush()
-	if err != nil {
-		return nil, err
-	}
-
-	br := f.brPool.Get()
-	if br == nil {
-		br = bufio.NewReaderSize(conn, 4096)
-	}
-
-	br.Reset(conn)
-
-	res := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(res)
-
-	res.Header.Read(br)
-
-	resp := &http.Response{
-		Header: make(http.Header),
-	}
-	resp.StatusCode = res.StatusCode()
-	res.Header.VisitAll(func(key, value []byte) {
-		resp.Header.Add(string(key), string(value))
-	})
-
-	brl := f.lrPool.Get()
-	if brl == nil {
-		brl = &io.LimitedReader{}
-	}
-
-	brl.R = br
-	brl.N = int64(res.Header.ContentLength())
-
-	resp.Body = io.NopCloser(brl)
-
-	return resp, nil
 }
