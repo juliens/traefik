@@ -76,6 +76,10 @@ func TestGetLoadBalancer(t *testing.T) {
 	}
 }
 
+func newRtMock() RoundTripperGetter {
+	return &rtMock{}
+}
+
 func TestGetLoadBalancerServiceHandler(t *testing.T) {
 	sm := NewManager(nil, nil, nil, &RoundTripperManager{
 		roundTrippers: map[string]http.RoundTripper{
@@ -396,14 +400,10 @@ func Bool(v bool) *bool { return &v }
 type MockForwarder struct{}
 
 func (MockForwarder) ServeHTTP(http.ResponseWriter, *http.Request) {
-	panic("not available")
+	panic("implement me")
 }
 
 type rtMock struct{}
-
-func newRtMock() RoundTripperGetter {
-	return &rtMock{}
-}
 
 func (r *rtMock) Get(_ string) (http.RoundTripper, error) {
 	return http.DefaultTransport, nil
