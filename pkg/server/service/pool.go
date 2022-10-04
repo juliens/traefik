@@ -8,13 +8,19 @@ import (
 
 type Pool[T any] struct {
 	pool sync.Pool
+	New  func() T
 }
 
 func (p *Pool[T]) Get() T {
-	var res T
 	if temp := p.pool.Get(); temp != nil {
 		return temp.(T)
 	}
+
+	if p.New != nil {
+		return p.New()
+	}
+
+	var res T
 	return res
 }
 
@@ -22,7 +28,12 @@ func (p *Pool[T]) Put(x T) {
 	p.pool.Put(x)
 }
 
-type ConnectionPool struct {
+type ConnectionPool interface {
+	AcquireConn() (*conn, error)
+	ReleaseConn(co *conn)
+}
+
+type ChannelConnectionPool struct {
 	idleConn chan *conn
 	dialer   func() (net.Conn, error)
 }
@@ -32,18 +43,18 @@ type ConnectionPool struct {
 
 type conn struct {
 	net.Conn
-	lastUsed time.Time
-	timer    *time.Timer
+	lastUseTime time.Time
+	timer       *time.Timer
 }
 
 func (c *conn) isExpired() bool {
-	lu := c.lastUsed
+	lu := c.lastUseTime
 	after := lu.Add(60 * time.Second)
 	return time.Now().After(after)
 }
 
-func NewConnectionPool(dial func() (net.Conn, error), maxIdleConn int) *ConnectionPool {
-	c := &ConnectionPool{
+func NewConnectionPool(dial func() (net.Conn, error), maxIdleConn int) ConnectionPool {
+	c := &ChannelConnectionPool{
 		dialer:   dial,
 		idleConn: make(chan *conn, maxIdleConn),
 	}
@@ -52,14 +63,14 @@ func NewConnectionPool(dial func() (net.Conn, error), maxIdleConn int) *Connecti
 	return c
 }
 
-func (c *ConnectionPool) cleanIdleConns() {
+func (c *ChannelConnectionPool) cleanIdleConns() {
 	defer time.AfterFunc(time.Minute, c.cleanIdleConns)
 
 	for {
 		select {
 		case conn := <-c.idleConn:
 			if conn.isExpired() {
-				c.ReleaseConn(conn.Conn)
+				c.ReleaseConn(conn)
 				return
 			}
 			_ = conn.Close()
@@ -70,17 +81,17 @@ func (c *ConnectionPool) cleanIdleConns() {
 	}
 }
 
-func (c *ConnectionPool) askForNewConn(errChan chan<- error) {
+func (c *ChannelConnectionPool) askForNewConn(errChan chan<- error) {
 	co, err := c.dialer()
 	if err != nil {
 		errChan <- err
 		return
 	}
 
-	c.ReleaseConn(co)
+	c.ReleaseConn(&conn{Conn: co})
 }
 
-func (c *ConnectionPool) acquireConn() (*conn, error) {
+func (c *ChannelConnectionPool) acquireConn() (*conn, error) {
 	var co *conn
 	select {
 	case co = <-c.idleConn:
@@ -96,7 +107,7 @@ func (c *ConnectionPool) acquireConn() (*conn, error) {
 	return co, nil
 }
 
-func (c *ConnectionPool) AcquireConn() (net.Conn, error) {
+func (c *ChannelConnectionPool) AcquireConn() (*conn, error) {
 	for {
 		conn, err := c.acquireConn()
 		if err != nil {
@@ -104,14 +115,14 @@ func (c *ConnectionPool) AcquireConn() (net.Conn, error) {
 		}
 
 		if !conn.isExpired() {
-			return conn.Conn, nil
+			return conn, nil
 		}
 	}
 }
 
-func (c *ConnectionPool) ReleaseConn(co net.Conn) {
+func (c *ChannelConnectionPool) ReleaseConn(co *conn) {
 	select {
-	case c.idleConn <- &conn{Conn: co, lastUsed: time.Now()}:
+	case c.idleConn <- &conn{Conn: co.Conn, lastUseTime: time.Now()}:
 
 	default:
 		// DROP IDLE CONN

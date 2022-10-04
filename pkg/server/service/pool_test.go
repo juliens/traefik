@@ -59,12 +59,12 @@ func (m *mockConn) SetWriteDeadline(t time.Time) error {
 func TestConnectionReuse(t *testing.T) {
 	testCases := []struct {
 		desc     string
-		poolFn   func(pool *ConnectionPool)
+		poolFn   func(pool ConnectionPool)
 		expected int
 	}{
 		{
 			desc: "Simple case",
-			poolFn: func(pool *ConnectionPool) {
+			poolFn: func(pool ConnectionPool) {
 				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 
@@ -73,7 +73,7 @@ func TestConnectionReuse(t *testing.T) {
 		},
 		{
 			desc: "Simple with reuse",
-			poolFn: func(pool *ConnectionPool) {
+			poolFn: func(pool ConnectionPool) {
 				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 
@@ -84,7 +84,7 @@ func TestConnectionReuse(t *testing.T) {
 		},
 		{
 			desc: "Two connection at the same time",
-			poolFn: func(pool *ConnectionPool) {
+			poolFn: func(pool ConnectionPool) {
 				c1, _ := pool.AcquireConn()
 				c2, _ := pool.AcquireConn()
 
@@ -115,13 +115,13 @@ func TestConnectionReuse(t *testing.T) {
 func TestMaxIdleConn(t *testing.T) {
 	testCases := []struct {
 		desc        string
-		poolFn      func(pool *ConnectionPool)
+		poolFn      func(pool ConnectionPool)
 		maxIdleConn int
 		expected    int
 	}{
 		{
 			desc: "Simple case",
-			poolFn: func(pool *ConnectionPool) {
+			poolFn: func(pool ConnectionPool) {
 				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 			},
@@ -130,7 +130,7 @@ func TestMaxIdleConn(t *testing.T) {
 		},
 		{
 			desc: "Multiple conn with release",
-			poolFn: func(pool *ConnectionPool) {
+			poolFn: func(pool ConnectionPool) {
 				for i := 0; i < 7; i++ {
 					c, _ := pool.AcquireConn()
 					defer pool.ReleaseConn(c)
@@ -154,7 +154,7 @@ func TestMaxIdleConn(t *testing.T) {
 					return nil
 				}}, nil
 			}
-			pool := NewConnectionPool(dialer, test.maxIdleConn)
+			pool := NewSliceConnectionPool(dialer, test.maxIdleConn)
 			test.poolFn(pool)
 
 			assert.Equal(t, test.expected, keepOpenedConn)

@@ -9,7 +9,9 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -196,6 +198,7 @@ type DiscardConn struct {
 }
 
 func (d *DiscardConn) Write(b []byte) (n int, err error) {
+	// return 0, nil
 	// fmt.Println("WRITE", len(b))
 	d.block <- struct{}{}
 	return d.w.Write(b)
@@ -204,11 +207,9 @@ func (d *DiscardConn) Write(b []byte) (n int, err error) {
 func (d *DiscardConn) Read(b []byte) (n int, err error) {
 	// fmt.Println("READ")
 	<-d.block
-
+	// return 0, nil
 	d.r.Seek(0, 0)
-	n, err = d.r.Read(b)
-	// fmt.Println(n)
-	return n, err
+	return d.r.Read(b)
 }
 
 func (d *DiscardConn) LocalAddr() net.Addr {
@@ -256,7 +257,6 @@ func (r *ResponseWriter) Write(i []byte) (int, error) {
 }
 
 func (r *ResponseWriter) WriteHeader(statusCode int) {
-
 }
 
 func TestErrorConn(t *testing.T) {
@@ -264,7 +264,7 @@ func TestErrorConn(t *testing.T) {
 		return nil, errors.New("ERROR")
 	}
 
-	proxy := NewFastHTTPReverseProxy(dialer, 100, nil, Bool(true))
+	proxy := NewFastHTTPReverseProxy(dialer, 100, nil, Bool(true), nil)
 
 	rw := httptest.NewRecorder()
 
@@ -278,19 +278,20 @@ func TestErrorConn(t *testing.T) {
 func BenchmarkProxyFast(b *testing.B) {
 	b.ReportAllocs()
 
+	// BenchmarkProxyFast-16    	  449947	      2624 ns/op	     494 B/op	      12 allocs/op
+
 	content := "HTTP/1.1 200 OK\nConnection: keep-alive\nContent-Type: text/plain\nDate: Thu, 29 Sep 2022 08:25:34 GMT\nContent-Length: 1\n\n1"
 	dialer := func(network, address string) (net.Conn, error) {
 		return &DiscardConn{w: io.Discard, r: bytes.NewReader([]byte(content)), block: make(chan struct{}, 1)}, nil
 	}
 
-	proxy := NewFastHTTPReverseProxy(dialer, 200, nil, Bool(true))
+	proxy := NewFastHTTPReverseProxy(dialer, 200, nil, Bool(true), NewSliceConnectionPool)
 
 	// proxy := buildProxy(0, &http.Transport{Dial: dialer}, newBufferPool(), Bool(true))
 
 	rw := &ResponseWriter{
 		h: http.Header{},
 	}
-
 	req, err := http.NewRequest(http.MethodGet, "http://localhost", nil)
 	if err != nil {
 		b.Fatalf("ERR")
@@ -299,4 +300,64 @@ func BenchmarkProxyFast(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		proxy.ServeHTTP(rw, req)
 	}
+}
+
+func BenchmarkBufferPool(b *testing.B) {
+	b.ReportAllocs()
+
+	bp := newBufferPool()
+	bp.Put(bp.Get())
+
+	for i := 0; i < b.N; i++ {
+		bp.Put(bp.Get())
+	}
+	fmt.Println(bp.count)
+}
+func BenchmarkPool(b *testing.B) {
+	b.ReportAllocs()
+
+	count := 0
+	bp := sync.Pool{
+		New: func() any {
+			count++
+			return make([]byte, 10)
+		},
+	}
+
+	for i := 0; i < b.N; i++ {
+		p := bp.Get().([]byte)
+		bp.Put(p[:0])
+	}
+	fmt.Println(count)
+}
+
+func TestAllocs(t *testing.T) {
+	count := 0
+	p := sync.Pool{
+		New: func() any {
+			count++
+			return make([]byte, 10)
+		},
+	}
+
+	for i := 0; i < 100000000; i++ {
+		runtime.Gosched()
+		get := p.Get()
+		p.Put(get)
+	}
+	fmt.Println(count)
+
+}
+
+func TestBAllocs(t *testing.T) {
+	p := newBufferPool()
+
+	for i := 0; i < 1000000; i++ {
+		// time.Sleep(time.Second)
+		get := p.Get()
+
+		p.Put(get)
+	}
+	fmt.Println(p.count)
+
 }

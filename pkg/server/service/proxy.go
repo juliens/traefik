@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -45,59 +46,75 @@ type FastHTTPReverseProxy struct {
 	dialer             func(network, address string) (net.Conn, error)
 	maxIdleConnPerHost int
 
-	pools   map[string]*ConnectionPool
+	pools   map[string]ConnectionPool
 	poolsMu sync.RWMutex
 
-	tlsPools   map[string]*ConnectionPool
+	tlsPools   map[string]ConnectionPool
 	tlsPoolsMu sync.RWMutex
 
-	readerPool      Pool[*bufio.Reader]
-	writerPool      Pool[*bufio.Writer]
-	bufferPool      *bufferPool
-	limitReaderPool Pool[*io.LimitedReader]
+	readerPool        Pool[*bufio.Reader]
+	readerSyncPool    sync.Pool
+	writerPool        Pool[*bufio.Writer]
+	bufferPool        sync.Pool
+	limitReaderPool   Pool[*io.LimitedReader]
+	NewConnectionPool func(dialer func() (net.Conn, error), max int) ConnectionPool
 }
 
-func NewFastHTTPReverseProxy(dialer func(network, address string) (net.Conn, error), maxIdleConnPerHost int, tlsConfig *tls.Config, passHostHeader *bool) http.Handler {
+func NewFastHTTPReverseProxy(dialer func(network, address string) (net.Conn, error), maxIdleConnPerHost int, tlsConfig *tls.Config, passHostHeader *bool, newConnPool func(dialer func() (net.Conn, error), max int) ConnectionPool) http.Handler {
+	if newConnPool == nil {
+		newConnPool = NewConnectionPool
+	}
 	fproxy := &FastHTTPReverseProxy{
 		tlsConfig:          tlsConfig,
 		dialer:             dialer,
 		maxIdleConnPerHost: maxIdleConnPerHost,
 
-		bufferPool: newBufferPool(),
-		pools:      map[string]*ConnectionPool{},
-		tlsPools:   map[string]*ConnectionPool{},
+		bufferPool: sync.Pool{
+			New: func() any {
+				return make([]byte, 32*1024)
+			},
+		},
+		readerSyncPool: sync.Pool{
+			New: func() any {
+				return bufio.NewReaderSize(nil, 64*1024)
+			},
+		},
+		pools:    map[string]ConnectionPool{},
+		tlsPools: map[string]ConnectionPool{},
+
+		NewConnectionPool: newConnPool,
 	}
+
+	// fproxy.bufferPool.Put(fproxy.bufferPool.Get())
 
 	return directorBuilder(passHostHeader, fproxy)
 }
 
-func (r *FastHTTPReverseProxy) GetPool(req *http.Request) *ConnectionPool {
-	url := req.URL.Host
-
-	port := req.URL.Port()
-	if port == "" {
-		url += ":80"
-	}
+func (r *FastHTTPReverseProxy) GetPool(req *http.Request) ConnectionPool {
+	// port := req.URL.Port()
+	// if port == "" {
+	// 	url += ":80"
+	// }
 
 	r.poolsMu.RLock()
-	pool := r.pools[url]
+	pool := r.pools[req.URL.Host]
 	r.poolsMu.RUnlock()
 
 	if pool != nil {
 		return pool
 	}
 
-	pool = NewConnectionPool(func() (net.Conn, error) {
-		return r.dialer("tcp", url)
+	pool = r.NewConnectionPool(func() (net.Conn, error) {
+		return r.dialer("tcp", req.URL.Host)
 	}, r.maxIdleConnPerHost)
 
 	r.poolsMu.Lock()
-	r.pools[url] = pool
+	r.pools[req.URL.Host] = pool
 	r.poolsMu.Unlock()
 	return pool
 }
 
-func (r *FastHTTPReverseProxy) GetTLSPool(req *http.Request) *ConnectionPool {
+func (r *FastHTTPReverseProxy) GetTLSPool(req *http.Request) ConnectionPool {
 	url := req.URL.Host
 
 	port := req.URL.Port()
@@ -113,7 +130,7 @@ func (r *FastHTTPReverseProxy) GetTLSPool(req *http.Request) *ConnectionPool {
 		return pool
 	}
 
-	pool = NewConnectionPool(func() (net.Conn, error) {
+	pool = r.NewConnectionPool(func() (net.Conn, error) {
 		conn, err := r.dialer("tcp", url)
 		if err != nil {
 			return nil, err
@@ -132,9 +149,9 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 	defer fasthttp.ReleaseRequest(outReq)
 
 	outReq.Header.DisableNormalizing()
-
+	//
 	outReq.URI().DisablePathNormalizing = true
-
+	//
 	if request.Body != nil {
 		defer request.Body.Close()
 	}
@@ -144,9 +161,9 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 	announcedTrailer := httpguts.HeaderValuesContainsToken(request.Header["Te"], "trailers")
 
 	removeConnectionHeaders(request.Header)
-
+	//
 	for _, header := range hopHeaders {
-		request.Header.Del(header)
+		delete(request.Header, header)
 	}
 
 	if announcedTrailer {
@@ -157,10 +174,10 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 
 	// SetRequestURI must be called before outReq.SetHost because it re-triggers uri parsing.
 	outReq.SetRequestURI(request.URL.RequestURI())
-
+	//
 	outReq.SetHost(request.URL.Host)
 	outReq.Header.SetHost(request.Host)
-
+	//
 	for k, v := range request.Header {
 		for _, s := range v {
 			outReq.Header.Add(k, s)
@@ -185,7 +202,7 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		}
 	}
 
-	var pool *ConnectionPool
+	var pool ConnectionPool
 	if request.URL.Scheme == "https" {
 		pool = r.GetTLSPool(request)
 	} else {
@@ -241,8 +258,10 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		res.Header.Add("Trailer", string(announcedTrailers))
 	}
 
+	// h := writer.Header()
 	res.Header.VisitAll(func(key, value []byte) {
 		writer.Header().Add(string(key), string(value))
+		// h[string(key)] = append(h[string(key)], string(value))
 	})
 
 	writer.WriteHeader(res.StatusCode())
@@ -252,11 +271,12 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		cbr := NewChunkedReader(br)
 
 		b := r.bufferPool.Get()
-		_, err := io.CopyBuffer(&WriteFlusher{writer}, cbr, b)
+		_, err := io.CopyBuffer(&WriteFlusher{writer}, cbr, b.([]byte))
 		if err != nil {
 			conn.Close()
 			return
 		}
+
 		res.Header.Reset()
 		res.Header.SetNoDefaultContentType(true)
 		err = res.Header.ReadTrailer(br)
@@ -277,7 +297,6 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		r.bufferPool.Put(b)
 
 	} else {
-
 		brl := r.limitReaderPool.Get()
 		if brl == nil {
 			brl = &io.LimitedReader{}
@@ -286,7 +305,7 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		brl.N = int64(res.Header.ContentLength())
 
 		b := r.bufferPool.Get()
-		_, err := io.CopyBuffer(writer, brl, b)
+		_, err := io.CopyBuffer(writer, brl, b.([]byte))
 		if err != nil {
 			if err != nil {
 				conn.Close()
@@ -423,9 +442,9 @@ func removeConnectionHeaders(h http.Header) {
 // See RFC 7230, section 6.1
 func removeConnectionHeadersFastHTTP(h fasthttp.ResponseHeader) {
 	f := h.Peek(fasthttp.HeaderConnection)
-	for _, sf := range strings.Split(string(f), ",") {
-		if sf = textproto.TrimString(sf); sf != "" {
-			h.Del(sf)
+	for _, sf := range bytes.Split(f, []byte{','}) {
+		if sf = bytes.TrimSpace(sf); len(sf) > 0 {
+			h.DelBytes(sf)
 		}
 	}
 }
