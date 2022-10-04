@@ -100,7 +100,7 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 
 			}
 
-			r.proxies[newConfigName] = NewFastHTTPReverseProxy(dialer.Dial, newConfig.MaxIdleConnsPerHost, tlsConfig, newConfig.PassHostHeader, nil)
+			r.proxies[newConfigName] = NewFastHTTPReverseProxy(dialer.Dial, newConfig.MaxIdleConnsPerHost, tlsConfig, newConfig.PassHostHeader, NewSliceConnectionPool)
 		}
 
 	}
