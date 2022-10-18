@@ -39,11 +39,12 @@ type SpiffeX509Source interface {
 
 // FIXME rename to proxyManager
 // NewRoundTripperManager creates a new RoundTripperManager.
-func NewRoundTripperManager(spiffeX509Source SpiffeX509Source) *RoundTripperManager {
+func NewRoundTripperManager(tlConfigManager *TLSConfigManager) *RoundTripperManager {
 	return &RoundTripperManager{
-		roundTrippers:    make(map[string]http.RoundTripper),
-		configs:          make(map[string]*dynamic.ServersTransport),
-		spiffeX509Source: spiffeX509Source,
+		roundTrippers: make(map[string]http.RoundTripper),
+		configs:       make(map[string]*dynamic.ServersTransport),
+
+		tlsConfigManager: tlConfigManager,
 
 		bufferPool: newBufferPool(),
 
@@ -57,7 +58,7 @@ type RoundTripperManager struct {
 	roundTrippers map[string]http.RoundTripper
 	configs       map[string]*dynamic.ServersTransport
 
-	spiffeX509Source SpiffeX509Source
+	tlsConfigManager *TLSConfigManager
 
 	bufferPool *bufferPool
 
@@ -86,7 +87,7 @@ func (r *RoundTripperManager) Update(newConfigs map[string]*dynamic.ServersTrans
 
 		r.pools[newConfigName] = make(map[string]ConnectionPool)
 
-		transport, err := r.createRoundTripper(newConfig)
+		transport, err := r.createRoundTripper(newConfigName, newConfig)
 		if err != nil {
 			log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
 			transport = http.DefaultTransport
@@ -110,23 +111,6 @@ func (r *RoundTripperManager) Get(name string) (http.RoundTripper, error) {
 	}
 
 	return nil, fmt.Errorf("servers transport not found %s", name)
-}
-
-func (r *RoundTripperManager) GetTLSConfig(name string) (*tls.Config, error) {
-	if len(name) == 0 {
-		name = "default@internal"
-	}
-
-	r.rtLock.RLock()
-	defer r.rtLock.RUnlock()
-
-	config, ok := r.configs[name]
-
-	if ok {
-		return r.createTLSConfig(config)
-	}
-
-	return nil, fmt.Errorf("unable to find tls config for serversTransport: %s", name)
 }
 
 func (r *RoundTripperManager) GetProxy(configName string, target *url.URL) (http.Handler, error) {
@@ -187,7 +171,7 @@ func (r *RoundTripperManager) getPool(configName string, config *dynamic.Servers
 		// maxIdleConnTimeout = time.Duration(newConfig.ForwardingTimeouts.IdleConnTimeout)
 	}
 
-	tlsConfig, err := r.GetTLSConfig(configName)
+	tlsConfig, err := r.tlsConfigManager.GetTLSConfig(configName)
 	if err != nil {
 		// log.WithoutContext().Errorf("Could not configure HTTP Transport %s, fallback on default transport: %v", newConfigName, err)
 
@@ -211,7 +195,7 @@ func (r *RoundTripperManager) getPool(configName string, config *dynamic.Servers
 // For the settings that can't be configured in Traefik it uses the default http.Transport settings.
 // An exception to this is the MaxIdleConns setting as we only provide the option MaxIdleConnsPerHost in Traefik at this point in time.
 // Setting this value to the default of 100 could lead to confusing behavior and backwards compatibility issues.
-func (r *RoundTripperManager) createRoundTripper(cfg *dynamic.ServersTransport) (http.RoundTripper, error) {
+func (r *RoundTripperManager) createRoundTripper(configName string, cfg *dynamic.ServersTransport) (http.RoundTripper, error) {
 	if cfg == nil {
 		return nil, errors.New("no transport configuration given")
 	}
@@ -242,7 +226,7 @@ func (r *RoundTripperManager) createRoundTripper(cfg *dynamic.ServersTransport) 
 	}
 
 	var err error
-	transport.TLSClientConfig, err = r.createTLSConfig(cfg)
+	transport.TLSClientConfig, err = r.tlsConfigManager.GetTLSConfig(configName)
 	if err != nil {
 		return nil, err
 	}
@@ -253,43 +237,6 @@ func (r *RoundTripperManager) createRoundTripper(cfg *dynamic.ServersTransport) 
 	}
 
 	return newSmartRoundTripper(transport, cfg.ForwardingTimeouts)
-}
-
-func (r *RoundTripperManager) createTLSConfig(cfg *dynamic.ServersTransport) (*tls.Config, error) {
-	var tlsConfig *tls.Config
-
-	if cfg.Spiffe != nil {
-		if r.spiffeX509Source == nil {
-			return nil, errors.New("SPIFFE is enabled for this transport, but not configured")
-		}
-
-		spiffeAuthorizer, err := buildSpiffeAuthorizer(cfg.Spiffe)
-		if err != nil {
-			return nil, fmt.Errorf("unable to build SPIFFE authorizer: %w", err)
-		}
-
-		tlsConfig = tlsconfig.MTLSClientConfig(r.spiffeX509Source, r.spiffeX509Source, spiffeAuthorizer)
-	}
-
-	if cfg.InsecureSkipVerify || len(cfg.RootCAs) > 0 || len(cfg.ServerName) > 0 || len(cfg.Certificates) > 0 || cfg.PeerCertURI != "" {
-		if tlsConfig != nil {
-			return nil, errors.New("TLS and SPIFFE configuration cannot be defined at the same time")
-		}
-
-		tlsConfig = &tls.Config{
-			ServerName:         cfg.ServerName,
-			InsecureSkipVerify: cfg.InsecureSkipVerify,
-			RootCAs:            createRootCACertPool(cfg.RootCAs),
-			Certificates:       cfg.Certificates.GetCertificates(),
-		}
-
-		if cfg.PeerCertURI != "" {
-			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
-				return traefiktls.VerifyPeerCertificate(cfg.PeerCertURI, tlsConfig, rawCerts)
-			}
-		}
-	}
-	return tlsConfig, nil
 }
 
 func createRootCACertPool(rootCAs []traefiktls.FileOrContent) *x509.CertPool {
