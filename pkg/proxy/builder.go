@@ -39,7 +39,7 @@ func NewBuilder(tlsConfigManager TLSConfigGetter) *Builder {
 
 func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error) {
 	if len(configName) == 0 {
-		configName = "default@internal"
+		configName = "default"
 	}
 
 	b.configsLock.RLock()
@@ -62,8 +62,6 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 	if config.FastHTTP != nil {
 		return b.fasthttpBuilder.Build(configName, config.FastHTTP, tlsConfig, target), nil
 	}
-
-	// return b.httputilBuilder.Build(configName, &dynamic.HttpUtilConfig{}, tlsConfig, target)
 
 	return nil, fmt.Errorf("invalid serversTransport %s", configName)
 }

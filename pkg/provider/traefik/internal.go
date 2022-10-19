@@ -77,7 +77,6 @@ func (i *Provider) createConfiguration(ctx context.Context) *dynamic.Configurati
 	i.prometheusConfiguration(cfg)
 	i.entryPointModels(cfg)
 	i.redirection(ctx, cfg)
-	i.serverTransport(cfg)
 
 	i.acme(cfg)
 
@@ -309,10 +308,4 @@ func (i *Provider) prometheusConfiguration(cfg *dynamic.Configuration) {
 	}
 
 	cfg.HTTP.Services["prometheus"] = &dynamic.Service{}
-}
-
-func (i *Provider) serverTransport(cfg *dynamic.Configuration) {
-	st := &dynamic.ServersTransport{HttpUtil: &dynamic.HttpUtilConfig{}}
-
-	cfg.HTTP.ServersTransports["default"] = st
 }
