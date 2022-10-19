@@ -8,7 +8,6 @@ import (
 	"github.com/traefik/traefik/v2/pkg/tls"
 )
 
-// FIXME Handles default ServersTransport
 func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoints []string) dynamic.Configuration {
 	// TODO: see if we can use DeepCopies inside, so that the given argument is left
 	// untouched, and the modified copy is returned.
@@ -37,6 +36,7 @@ func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoint
 
 	var defaultTLSOptionProviders []string
 	var defaultTLSStoreProviders []string
+	var defaultServersTransportProviders []string
 	for pvd, configuration := range configurations {
 		if configuration.HTTP != nil {
 			for routerName, router := range configuration.HTTP.Routers {
@@ -58,8 +58,14 @@ func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoint
 			for modelName, model := range configuration.HTTP.Models {
 				conf.HTTP.Models[provider.MakeQualifiedName(pvd, modelName)] = model
 			}
+
 			for serversTransportName, serversTransport := range configuration.HTTP.ServersTransports {
-				conf.HTTP.ServersTransports[provider.MakeQualifiedName(pvd, serversTransportName)] = serversTransport
+				if serversTransportName != "default" {
+					serversTransportName = provider.MakeQualifiedName(pvd, serversTransportName)
+				} else {
+					defaultServersTransportProviders = append(defaultServersTransportProviders, pvd)
+				}
+				conf.HTTP.ServersTransports[serversTransportName] = serversTransport
 			}
 		}
 
@@ -132,6 +138,15 @@ func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoint
 		// We do not set an empty tls.TLS{} as above so that we actually get a "cascading failure" later on,
 		// i.e. routers depending on this missing TLS option will fail to initialize as well.
 		delete(conf.TLS.Options, tls.DefaultTLSConfigName)
+	}
+
+	if len(defaultServersTransportProviders) == 0 {
+		st := &dynamic.ServersTransport{}
+		st.SetDefaults()
+		conf.HTTP.ServersTransports["default"] = st
+	} else if len(defaultServersTransportProviders) > 1 {
+		log.WithoutContext().Errorf("Default ServersTransport defined multiple times in %v", defaultServersTransportProviders)
+		delete(conf.HTTP.ServersTransports, "default")
 	}
 
 	return conf

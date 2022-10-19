@@ -30,14 +30,13 @@ import (
 
 const defaultMaxBodySize int64 = -1
 
-// FIXME clean unuse
-
 // FIXME clean fasthttp proxy
 // FIXME websocket
 
 // FIXME serversTransport Config ( + naming )
+
 // FIXME naming
-// FIXME default serversTransports
+
 // FIXME Bench final
 // FIXME crds
 // FIXME tests ( PassHostHeader )

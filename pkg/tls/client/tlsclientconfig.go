@@ -44,7 +44,7 @@ func (r *TLSConfigManager) Update(configs map[string]*dynamic.ServersTransport) 
 
 func (r *TLSConfigManager) GetTLSConfig(name string) (*tls.Config, error) {
 	if len(name) == 0 {
-		name = "default@internal"
+		name = "default"
 	}
 
 	r.configsLock.RLock()
