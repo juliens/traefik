@@ -37,11 +37,13 @@ import (
 	"github.com/traefik/traefik/v2/pkg/provider/hub"
 	"github.com/traefik/traefik/v2/pkg/provider/tailscale"
 	"github.com/traefik/traefik/v2/pkg/provider/traefik"
+	"github.com/traefik/traefik/v2/pkg/proxy"
 	"github.com/traefik/traefik/v2/pkg/safe"
 	"github.com/traefik/traefik/v2/pkg/server"
 	"github.com/traefik/traefik/v2/pkg/server/middleware"
 	"github.com/traefik/traefik/v2/pkg/server/service"
 	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
+	"github.com/traefik/traefik/v2/pkg/tls/client"
 	"github.com/traefik/traefik/v2/pkg/tracing"
 	"github.com/traefik/traefik/v2/pkg/tracing/jaeger"
 	"github.com/traefik/traefik/v2/pkg/types"
@@ -278,9 +280,10 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		log.WithoutContext().Info("Successfully obtained SPIFFE SVID.")
 	}
 
-	roundTripperManager := service.NewRoundTripperManager(spiffeX509Source)
+	tlsConfigManager := client.NewTLSConfigManager(spiffeX509Source)
+	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
 	acmeHTTPHandler := getHTTPChallengeHandler(acmeProviders, httpChallengeProvider)
-	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, metricsRegistry, roundTripperManager, acmeHTTPHandler)
+	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, metricsRegistry, proxyBuilder, tlsConfigManager, acmeHTTPHandler)
 
 	// Router factory
 
@@ -318,7 +321,8 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 
 	// Server Transports
 	watcher.AddListener(func(conf dynamic.Configuration) {
-		roundTripperManager.Update(conf.HTTP.ServersTransports)
+		tlsConfigManager.Update(conf.HTTP.ServersTransports)
+		proxyBuilder.Update(conf.HTTP.ServersTransports)
 	})
 
 	// Switch router

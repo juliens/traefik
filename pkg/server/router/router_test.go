@@ -17,9 +17,11 @@ import (
 	"github.com/traefik/traefik/v2/pkg/middlewares/accesslog"
 	"github.com/traefik/traefik/v2/pkg/middlewares/capture"
 	"github.com/traefik/traefik/v2/pkg/middlewares/requestdecorator"
+	"github.com/traefik/traefik/v2/pkg/proxy"
 	"github.com/traefik/traefik/v2/pkg/server/middleware"
 	"github.com/traefik/traefik/v2/pkg/server/service"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
+	"github.com/traefik/traefik/v2/pkg/tls/client"
 	"github.com/traefik/traefik/v2/pkg/types"
 )
 
@@ -312,9 +314,14 @@ func TestRouterManager_Get(t *testing.T) {
 				},
 			})
 
-			roundTripperManager := service.NewRoundTripperManager(nil)
-			roundTripperManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
-			serviceManager := service.NewManager(rtConf.Services, nil, nil)
+			tlsConfigManager := client.NewTLSConfigManager(nil)
+			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+			configs := map[string]*dynamic.ServersTransport{"default@internal": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+			tlsConfigManager.Update(configs)
+			proxyBuilder.Update(configs)
+
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsConfigManager)
+
 			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
 			chainBuilder := middleware.NewChainBuilder(nil, nil, nil)
 
@@ -418,9 +425,13 @@ func TestAccessLog(t *testing.T) {
 				},
 			})
 
-			roundTripperManager := service.NewRoundTripperManager(nil)
-			roundTripperManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
-			serviceManager := service.NewManager(rtConf.Services, nil, nil)
+			tlsConfigManager := client.NewTLSConfigManager(nil)
+			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+			configs := map[string]*dynamic.ServersTransport{"default@internal": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+			tlsConfigManager.Update(configs)
+			proxyBuilder.Update(configs)
+
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsConfigManager)
 			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
 			chainBuilder := middleware.NewChainBuilder(nil, nil, nil)
 
@@ -713,9 +724,13 @@ func TestRuntimeConfiguration(t *testing.T) {
 				},
 			})
 
-			roundTripperManager := service.NewRoundTripperManager(nil)
-			roundTripperManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
-			serviceManager := service.NewManager(rtConf.Services, nil, nil)
+			tlsConfigManager := client.NewTLSConfigManager(nil)
+			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+			configs := map[string]*dynamic.ServersTransport{"default@internal": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+			tlsConfigManager.Update(configs)
+			proxyBuilder.Update(configs)
+
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsConfigManager)
 			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
 			chainBuilder := middleware.NewChainBuilder(nil, nil, nil)
 
@@ -788,9 +803,13 @@ func TestProviderOnMiddlewares(t *testing.T) {
 		},
 	})
 
-	roundTripperManager := service.NewRoundTripperManager(nil)
-	roundTripperManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
-	serviceManager := service.NewManager(rtConf.Services, nil, nil)
+	tlsConfigManager := client.NewTLSConfigManager(nil)
+	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+	configs := map[string]*dynamic.ServersTransport{"default@internal": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+	tlsConfigManager.Update(configs)
+	proxyBuilder.Update(configs)
+
+	serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsConfigManager)
 	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
 	chainBuilder := middleware.NewChainBuilder(nil, nil, nil)
 

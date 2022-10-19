@@ -1,8 +1,6 @@
-package service
+package fasthttp
 
 import (
-	"bufio"
-	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -154,20 +152,10 @@ func TestMaxIdleConn(t *testing.T) {
 					return nil
 				}}, nil
 			}
-			pool := NewSliceConnectionPool(dialer, test.maxIdleConn)
+			pool := NewConnectionPool(dialer, test.maxIdleConn)
 			test.poolFn(pool)
 
 			assert.Equal(t, test.expected, keepOpenedConn)
 		})
 	}
-}
-
-func TestName(t *testing.T) {
-	pool := Pool[bufio.Reader]{}
-	b := pool.Get()
-	fmt.Println(b)
-	// if b == nil {
-	// 	fmt.Println("NIL")
-	// }
-	// require.NotNil(t, b)
 }

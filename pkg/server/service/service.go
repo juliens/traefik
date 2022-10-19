@@ -8,7 +8,6 @@ import (
 	"hash/fnv"
 	"math/rand"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"reflect"
 	"strings"
@@ -31,25 +30,34 @@ import (
 
 const defaultMaxBodySize int64 = -1
 
-// RoundTripperGetter is a roundtripper getter interface.
-type RoundTripperGetter interface {
-	Get(name string) (http.RoundTripper, error)
-}
+// FIXME clean unuse
+
+// FIXME clean fasthttp proxy
+// FIXME websocket
+
+// FIXME serversTransport Config ( + naming )
+// FIXME naming
+// FIXME default serversTransports
+// FIXME Bench final
+// FIXME crds
+// FIXME tests ( PassHostHeader )
+// FIXME documentation
+// FIXME comments
+
+// FIXME experimental
 
 type TLSConfigGetter interface {
 	GetTLSConfig(configName string) (*tls.Config, error)
 }
 
 type ProxyGetter interface {
-	GetProxy(configName string, target *url.URL) (http.Handler, error)
+	Build(configName string, target *url.URL) (http.Handler, error)
 }
 
 // Manager The service manager.
 type Manager struct {
-	routinePool         *safe.Pool
-	metricsRegistry     metrics.Registry
-	bufferPool          httputil.BufferPool
-	roundTripperManager RoundTripperGetter
+	routinePool     *safe.Pool
+	metricsRegistry metrics.Registry
 
 	tlsConfigGetter TLSConfigGetter
 	proxyGetter     ProxyGetter
@@ -61,11 +69,10 @@ type Manager struct {
 }
 
 // NewManager creates a new Manager.
-func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, tlsConfigGetter TLSConfigGetter, proxyGetter ProxyGetter) *Manager {
+func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, proxyGetter ProxyGetter, tlsConfigGetter TLSConfigGetter) *Manager {
 	return &Manager{
 		routinePool:     routinePool,
 		metricsRegistry: metricsRegistry,
-		bufferPool:      newBufferPool(),
 		services:        make(map[string]http.Handler),
 		configs:         configs,
 		healthCheckers:  make(map[string]*healthcheck.ServiceHealthChecker),
@@ -289,7 +296,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		}
 
 		logger.WithField(log.ServerName, proxyName).Debugf("Creating server %s", target)
-		proxy, err := m.proxyGetter.GetProxy(service.ServersTransport, target)
+		proxy, err := m.proxyGetter.Build(service.ServersTransport, target)
 		if err != nil {
 			return nil, err
 		}
@@ -310,12 +317,12 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		healthCheckTargets[proxyName] = target
 	}
 
-	tlsConfig, err := m.tlsConfigGetter.GetTLSConfig(service.ServersTransport)
-	if err != nil {
-		return nil, err
-	}
-
 	if service.HealthCheck != nil {
+		tlsConfig, err := m.tlsConfigGetter.GetTLSConfig(service.ServersTransport)
+		if err != nil {
+			return nil, err
+		}
+
 		m.healthCheckers[serviceName] = healthcheck.NewServiceHealthChecker(
 			ctx,
 			m.metricsRegistry,

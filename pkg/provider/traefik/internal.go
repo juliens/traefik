@@ -312,35 +312,7 @@ func (i *Provider) prometheusConfiguration(cfg *dynamic.Configuration) {
 }
 
 func (i *Provider) serverTransport(cfg *dynamic.Configuration) {
-	if i.staticCfg.ServersTransport == nil {
-		return
-	}
-
-	st := &dynamic.ServersTransport{
-		InsecureSkipVerify:  i.staticCfg.ServersTransport.InsecureSkipVerify,
-		RootCAs:             i.staticCfg.ServersTransport.RootCAs,
-		MaxIdleConnsPerHost: i.staticCfg.ServersTransport.MaxIdleConnsPerHost,
-	}
-
-	if i.staticCfg.ServersTransport.Spiffe != nil {
-		st.Spiffe = &dynamic.Spiffe{
-			IDs:         i.staticCfg.ServersTransport.Spiffe.IDs,
-			TrustDomain: i.staticCfg.ServersTransport.Spiffe.TrustDomain,
-		}
-	}
-
-	if i.staticCfg.ServersTransport.ForwardingTimeouts != nil {
-		st.ForwardingTimeouts = &dynamic.ForwardingTimeouts{
-			DialTimeout:           i.staticCfg.ServersTransport.ForwardingTimeouts.DialTimeout,
-			ResponseHeaderTimeout: i.staticCfg.ServersTransport.ForwardingTimeouts.ResponseHeaderTimeout,
-			IdleConnTimeout:       i.staticCfg.ServersTransport.ForwardingTimeouts.IdleConnTimeout,
-		}
-	}
-
-	// FIXME make sure that all properties are set if we are using an object
-	if i.staticCfg.ServersTransport.FastHTTP != nil {
-		st.FastHTTP = &dynamic.FastHTTPConfig{}
-	}
+	st := &dynamic.ServersTransport{HttpUtil: &dynamic.HttpUtilConfig{}}
 
 	cfg.HTTP.ServersTransports["default"] = st
 }

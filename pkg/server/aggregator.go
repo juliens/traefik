@@ -8,6 +8,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/tls"
 )
 
+// FIXME Handles default ServersTransport
 func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoints []string) dynamic.Configuration {
 	// TODO: see if we can use DeepCopies inside, so that the given argument is left
 	// untouched, and the modified copy is returned.
