@@ -6,7 +6,7 @@
 
 // Package internal contains HTTP internals shared by net/http and
 // net/http/httputil.
-package service
+package fasthttp
 
 import (
 	"bufio"

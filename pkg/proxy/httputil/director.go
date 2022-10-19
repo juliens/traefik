@@ -1,4 +1,4 @@
-package service
+package httputil
 
 import (
 	"context"
@@ -6,10 +6,8 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/traefik/traefik/v2/pkg/log"
 	"golang.org/x/net/http/httpguts"
@@ -21,17 +19,7 @@ const StatusClientClosedRequest = 499
 // StatusClientClosedRequestText non-standard HTTP status for client disconnection.
 const StatusClientClosedRequestText = "Client Closed Request"
 
-func buildSingleHostProxy(target *url.URL, passHostHeader bool, flushInterval time.Duration, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) http.Handler {
-	return &httputil.ReverseProxy{
-		Director:      directorBuilder(target, passHostHeader),
-		Transport:     roundTripper,
-		FlushInterval: flushInterval,
-		BufferPool:    bufferPool,
-		ErrorHandler:  errorHandler,
-	}
-}
-
-func directorBuilder(target *url.URL, passHostHeader bool) func(req *http.Request) {
+func DirectorBuilder(target *url.URL, passHostHeader bool) func(req *http.Request) {
 	return func(outReq *http.Request) {
 		outReq.URL.Scheme = target.Scheme
 		outReq.URL.Host = target.Host
@@ -81,7 +69,7 @@ func directorBuilder(target *url.URL, passHostHeader bool) func(req *http.Reques
 	}
 }
 
-func errorHandler(w http.ResponseWriter, req *http.Request, err error) {
+func ErrorHandler(w http.ResponseWriter, req *http.Request, err error) {
 	statusCode := http.StatusInternalServerError
 
 	switch {

@@ -1,4 +1,4 @@
-package service
+package client
 
 import (
 	"crypto/rand"
@@ -6,13 +6,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"fmt"
 	"math/big"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,10 +22,6 @@ import (
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
 )
-
-func Int32(i int32) *int32 {
-	return &i
-}
 
 // LocalhostCert is a PEM-encoded TLS cert
 // for host example.com, www.example.com
@@ -122,71 +115,6 @@ PtvuNc5EImfSkuPBYLBslNxtjbBvAYgacEdY+gRhn2TeIUApnND58lCWsKbNHLFZ
 ajIPbTY+Fe9OTOFTN48ujXNn
 -----END PRIVATE KEY-----`)
 
-func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
-	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.WriteHeader(http.StatusOK)
-	}))
-
-	connCount := Int32(0)
-	srv.Config.ConnState = func(conn net.Conn, state http.ConnState) {
-		if state == http.StateNew {
-			atomic.AddInt32(connCount, 1)
-		}
-	}
-
-	cert, err := tls.X509KeyPair(LocalhostCert, LocalhostKey)
-	require.NoError(t, err)
-
-	srv.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
-	srv.StartTLS()
-
-	rtManager := NewRoundTripperManager(nil)
-
-	dynamicConf := map[string]*dynamic.ServersTransport{
-		"test": {
-			ServerName: "example.com",
-			RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
-		},
-	}
-
-	for i := 0; i < 10; i++ {
-		rtManager.Update(dynamicConf)
-
-		tr, err := rtManager.Get("test")
-		require.NoError(t, err)
-
-		client := http.Client{Transport: tr}
-
-		resp, err := client.Get(srv.URL)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-	}
-
-	count := atomic.LoadInt32(connCount)
-	require.EqualValues(t, 1, count)
-
-	dynamicConf = map[string]*dynamic.ServersTransport{
-		"test": {
-			ServerName: "www.example.com",
-			RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
-		},
-	}
-
-	rtManager.Update(dynamicConf)
-
-	tr, err := rtManager.Get("test")
-	require.NoError(t, err)
-
-	client := http.Client{Transport: tr}
-
-	resp, err := client.Get(srv.URL)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	count = atomic.LoadInt32(connCount)
-	assert.EqualValues(t, 2, count)
-}
-
 func TestMTLS(t *testing.T) {
 	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
@@ -208,7 +136,7 @@ func TestMTLS(t *testing.T) {
 	}
 	srv.StartTLS()
 
-	rtManager := NewRoundTripperManager(nil)
+	tlsConfigManager := NewTLSConfigManager(nil)
 
 	dynamicConf := map[string]*dynamic.ServersTransport{
 		"test": {
@@ -226,9 +154,10 @@ func TestMTLS(t *testing.T) {
 		},
 	}
 
-	rtManager.Update(dynamicConf)
+	tlsConfigManager.Update(dynamicConf)
 
-	tr, err := rtManager.Get("test")
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.TLSClientConfig, err = tlsConfigManager.GetTLSConfig("test")
 	require.NoError(t, err)
 
 	client := http.Client{Transport: tr}
@@ -341,13 +270,13 @@ func TestSpiffeMTLS(t *testing.T) {
 			desc:             "raises an error when spiffe is enabled on the transport but no workloadapi address is given",
 			config:           dynamic.Spiffe{},
 			clientSource:     nil,
-			wantErrorMessage: `remote error: tls: bad certificate`,
+			wantErrorMessage: `SPIFFE is enabled for this transport, but not configured`,
 		},
 	}
 
 	for _, test := range testCases {
 		t.Run(test.desc, func(t *testing.T) {
-			rtManager := NewRoundTripperManager(test.clientSource)
+			tlsConfigManager := NewTLSConfigManager(test.clientSource)
 
 			dynamicConf := map[string]*dynamic.ServersTransport{
 				"test": {
@@ -355,9 +284,14 @@ func TestSpiffeMTLS(t *testing.T) {
 				},
 			}
 
-			rtManager.Update(dynamicConf)
+			tlsConfigManager.Update(dynamicConf)
 
-			tr, err := rtManager.Get("test")
+			tr := http.DefaultTransport.(*http.Transport).Clone()
+			tr.TLSClientConfig, err = tlsConfigManager.GetTLSConfig("test")
+			if err != nil && test.wantErrorMessage != "" {
+				assert.ErrorContains(t, err, test.wantErrorMessage)
+				return
+			}
 			require.NoError(t, err)
 
 			client := http.Client{Transport: tr}
@@ -370,72 +304,6 @@ func TestSpiffeMTLS(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.Equal(t, test.wantStatusCode, resp.StatusCode)
-		})
-	}
-}
-
-func TestDisableHTTP2(t *testing.T) {
-	testCases := []struct {
-		desc          string
-		disableHTTP2  bool
-		serverHTTP2   bool
-		expectedProto string
-	}{
-		{
-			desc:          "HTTP1 capable client with HTTP1 server",
-			disableHTTP2:  true,
-			expectedProto: "HTTP/1.1",
-		},
-		{
-			desc:          "HTTP1 capable client with HTTP2 server",
-			disableHTTP2:  true,
-			serverHTTP2:   true,
-			expectedProto: "HTTP/1.1",
-		},
-		{
-			desc:          "HTTP2 capable client with HTTP1 server",
-			expectedProto: "HTTP/1.1",
-		},
-		{
-			desc:          "HTTP2 capable client with HTTP2 server",
-			serverHTTP2:   true,
-			expectedProto: "HTTP/2.0",
-		},
-	}
-
-	for _, test := range testCases {
-		test := test
-		t.Run(test.desc, func(t *testing.T) {
-			t.Parallel()
-
-			srv := httptest.NewUnstartedServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				rw.WriteHeader(http.StatusOK)
-			}))
-
-			srv.EnableHTTP2 = test.serverHTTP2
-			srv.StartTLS()
-
-			rtManager := NewRoundTripperManager(nil)
-
-			dynamicConf := map[string]*dynamic.ServersTransport{
-				"test": {
-					DisableHTTP2:       test.disableHTTP2,
-					InsecureSkipVerify: true,
-				},
-			}
-
-			rtManager.Update(dynamicConf)
-
-			tr, err := rtManager.Get("test")
-			require.NoError(t, err)
-
-			client := http.Client{Transport: tr}
-
-			resp, err := client.Get(srv.URL)
-			require.NoError(t, err)
-
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			assert.Equal(t, test.expectedProto, resp.Proto)
 		})
 	}
 }
@@ -551,24 +419,4 @@ func (s *fakeSpiffeSource) GetX509BundleForTrustDomain(trustDomain spiffeid.Trus
 
 func (s *fakeSpiffeSource) GetX509SVID() (*x509svid.SVID, error) {
 	return s.svid, nil
-}
-
-func BenchmarkName(b *testing.B) {
-	b.ReportAllocs()
-	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Write([]byte("TEST"))
-	}))
-
-	req, err := http.NewRequest(http.MethodGet, srv.URL, http.NoBody)
-	if err != nil {
-		b.Fatalf("ERR")
-	}
-
-	// tr := FastHTTPTransport{hc: NewHostChooser()}
-	tr := &http.Transport{}
-	var resp *http.Response
-	for i := 0; i < b.N; i++ {
-		resp, _ = tr.RoundTrip(req)
-	}
-	fmt.Println(resp)
 }

@@ -9,14 +9,17 @@ import (
 	"github.com/traefik/traefik/v2/pkg/config/runtime"
 	"github.com/traefik/traefik/v2/pkg/config/static"
 	"github.com/traefik/traefik/v2/pkg/metrics"
+	"github.com/traefik/traefik/v2/pkg/proxy"
 	"github.com/traefik/traefik/v2/pkg/safe"
+	"github.com/traefik/traefik/v2/pkg/tls/client"
 )
 
 // ManagerFactory a factory of service manager.
 type ManagerFactory struct {
 	metricsRegistry metrics.Registry
 
-	roundTripperManager *RoundTripperManager
+	proxyBuilder     *proxy.Builder
+	tlsConfigManager *client.TLSConfigManager
 
 	api              func(configuration *runtime.Configuration) http.Handler
 	restHandler      http.Handler
@@ -29,12 +32,13 @@ type ManagerFactory struct {
 }
 
 // NewManagerFactory creates a new ManagerFactory.
-func NewManagerFactory(staticConfiguration static.Configuration, routinesPool *safe.Pool, metricsRegistry metrics.Registry, roundTripperManager *RoundTripperManager, acmeHTTPHandler http.Handler) *ManagerFactory {
+func NewManagerFactory(staticConfiguration static.Configuration, routinesPool *safe.Pool, metricsRegistry metrics.Registry, proxyBuilder *proxy.Builder, tlsConfigManager *client.TLSConfigManager, acmeHTTPHandler http.Handler) *ManagerFactory {
 	factory := &ManagerFactory{
-		metricsRegistry:     metricsRegistry,
-		routinesPool:        routinesPool,
-		roundTripperManager: roundTripperManager,
-		acmeHTTPHandler:     acmeHTTPHandler,
+		metricsRegistry:  metricsRegistry,
+		routinesPool:     routinesPool,
+		proxyBuilder:     proxyBuilder,
+		tlsConfigManager: tlsConfigManager,
+		acmeHTTPHandler:  acmeHTTPHandler,
 	}
 
 	if staticConfiguration.API != nil {
@@ -72,7 +76,7 @@ func NewManagerFactory(staticConfiguration static.Configuration, routinesPool *s
 
 // Build creates a service manager.
 func (f *ManagerFactory) Build(configuration *runtime.Configuration) *InternalHandlers {
-	svcManager := NewManager(configuration.Services, f.metricsRegistry, f.routinesPool, f.roundTripperManager, f.roundTripperManager)
+	svcManager := NewManager(configuration.Services, f.metricsRegistry, f.routinesPool, f.proxyBuilder, f.tlsConfigManager)
 
 	var apiHandler http.Handler
 	if f.api != nil {

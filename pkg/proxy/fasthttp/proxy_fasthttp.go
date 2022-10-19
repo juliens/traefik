@@ -1,4 +1,4 @@
-package service
+package fasthttp
 
 import (
 	"bufio"
@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/traefik/traefik/v2/pkg/proxy/httputil"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http/httpguts"
 )
@@ -42,7 +43,7 @@ type FastHTTPReverseProxy struct {
 func NewFastHTTPReverseProxy(target *url.URL, passHostHeader bool, connectionPool ConnectionPool) http.Handler {
 
 	return &FastHTTPReverseProxy{
-		director: directorBuilder(target, passHostHeader),
+		director: httputil.DirectorBuilder(target, passHostHeader),
 
 		bufferPool: sync.Pool{
 			New: func() any {
@@ -121,7 +122,7 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 
 	conn, err := r.connectionPool.AcquireConn()
 	if err != nil {
-		errorHandler(writer, request, err)
+		httputil.ErrorHandler(writer, request, err)
 		return
 	}
 
@@ -130,13 +131,14 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		bw = bufio.NewWriterSize(conn, 64*1024)
 	}
 
+	// FIXME retry on broken idle connection
 	bw.Reset(conn)
 	err = outReq.Write(bw)
 	bw.Flush()
 	r.writerPool.Put(bw)
 
 	if err != nil {
-		errorHandler(writer, request, err)
+		httputil.ErrorHandler(writer, request, err)
 		return
 	}
 

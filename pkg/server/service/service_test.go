@@ -11,20 +11,20 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/config/runtime"
+	"github.com/traefik/traefik/v2/pkg/proxy"
 	"github.com/traefik/traefik/v2/pkg/server/provider"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
+	"github.com/traefik/traefik/v2/pkg/tls/client"
 )
 
 func TestGetLoadBalancer(t *testing.T) {
-	sm := Manager{
-		// roundTripperManager: newRtMock(),
-	}
+
+	sm := NewManager(nil, nil, nil, nil, nil)
 
 	testCases := []struct {
 		desc        string
 		serviceName string
 		service     *dynamic.ServersLoadBalancer
-		fwd         http.Handler
 		expectError bool
 	}{
 		{
@@ -37,14 +37,12 @@ func TestGetLoadBalancer(t *testing.T) {
 					},
 				},
 			},
-			fwd:         &MockForwarder{},
 			expectError: true,
 		},
 		{
 			desc:        "Succeeds when there are no servers",
 			serviceName: "test",
 			service:     &dynamic.ServersLoadBalancer{},
-			fwd:         &MockForwarder{},
 			expectError: false,
 		},
 		{
@@ -53,7 +51,6 @@ func TestGetLoadBalancer(t *testing.T) {
 			service: &dynamic.ServersLoadBalancer{
 				Sticky: &dynamic.Sticky{Cookie: &dynamic.Cookie{}},
 			},
-			fwd:         &MockForwarder{},
 			expectError: false,
 		},
 	}
@@ -76,12 +73,14 @@ func TestGetLoadBalancer(t *testing.T) {
 	}
 }
 
-func newRtMock() RoundTripperGetter {
-	return &rtMock{}
-}
-
 func TestGetLoadBalancerServiceHandler(t *testing.T) {
-	sm := NewManager(nil, nil, nil)
+	configs := map[string]*dynamic.ServersTransport{"default@internal": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+
+	tlsConfigManager := client.NewTLSConfigManager(nil)
+	tlsConfigManager.Update(configs)
+	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+	proxyBuilder.Update(configs)
+	sm := NewManager(nil, nil, nil, proxyBuilder, tlsConfigManager)
 
 	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-From", "first")
@@ -218,44 +217,6 @@ func TestGetLoadBalancerServiceHandler(t *testing.T) {
 				},
 			},
 		},
-		{
-			desc:        "PassHost passes the host instead of the IP",
-			serviceName: "test",
-			service: &dynamic.ServersLoadBalancer{
-				Sticky:         &dynamic.Sticky{Cookie: &dynamic.Cookie{}},
-				PassHostHeader: func(v bool) *bool { return &v }(true),
-				Servers: []dynamic.Server{
-					{
-						URL: serverPassHost.URL,
-					},
-				},
-			},
-			expected: []ExpectedResult{
-				{
-					StatusCode: http.StatusOK,
-					XFrom:      "passhost",
-				},
-			},
-		},
-		{
-			desc:        "PassHost doesn't pass the host instead of the IP",
-			serviceName: "test",
-			service: &dynamic.ServersLoadBalancer{
-				PassHostHeader: Bool(false),
-				Sticky:         &dynamic.Sticky{Cookie: &dynamic.Cookie{}},
-				Servers: []dynamic.Server{
-					{
-						URL: serverPassHostFalse.URL,
-					},
-				},
-			},
-			expected: []ExpectedResult{
-				{
-					StatusCode: http.StatusOK,
-					XFrom:      "passhostfalse",
-				},
-			},
-		},
 	}
 
 	for _, test := range testCases {
@@ -264,8 +225,8 @@ func TestGetLoadBalancerServiceHandler(t *testing.T) {
 			serviceInfo := &runtime.ServiceInfo{Service: &dynamic.Service{LoadBalancer: test.service}}
 			handler, err := sm.getLoadBalancerServiceHandler(context.Background(), test.serviceName, serviceInfo)
 
-			assert.NoError(t, err)
-			assert.NotNil(t, handler)
+			require.NoError(t, err)
+			require.NotNil(t, handler)
 
 			req := testhelpers.MustNewRequest(http.MethodGet, "http://callme", nil)
 			if test.cookieRawValue != "" {
@@ -354,7 +315,7 @@ func TestManager_Build(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
-			manager := NewManager(test.configs, nil, nil)
+			manager := NewManager(test.configs, nil, nil, nil, nil)
 
 			ctx := context.Background()
 			if len(test.providerName) > 0 {
@@ -377,7 +338,7 @@ func TestMultipleTypeOnBuildHTTP(t *testing.T) {
 		},
 	}
 
-	manager := NewManager(services, nil, nil)
+	manager := NewManager(services, nil, nil, nil, nil)
 
 	_, err := manager.BuildHTTP(context.Background(), "test@file")
 	assert.Error(t, err, "cannot create service: multi-types service not supported, consider declaring two different pieces of service instead")
