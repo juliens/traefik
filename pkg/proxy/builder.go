@@ -54,16 +54,12 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 	if err != nil {
 		return nil, err
 	}
-	// FIXME Raise error if both configured
-	if config.HttpUtil != nil {
-		return b.httputilBuilder.Build(configName, config.HttpUtil, tlsConfig, target)
+
+	if config.HTTP != nil && config.HTTP.HTTP2 {
+		return b.httputilBuilder.Build(configName, config.HTTP, tlsConfig, target)
 	}
 
-	if config.FastHTTP != nil {
-		return b.fasthttpBuilder.Build(configName, config.FastHTTP, tlsConfig, target), nil
-	}
-
-	return nil, fmt.Errorf("invalid serversTransport %s", configName)
+	return b.fasthttpBuilder.Build(configName, config.HTTP, tlsConfig, target), nil
 }
 
 func (r *Builder) Update(newConfigs map[string]*dynamic.ServersTransport) {

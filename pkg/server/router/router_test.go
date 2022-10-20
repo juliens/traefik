@@ -316,7 +316,7 @@ func TestRouterManager_Get(t *testing.T) {
 
 			tlsConfigManager := client.NewTLSConfigManager(nil)
 			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
-			configs := map[string]*dynamic.ServersTransport{"default": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+			configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
 			tlsConfigManager.Update(configs)
 			proxyBuilder.Update(configs)
 
@@ -427,7 +427,7 @@ func TestAccessLog(t *testing.T) {
 
 			tlsConfigManager := client.NewTLSConfigManager(nil)
 			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
-			configs := map[string]*dynamic.ServersTransport{"default": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+			configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
 			tlsConfigManager.Update(configs)
 			proxyBuilder.Update(configs)
 
@@ -726,7 +726,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 
 			tlsConfigManager := client.NewTLSConfigManager(nil)
 			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
-			configs := map[string]*dynamic.ServersTransport{"default": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+			configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
 			tlsConfigManager.Update(configs)
 			proxyBuilder.Update(configs)
 
@@ -805,7 +805,7 @@ func TestProviderOnMiddlewares(t *testing.T) {
 
 	tlsConfigManager := client.NewTLSConfigManager(nil)
 	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
-	configs := map[string]*dynamic.ServersTransport{"default": {HttpUtil: &dynamic.HttpUtilConfig{}}}
+	configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
 	tlsConfigManager.Update(configs)
 	proxyBuilder.Update(configs)
 

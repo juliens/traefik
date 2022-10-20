@@ -80,7 +80,7 @@ func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
 
 	dynamicConf := map[string]*dynamic.ServersTransport{
 		"test": {
-			HttpUtil:   &dynamic.HttpUtilConfig{},
+			HTTP:       &dynamic.HTTPClientConfig{},
 			ServerName: "example.com",
 			RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
 		},
@@ -105,7 +105,7 @@ func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
 
 	dynamicConf = map[string]*dynamic.ServersTransport{
 		"test": {
-			HttpUtil:   &dynamic.HttpUtilConfig{},
+			HTTP:       &dynamic.HTTPClientConfig{},
 			ServerName: "www.example.com",
 			RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
 		},
@@ -175,7 +175,7 @@ func TestDisableHTTP2(t *testing.T) {
 
 			dynamicConf := map[string]*dynamic.ServersTransport{
 				"test": {
-					HttpUtil: &dynamic.HttpUtilConfig{
+					HTTP: &dynamic.HTTPClientConfig{
 						DisableHTTP2: test.disableHTTP2,
 					},
 					InsecureSkipVerify: true,

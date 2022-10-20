@@ -26,12 +26,12 @@ func (r *ProxyBuilder) Delete(configName string) {
 	delete(r.pools, configName)
 }
 
-func (r *ProxyBuilder) Build(configName string, config *dynamic.FastHTTPConfig, tlsConfig *tls.Config, target *url.URL) http.Handler {
+func (r *ProxyBuilder) Build(configName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) http.Handler {
 	pool := r.getPool(configName, config, tlsConfig, target)
 	return NewFastHTTPReverseProxy(target, config.PassHostHeader, pool)
 }
 
-func (r *ProxyBuilder) getPool(configName string, config *dynamic.FastHTTPConfig, tlsConfig *tls.Config, target *url.URL) ConnectionPool {
+func (r *ProxyBuilder) getPool(configName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) ConnectionPool {
 	url := target.Host
 
 	port := target.Port()

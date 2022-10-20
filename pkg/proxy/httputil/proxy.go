@@ -40,7 +40,7 @@ func (r *ProxyBuilder) Delete(configName string) {
 	delete(r.roundTrippers, configName)
 }
 
-func (r *ProxyBuilder) Build(configName string, config *dynamic.HttpUtilConfig, tlsConfig *tls.Config, target *url.URL) (http.Handler, error) {
+func (r *ProxyBuilder) Build(configName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) (http.Handler, error) {
 	roundTripper, ok := r.roundTrippers[configName]
 	if !ok {
 		var err error
@@ -58,7 +58,7 @@ func (r *ProxyBuilder) Build(configName string, config *dynamic.HttpUtilConfig, 
 // For the settings that can't be configured in Traefik it uses the default http.Transport settings.
 // An exception to this is the MaxIdleConns setting as we only provide the option MaxIdleConnsPerHost in Traefik at this point in time.
 // Setting this value to the default of 100 could lead to confusing behavior and backwards compatibility issues.
-func createRoundTripper(cfg *dynamic.HttpUtilConfig, tlsConfig *tls.Config) (http.RoundTripper, error) {
+func createRoundTripper(cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config) (http.RoundTripper, error) {
 	if cfg == nil {
 		return nil, errors.New("no transport configuration given")
 	}
@@ -87,11 +87,6 @@ func createRoundTripper(cfg *dynamic.HttpUtilConfig, tlsConfig *tls.Config) (htt
 	if cfg.ForwardingTimeouts != nil {
 		transport.ResponseHeaderTimeout = time.Duration(cfg.ForwardingTimeouts.ResponseHeaderTimeout)
 		transport.IdleConnTimeout = time.Duration(cfg.ForwardingTimeouts.IdleConnTimeout)
-	}
-
-	// Return directly HTTP/1.1 transport when HTTP/2 is disabled
-	if cfg.DisableHTTP2 {
-		return transport, nil
 	}
 
 	return newSmartRoundTripper(transport, cfg.ForwardingTimeouts)

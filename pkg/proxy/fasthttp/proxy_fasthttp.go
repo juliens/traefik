@@ -61,6 +61,7 @@ func NewFastHTTPReverseProxy(target *url.URL, passHostHeader bool, connectionPoo
 }
 
 func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	// FIXME adds auto gzip?
 	r.director(request)
 
 	outReq := fasthttp.AcquireRequest()

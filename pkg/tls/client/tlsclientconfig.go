@@ -53,14 +53,18 @@ func (r *TLSConfigManager) GetTLSConfig(name string) (*tls.Config, error) {
 	config, ok := r.configs[name]
 
 	if ok {
-		return r.createTLSConfig(config)
+		return r.createTLSConfig(config.TLS)
 	}
 
 	return nil, fmt.Errorf("unable to find tls config for serversTransport: %s", name)
 }
 
-func (r *TLSConfigManager) createTLSConfig(cfg *dynamic.ServersTransport) (*tls.Config, error) {
+func (r *TLSConfigManager) createTLSConfig(cfg *dynamic.TLSClientConfig) (*tls.Config, error) {
 	var tlsConfig *tls.Config
+
+	if cfg == nil {
+		return tlsConfig, nil
+	}
 
 	if cfg.Spiffe != nil {
 		if r.spiffeX509Source == nil {
