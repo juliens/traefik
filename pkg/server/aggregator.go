@@ -59,15 +59,6 @@ func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoint
 			for modelName, model := range configuration.HTTP.Models {
 				conf.HTTP.Models[provider.MakeQualifiedName(pvd, modelName)] = model
 			}
-			for tlsOptionsName, options := range configuration.TLS.Options {
-				if tlsOptionsName != "default" {
-					tlsOptionsName = provider.MakeQualifiedName(pvd, tlsOptionsName)
-				} else {
-					defaultTLSOptionProviders = append(defaultTLSOptionProviders, pvd)
-				}
-
-				conf.TLS.Options[tlsOptionsName] = options
-			}
 
 			for serversTransportName, serversTransport := range configuration.HTTP.ServersTransports {
 				if serversTransportName != "default" {

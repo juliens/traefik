@@ -54,6 +54,9 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 	if err != nil {
 		return nil, err
 	}
+
+	return b.fasthttpBuilder.Build(configName, &dynamic.FastHTTPConfig{}, tlsConfig, target), nil
+
 	// FIXME Raise error if both configured
 	if config.HttpUtil != nil {
 		return b.httputilBuilder.Build(configName, config.HttpUtil, tlsConfig, target)

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/traefik/traefik/v2/pkg/proxy/httputil"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http/httpguts"
@@ -171,12 +172,28 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 	}
 
 	// h := writer.Header()
-	res.Header.VisitAll(func(key, value []byte) {
-		writer.Header().Add(string(key), string(value))
-		// h[string(key)] = append(h[string(key)], string(value))
-	})
+	hijackedConn, hbr, err := writer.(http.Hijacker).Hijack()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	writer.WriteHeader(res.StatusCode())
+	type connRe interface {
+		net.Conn
+		Release()
+	}
+
+	connReal := hijackedConn.(connRe)
+
+	defer connReal.Release()
+	res.Header.Write(hbr.Writer)
+	hbr.Flush()
+	// res.Header.Write(hbr.Writer)
+	// res.Header.VisitAll(func(key, value []byte) {
+	// 	writer.Header().Add(string(key), string(value))
+	// 	// h[string(key)] = append(h[string(key)], string(value))
+	// })
+
+	// writer.WriteHeader(res.StatusCode())
 
 	if res.Header.ContentLength() == -1 {
 		// READ CHUNK BODY
@@ -216,7 +233,7 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		brl.N = int64(res.Header.ContentLength())
 
 		b := r.bufferPool.Get()
-		_, err := io.CopyBuffer(writer, brl, b.([]byte))
+		_, err := io.CopyBuffer(hbr, brl, b.([]byte))
 		if err != nil {
 			if err != nil {
 				conn.Close()
@@ -228,6 +245,7 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 
 		r.limitReaderPool.Put(brl)
 	}
+	hbr.Flush()
 
 	r.readerPool.Put(br)
 	r.connectionPool.ReleaseConn(conn)

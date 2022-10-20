@@ -36,14 +36,14 @@ var httpServerLogger = stdlog.New(log.WithoutContext().WriterLevel(logrus.DebugL
 
 type httpForwarder struct {
 	net.Listener
-	connChan chan net.Conn
+	connChan chan tcp.WriteCloser
 	errChan  chan error
 }
 
 func newHTTPForwarder(ln net.Listener) *httpForwarder {
 	return &httpForwarder{
 		Listener: ln,
-		connChan: make(chan net.Conn),
+		connChan: make(chan tcp.WriteCloser),
 		errChan:  make(chan error),
 	}
 }
@@ -53,11 +53,20 @@ func (h *httpForwarder) ServeTCP(conn tcp.WriteCloser) {
 	h.connChan <- conn
 }
 
+type ConnWithReleaser struct {
+	tcp.WriteCloser
+	h *httpForwarder
+}
+
+func (c *ConnWithReleaser) Release() {
+	c.h.ServeTCP(c)
+}
+
 // Accept retrieves a served connection in ServeTCP.
 func (h *httpForwarder) Accept() (net.Conn, error) {
 	select {
 	case conn := <-h.connChan:
-		return conn, nil
+		return &ConnWithReleaser{WriteCloser: conn, h: h}, nil
 	case err := <-h.errChan:
 		return nil, err
 	}
