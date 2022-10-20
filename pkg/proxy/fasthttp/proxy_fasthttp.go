@@ -3,6 +3,7 @@ package fasthttp
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -60,6 +61,27 @@ func NewFastHTTPReverseProxy(target *url.URL, passHostHeader bool, connectionPoo
 	}
 }
 
+func upgradeType(h http.Header) string {
+	if !httpguts.HeaderValuesContainsToken(h["Connection"], "Upgrade") {
+		return ""
+	}
+	return h.Get("Upgrade")
+}
+
+func upgradeTypeFastHTTPReq(header *fasthttp.RequestHeader) string {
+	if !bytes.Contains(header.Peek("Connection"), []byte("Upgrade")) {
+		return ""
+	}
+	return string(header.Peek("Upgrade"))
+}
+
+func upgradeTypeFastHTTP(header *fasthttp.ResponseHeader) string {
+	if !bytes.Contains(header.Peek("Connection"), []byte("Upgrade")) {
+		return ""
+	}
+	return string(header.Peek("Upgrade"))
+}
+
 func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// FIXME adds auto gzip?
 	r.director(request)
@@ -79,6 +101,13 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 
 	announcedTrailer := httpguts.HeaderValuesContainsToken(request.Header["Te"], "trailers")
 
+	reqUpType := upgradeType(request.Header)
+	// FIXME needs ascii.IsPrint?
+	// if !ascii.IsPrint(reqUpType) {
+	// 	p.getErrorHandler()(rw, req, fmt.Errorf("client tried to switch to invalid protocol %q", reqUpType))
+	// 	return
+	// }
+
 	removeConnectionHeaders(request.Header)
 	//
 	for _, header := range hopHeaders {
@@ -90,6 +119,11 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 	}
 
 	outReq.Header.Set("FastHTTP", "enabled")
+
+	if reqUpType != "" {
+		outReq.Header.Set("Connection", "Upgrade")
+		outReq.Header.Set("Upgrade", reqUpType)
+	}
 
 	// SetRequestURI must be called before outReq.SetHost because it re-triggers uri parsing.
 	outReq.SetRequestURI(request.URL.RequestURI())
@@ -160,6 +194,12 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 	}
 	announcedTrailers := res.Header.Peek("Trailer")
 	announcedTrailersKey := strings.Split(string(announcedTrailers), ",")
+
+	// Deal with 101 Switching Protocols responses: (WebSocket, h2c, etc)
+	if res.StatusCode() == http.StatusSwitchingProtocols {
+		handleUpgradeResponse(writer, request, reqUpType, res, conn)
+		return
+	}
 
 	removeConnectionHeadersFastHTTP(res.Header)
 
@@ -232,6 +272,70 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 
 	r.readerPool.Put(br)
 	r.connectionPool.ReleaseConn(conn)
+}
+
+func handleUpgradeResponse(rw http.ResponseWriter, req *http.Request, reqUpType string, res *fasthttp.Response, backConn net.Conn) {
+	resUpType := upgradeTypeFastHTTP(&res.Header)
+
+	if !strings.EqualFold(reqUpType, resUpType) {
+		httputil.ErrorHandler(rw, req, fmt.Errorf("backend tried to switch protocol %q when %q was requested", resUpType, reqUpType))
+		return
+	}
+
+	hj, ok := rw.(http.Hijacker)
+	if !ok {
+		httputil.ErrorHandler(rw, req, fmt.Errorf("can't switch protocols using non-Hijacker ResponseWriter type %T", rw))
+		return
+	}
+	backConnCloseCh := make(chan bool)
+	go func() {
+		// Ensure that the cancellation of a request closes the backend.
+		// See issue https://golang.org/issue/35559.
+		select {
+		case <-req.Context().Done():
+		case <-backConnCloseCh:
+		}
+		_ = backConn.Close()
+	}()
+
+	defer close(backConnCloseCh)
+
+	conn, brw, err := hj.Hijack()
+	if err != nil {
+		httputil.ErrorHandler(rw, req, fmt.Errorf("Hijack failed on protocol switch: %v", err))
+		return
+	}
+	defer conn.Close()
+
+	if err := res.Header.Write(brw.Writer); err != nil {
+		httputil.ErrorHandler(rw, req, fmt.Errorf("response write: %v", err))
+		return
+	}
+	if err := brw.Flush(); err != nil {
+		httputil.ErrorHandler(rw, req, fmt.Errorf("response flush: %v", err))
+		return
+	}
+	errc := make(chan error, 1)
+	spc := switchProtocolCopier{user: conn, backend: backConn}
+	go spc.copyToBackend(errc)
+	go spc.copyFromBackend(errc)
+	<-errc
+}
+
+// switchProtocolCopier exists so goroutines proxying data back and
+// forth have nice names in stacks.
+type switchProtocolCopier struct {
+	user, backend io.ReadWriter
+}
+
+func (c switchProtocolCopier) copyFromBackend(errc chan<- error) {
+	_, err := io.Copy(c.user, c.backend)
+	errc <- err
+}
+
+func (c switchProtocolCopier) copyToBackend(errc chan<- error) {
+	_, err := io.Copy(c.backend, c.user)
+	errc <- err
 }
 
 type WriteFlusher struct {
