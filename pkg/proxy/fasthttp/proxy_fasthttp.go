@@ -90,14 +90,10 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 	defer fasthttp.ReleaseRequest(outReq)
 
 	outReq.Header.DisableNormalizing()
-	//
-	outReq.URI().DisablePathNormalizing = true
-	//
+
 	if request.Body != nil {
 		defer request.Body.Close()
 	}
-
-	// FIXME try to handle websocket
 
 	announcedTrailer := httpguts.HeaderValuesContainsToken(request.Header["Te"], "trailers")
 
@@ -125,12 +121,13 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		outReq.Header.Set("Upgrade", reqUpType)
 	}
 
-	// SetRequestURI must be called before outReq.SetHost because it re-triggers uri parsing.
-	outReq.SetRequestURI(request.URL.RequestURI())
-	//
 	outReq.SetHost(request.URL.Host)
+
+	outReq.UseHostHeader = true
 	outReq.Header.SetHost(request.Host)
-	//
+
+	outReq.SetRequestURI(request.URL.RequestURI())
+
 	for k, v := range request.Header {
 		for _, s := range v {
 			outReq.Header.Add(k, s)
@@ -307,10 +304,17 @@ func handleUpgradeResponse(rw http.ResponseWriter, req *http.Request, reqUpType 
 	}
 	defer conn.Close()
 
+	for k, values := range rw.Header() {
+		for _, v := range values {
+			res.Header.Add(k, v)
+		}
+	}
+
 	if err := res.Header.Write(brw.Writer); err != nil {
 		httputil.ErrorHandler(rw, req, fmt.Errorf("response write: %v", err))
 		return
 	}
+
 	if err := brw.Flush(); err != nil {
 		httputil.ErrorHandler(rw, req, fmt.Errorf("response flush: %v", err))
 		return

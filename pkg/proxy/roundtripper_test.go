@@ -80,9 +80,11 @@ func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
 
 	dynamicConf := map[string]*dynamic.ServersTransport{
 		"test": {
-			HTTP:       &dynamic.HTTPClientConfig{},
-			ServerName: "example.com",
-			RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
+			HTTP: &dynamic.HTTPClientConfig{EnableHTTP2: true},
+			TLS: &dynamic.TLSClientConfig{
+				ServerName: "example.com",
+				RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
+			},
 		},
 	}
 
@@ -94,6 +96,7 @@ func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, srv.URL, http.NoBody)
+		req.URL.Scheme = "h2c"
 		rw := httptest.NewRecorder()
 		proxy.ServeHTTP(rw, req)
 
@@ -105,9 +108,11 @@ func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
 
 	dynamicConf = map[string]*dynamic.ServersTransport{
 		"test": {
-			HTTP:       &dynamic.HTTPClientConfig{},
-			ServerName: "www.example.com",
-			RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
+			HTTP: &dynamic.HTTPClientConfig{},
+			TLS: &dynamic.TLSClientConfig{
+				ServerName: "www.example.com",
+				RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
+			},
 		},
 	}
 
@@ -176,9 +181,11 @@ func TestDisableHTTP2(t *testing.T) {
 			dynamicConf := map[string]*dynamic.ServersTransport{
 				"test": {
 					HTTP: &dynamic.HTTPClientConfig{
-						DisableHTTP2: test.disableHTTP2,
+						EnableHTTP2: !test.disableHTTP2,
 					},
-					InsecureSkipVerify: true,
+					TLS: &dynamic.TLSClientConfig{
+						InsecureSkipVerify: true,
+					},
 				},
 			}
 

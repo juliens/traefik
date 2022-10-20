@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,10 +29,28 @@ func BenchmarkProxy(b *testing.B) {
 	req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
 
 	pool := newBufferPool()
-	handler := buildSingleHostProxy(req.URL, false, 0, &staticTransport{res}, pool)
+	handler := BuildSingleHostProxy(req.URL, false, 0, &staticTransport{res}, pool)
 
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		handler.ServeHTTP(w, req)
 	}
+}
+
+func TestEscaptedPath(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		fmt.Println(req.URL.EscapedPath())
+	}))
+
+	u := testhelpers.MustParseURL(srv.URL)
+	h := BuildSingleHostProxy(u, true, 0, http.DefaultTransport, nil)
+
+	srv2 := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		h.ServeHTTP(rw, req)
+	}))
+
+	fmt.Println("BACKEND", srv.URL)
+	fmt.Println("SERVER", srv2.URL)
+	http.Get(srv2.URL + "/%3A%2F%2F")
+
 }

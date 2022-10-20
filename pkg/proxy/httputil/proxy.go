@@ -51,7 +51,7 @@ func (r *ProxyBuilder) Build(configName string, config *dynamic.HTTPClientConfig
 
 		r.roundTrippers[configName] = roundTripper
 	}
-	return buildSingleHostProxy(target, config.PassHostHeader, time.Duration(config.FlushInterval), roundTripper, r.bufferPool), nil
+	return BuildSingleHostProxy(target, config.PassHostHeader, time.Duration(config.FlushInterval), roundTripper, r.bufferPool), nil
 }
 
 // createRoundTripper creates an http.RoundTripper configured with the Transport configuration settings.
@@ -92,7 +92,7 @@ func createRoundTripper(cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config) (h
 	return newSmartRoundTripper(transport, cfg.ForwardingTimeouts)
 }
 
-func buildSingleHostProxy(target *url.URL, passHostHeader bool, flushInterval time.Duration, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) http.Handler {
+func BuildSingleHostProxy(target *url.URL, passHostHeader bool, flushInterval time.Duration, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) http.Handler {
 	return &httputil.ReverseProxy{
 		Director:      DirectorBuilder(target, passHostHeader),
 		Transport:     roundTripper,
