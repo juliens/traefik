@@ -378,7 +378,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 				MaxIdleConnsPerHost: serversTransport.Spec.MaxIdleConnsPerHost,
 				ForwardingTimeouts:  forwardingTimeout,
 				// FIXME modify crds
-				HTTP2: !serversTransport.Spec.DisableHTTP2,
+				EnableHTTP2: !serversTransport.Spec.DisableHTTP2,
 			},
 			TLS: &dynamic.TLSClientConfig{
 				ServerName:         serversTransport.Spec.ServerName,

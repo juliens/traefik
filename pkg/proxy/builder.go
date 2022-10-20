@@ -55,7 +55,7 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 		return nil, err
 	}
 
-	if config.HTTP != nil && config.HTTP.HTTP2 {
+	if config.HTTP != nil && config.HTTP.EnableHTTP2 && target.Scheme == "https" || target.Scheme == "h2c" {
 		return b.httputilBuilder.Build(configName, config.HTTP, tlsConfig, target)
 	}
 

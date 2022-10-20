@@ -279,7 +279,8 @@ type HTTPClientConfig struct {
 	PassHostHeader      bool                `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
 	MaxIdleConnsPerHost int                 `description:"If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used" json:"maxIdleConnsPerHost,omitempty" toml:"maxIdleConnsPerHost,omitempty" yaml:"maxIdleConnsPerHost,omitempty" export:"true"`
 	ForwardingTimeouts  *ForwardingTimeouts `description:"Timeouts for requests forwarded to the backend servers." json:"forwardingTimeouts,omitempty" toml:"forwardingTimeouts,omitempty" yaml:"forwardingTimeouts,omitempty" export:"true"`
-	HTTP2               bool                `description:"Disable HTTP/2 for connections with backend servers." json:"disableHTTP2,omitempty" toml:"disableHTTP2,omitempty" yaml:"disableHTTP2,omitempty" export:"true"`
+	EnableHTTP2         bool                `description:"Enable HTTP/2 for connections with backend servers." json:"enableHTTP2,omitempty" toml:"enableHTTP2,omitempty" yaml:"enableHTTP2,omitempty" export:"true"`
+	// FIXME Compatibility to switch on previous implementation
 }
 
 func (h *HTTPClientConfig) SetDefaults() {

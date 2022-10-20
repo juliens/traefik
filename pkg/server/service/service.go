@@ -31,9 +31,10 @@ import (
 const defaultMaxBodySize int64 = -1
 
 // FIXME clean fasthttp proxy
+
 // FIXME websocket
 
-// FIXME serversTransport Config ( + naming )
+// FIXME serversTransport Config : EnableHTTP2 + h2c?
 
 // FIXME naming
 
