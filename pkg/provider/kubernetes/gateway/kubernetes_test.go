@@ -3,11 +3,9 @@ package gateway
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/provider"
 	"github.com/traefik/traefik/v2/pkg/tls"
@@ -554,9 +552,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -647,9 +642,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -706,9 +698,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -773,9 +762,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -831,9 +817,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -889,9 +872,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -962,9 +942,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"default-whoami2-8080": {
@@ -978,9 +955,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1040,9 +1014,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"default-whoami2-8080": {
@@ -1056,9 +1027,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1135,9 +1103,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1223,9 +1188,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1305,9 +1267,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1363,9 +1322,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1436,9 +1392,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"bar-whoami-bar-80": {
@@ -1452,9 +1405,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1510,9 +1460,6 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -3601,9 +3548,6 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -3778,9 +3722,6 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -3982,9 +3923,6 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"bar-whoami-bar-80": {
@@ -3998,9 +3936,6 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"bar-http-app-bar-my-gateway-web-a431b128267aabc954fd-wrr": {
@@ -4148,9 +4083,6 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"bar-http-app-bar-my-gateway-web-a431b128267aabc954fd-wrr": {
@@ -4299,9 +4231,6 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},

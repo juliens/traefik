@@ -64,8 +64,6 @@
           [http.services.Service01.loadBalancer.healthCheck.headers]
             name0 = "foobar"
             name1 = "foobar"
-        [http.services.Service01.loadBalancer.responseForwarding]
-          flushInterval = "42s"
     [http.services.Service02]
       [http.services.Service02.mirroring]
         service = "foobar"

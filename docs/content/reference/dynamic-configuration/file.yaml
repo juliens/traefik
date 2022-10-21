@@ -70,8 +70,6 @@ http:
             name0: foobar
             name1: foobar
         passHostHeader: true
-        responseForwarding:
-          flushInterval: 42s
         serversTransport: foobar
     Service02:
       mirroring:

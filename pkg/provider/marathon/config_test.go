@@ -4,12 +4,10 @@ import (
 	"context"
 	"math"
 	"testing"
-	"time"
 
 	"github.com/gambol99/go-marathon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 )
 
@@ -73,9 +71,6 @@ func TestBuildConfiguration(t *testing.T) {
 								},
 							},
 							PassHostHeader: Bool(true),
-							ResponseForwarding: &dynamic.ResponseForwarding{
-								FlushInterval: ptypes.Duration(100 * time.Millisecond),
-							},
 						}},
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{},
@@ -142,9 +137,6 @@ func TestBuildConfiguration(t *testing.T) {
 								},
 							},
 							PassHostHeader: Bool(true),
-							ResponseForwarding: &dynamic.ResponseForwarding{
-								FlushInterval: ptypes.Duration(100 * time.Millisecond),
-							},
 						}},
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{},
@@ -197,9 +189,6 @@ func TestBuildConfiguration(t *testing.T) {
 								},
 							},
 							PassHostHeader: Bool(true),
-							ResponseForwarding: &dynamic.ResponseForwarding{
-								FlushInterval: ptypes.Duration(100 * time.Millisecond),
-							},
 						}},
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{},
@@ -306,9 +295,6 @@ func TestBuildConfiguration(t *testing.T) {
 								},
 							},
 							PassHostHeader: Bool(true),
-							ResponseForwarding: &dynamic.ResponseForwarding{
-								FlushInterval: ptypes.Duration(100 * time.Millisecond),
-							},
 						}},
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{},
@@ -370,9 +356,6 @@ func TestBuildConfiguration(t *testing.T) {
 								},
 							},
 							PassHostHeader: Bool(true),
-							ResponseForwarding: &dynamic.ResponseForwarding{
-								FlushInterval: ptypes.Duration(100 * time.Millisecond),
-							},
 						}},
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{},
@@ -421,9 +404,6 @@ func TestBuildConfiguration(t *testing.T) {
 								},
 							},
 							PassHostHeader: Bool(true),
-							ResponseForwarding: &dynamic.ResponseForwarding{
-								FlushInterval: ptypes.Duration(100 * time.Millisecond),
-							},
 						}},
 						"bar": {LoadBalancer: &dynamic.ServersLoadBalancer{
 							Servers: []dynamic.Server{
@@ -432,9 +412,6 @@ func TestBuildConfiguration(t *testing.T) {
 								},
 							},
 							PassHostHeader: Bool(true),
-							ResponseForwarding: &dynamic.ResponseForwarding{
-								FlushInterval: ptypes.Duration(100 * time.Millisecond),
-							},
 						}},
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{},
@@ -479,9 +456,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -524,9 +498,6 @@ func TestBuildConfiguration(t *testing.T) {
 								},
 							},
 							PassHostHeader: Bool(true),
-							ResponseForwarding: &dynamic.ResponseForwarding{
-								FlushInterval: ptypes.Duration(100 * time.Millisecond),
-							},
 						}},
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{},
@@ -571,9 +542,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -611,9 +579,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -664,9 +629,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -707,9 +669,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"Service2": {
@@ -720,9 +679,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -824,9 +780,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"app2": {
@@ -837,9 +790,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -893,9 +843,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"app2": {
@@ -906,9 +853,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -953,9 +897,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"app2": {
@@ -966,9 +907,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1020,9 +958,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1067,9 +1002,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"app2": {
@@ -1080,9 +1012,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1126,9 +1055,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1173,9 +1099,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1215,9 +1138,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 						"Service2": {
@@ -1228,9 +1148,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1438,9 +1355,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1485,9 +1399,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1531,9 +1442,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1858,9 +1766,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},
@@ -1921,9 +1826,6 @@ func TestBuildConfiguration(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								ResponseForwarding: &dynamic.ResponseForwarding{
-									FlushInterval: ptypes.Duration(100 * time.Millisecond),
-								},
 							},
 						},
 					},

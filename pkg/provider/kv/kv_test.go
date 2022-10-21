@@ -50,7 +50,6 @@ func Test_buildConfiguration(t *testing.T) {
 		"traefik/http/services/Service01/loadBalancer/healthCheck/scheme":                            "foobar",
 		"traefik/http/services/Service01/loadBalancer/healthCheck/mode":                              "foobar",
 		"traefik/http/services/Service01/loadBalancer/healthCheck/followredirects":                   "true",
-		"traefik/http/services/Service01/loadBalancer/responseForwarding/flushInterval":              "1s",
 		"traefik/http/services/Service01/loadBalancer/passHostHeader":                                "true",
 		"traefik/http/services/Service01/loadBalancer/sticky/cookie/name":                            "foobar",
 		"traefik/http/services/Service01/loadBalancer/sticky/cookie/secure":                          "true",
@@ -656,9 +655,6 @@ func Test_buildConfiguration(t *testing.T) {
 							},
 						},
 						PassHostHeader: func(v bool) *bool { return &v }(true),
-						ResponseForwarding: &dynamic.ResponseForwarding{
-							FlushInterval: ptypes.Duration(time.Second),
-						},
 					},
 				},
 				"Service02": {

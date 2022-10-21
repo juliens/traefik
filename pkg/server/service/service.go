@@ -39,13 +39,18 @@ const defaultMaxBodySize int64 = -1
 
 // FIXME naming
 
+// FIXME configure serversTransport through labels
+
 // FIXME Bench final
 // FIXME crds
 // FIXME tests ( PassHostHeader )
-// FIXME documentation
 // FIXME comments
-
 // FIXME experimental
+
+// FIXME documentation vv
+// move flush interval documentation at the ServerTransport Level
+// remove ServersTransport documentation in static configuration
+// add some notes explaining how to configure serverstransport
 
 // Manager The service manager.
 type Manager struct {

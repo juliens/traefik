@@ -84,9 +84,6 @@
             }
           },
           "passHostHeader": true,
-          "responseForwarding": {
-            "flushInterval": "1m51s"
-          },
           "serversTransport": "foo"
         }
       }

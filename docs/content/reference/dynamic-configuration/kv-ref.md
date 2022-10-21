@@ -222,7 +222,6 @@
 | `traefik/http/services/Service01/loadBalancer/healthCheck/scheme` | `foobar` |
 | `traefik/http/services/Service01/loadBalancer/healthCheck/timeout` | `42s` |
 | `traefik/http/services/Service01/loadBalancer/passHostHeader` | `true` |
-| `traefik/http/services/Service01/loadBalancer/responseForwarding/flushInterval` | `42s` |
 | `traefik/http/services/Service01/loadBalancer/servers/0/url` | `foobar` |
 | `traefik/http/services/Service01/loadBalancer/servers/1/url` | `foobar` |
 | `traefik/http/services/Service01/loadBalancer/serversTransport` | `foobar` |

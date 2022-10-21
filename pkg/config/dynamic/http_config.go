@@ -166,10 +166,9 @@ type ServersLoadBalancer struct {
 	// children servers of this load-balancer. To propagate status changes (e.g. all
 	// servers of this service are down) upwards, HealthCheck must also be enabled on
 	// the parent(s) of this service.
-	HealthCheck        *ServerHealthCheck  `json:"healthCheck,omitempty" toml:"healthCheck,omitempty" yaml:"healthCheck,omitempty" export:"true"`
-	PassHostHeader     *bool               `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
-	ResponseForwarding *ResponseForwarding `json:"responseForwarding,omitempty" toml:"responseForwarding,omitempty" yaml:"responseForwarding,omitempty" export:"true"`
-	ServersTransport   string              `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
+	HealthCheck      *ServerHealthCheck `json:"healthCheck,omitempty" toml:"healthCheck,omitempty" yaml:"healthCheck,omitempty" export:"true"`
+	PassHostHeader   *bool              `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
+	ServersTransport string             `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
 }
 
 // Mergeable tells if the given service is mergeable.
@@ -193,26 +192,6 @@ func (l *ServersLoadBalancer) Mergeable(loadBalancer *ServersLoadBalancer) bool 
 func (l *ServersLoadBalancer) SetDefaults() {
 	defaultPassHostHeader := DefaultPassHostHeader
 	l.PassHostHeader = &defaultPassHostHeader
-
-	l.ResponseForwarding = &ResponseForwarding{}
-	l.ResponseForwarding.SetDefaults()
-}
-
-// +k8s:deepcopy-gen=true
-
-// ResponseForwarding holds the response forwarding configuration.
-type ResponseForwarding struct {
-	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
-	// A negative value means to flush immediately after each write to the client.
-	// This configuration is ignored when ReverseProxy recognizes a response as a streaming response;
-	// for such responses, writes are flushed to the client immediately.
-	// Default: 100ms
-	FlushInterval ptypes.Duration `json:"flushInterval,omitempty" toml:"flushInterval,omitempty" yaml:"flushInterval,omitempty" export:"true"`
-}
-
-// SetDefaults Default values for a ResponseForwarding.
-func (r *ResponseForwarding) SetDefaults() {
-	r.FlushInterval = DefaultFlushInterval
 }
 
 // +k8s:deepcopy-gen=true
@@ -278,6 +257,10 @@ func (s *ServersTransport) SetDefaults() {
 // FIXME: Compatibility to switch on previous implementation
 type HTTPClientConfig struct {
 	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
+	// A negative value means to flush immediately after each write to the client.
+	// This configuration is ignored when ReverseProxy recognizes a response as a streaming response;
+	// for such responses, writes are flushed to the client immediately.
+	// Default: 100ms
 	// FIXME: should we remove the flushInterval.
 	FlushInterval ptypes.Duration `json:"flushInterval,omitempty" toml:"flushInterval,omitempty" yaml:"flushInterval,omitempty" export:"true"`
 	// PassHostHeader defines whether to forward the client Host header to the server.
@@ -293,6 +276,7 @@ type HTTPClientConfig struct {
 
 // SetDefaults sets the default HTTPClientConfig values.
 func (h *HTTPClientConfig) SetDefaults() {
+	h.FlushInterval = DefaultFlushInterval
 	h.PassHostHeader = true
 	h.MaxIdleConnsPerHost = 200
 	h.ForwardingTimeouts = &ForwardingTimeouts{}
