@@ -4036,38 +4036,47 @@ func TestLoadIngressRoutes(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"foo-test": {
-							ServerName:         "test",
-							InsecureSkipVerify: true,
-							RootCAs:            []tls.FileOrContent{"TESTROOTCAS0", "TESTROOTCAS1", "TESTROOTCAS2", "TESTROOTCAS3", "TESTROOTCAS5", "TESTALLCERTS"},
-							Certificates: tls.Certificates{
-								{CertFile: "TESTCERT1", KeyFile: "TESTKEY1"},
-								{CertFile: "TESTCERT2", KeyFile: "TESTKEY2"},
-								{CertFile: "TESTCERT3", KeyFile: "TESTKEY3"},
-							},
-							MaxIdleConnsPerHost: 42,
-							DisableHTTP2:        true,
-							ForwardingTimeouts: &dynamic.ForwardingTimeouts{
-								DialTimeout:           ptypes.Duration(42 * time.Second),
-								ResponseHeaderTimeout: ptypes.Duration(42 * time.Second),
-								IdleConnTimeout:       ptypes.Duration(42 * time.Millisecond),
-								ReadIdleTimeout:       ptypes.Duration(42 * time.Second),
-								PingTimeout:           ptypes.Duration(42 * time.Second),
-							},
-							PeerCertURI: "foo://bar",
-							Spiffe: &dynamic.Spiffe{
-								IDs: []string{
-									"spiffe://foo/buz",
-									"spiffe://bar/biz",
+							TLS: &dynamic.TLSClientConfig{
+								ServerName:         "test",
+								InsecureSkipVerify: true,
+								RootCAs:            []tls.FileOrContent{"TESTROOTCAS0", "TESTROOTCAS1", "TESTROOTCAS2", "TESTROOTCAS3", "TESTROOTCAS5", "TESTALLCERTS"},
+								Certificates: tls.Certificates{
+									{CertFile: "TESTCERT1", KeyFile: "TESTKEY1"},
+									{CertFile: "TESTCERT2", KeyFile: "TESTKEY2"},
+									{CertFile: "TESTCERT3", KeyFile: "TESTKEY3"},
 								},
-								TrustDomain: "spiffe://lol",
+								PeerCertURI: "foo://bar",
+								Spiffe: &dynamic.Spiffe{
+									IDs: []string{
+										"spiffe://foo/buz",
+										"spiffe://bar/biz",
+									},
+									TrustDomain: "spiffe://lol",
+								},
+							},
+							HTTP: &dynamic.HTTPClientConfig{
+								MaxIdleConnsPerHost: 42,
+								EnableHTTP2:         false,
+								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
+									DialTimeout:           ptypes.Duration(42 * time.Second),
+									ResponseHeaderTimeout: ptypes.Duration(42 * time.Second),
+									IdleConnTimeout:       ptypes.Duration(42 * time.Millisecond),
+									ReadIdleTimeout:       ptypes.Duration(42 * time.Second),
+									PingTimeout:           ptypes.Duration(42 * time.Second),
+								},
 							},
 						},
 						"default-test": {
-							ServerName: "test",
-							ForwardingTimeouts: &dynamic.ForwardingTimeouts{
-								DialTimeout:     ptypes.Duration(30 * time.Second),
-								IdleConnTimeout: ptypes.Duration(90 * time.Second),
-								PingTimeout:     ptypes.Duration(15 * time.Second),
+							TLS: &dynamic.TLSClientConfig{
+								ServerName: "test",
+							},
+							HTTP: &dynamic.HTTPClientConfig{
+								EnableHTTP2: true,
+								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
+									DialTimeout:     ptypes.Duration(30 * time.Second),
+									IdleConnTimeout: ptypes.Duration(90 * time.Second),
+									PingTimeout:     ptypes.Duration(15 * time.Second),
+								},
 							},
 						},
 					},
@@ -5481,14 +5490,17 @@ func TestCrossNamespace(t *testing.T) {
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"cross-ns-st-cross-ns": {
-							ForwardingTimeouts: &dynamic.ForwardingTimeouts{
-								DialTimeout:           30000000000,
-								ResponseHeaderTimeout: 0,
-								IdleConnTimeout:       90000000000,
-								ReadIdleTimeout:       0,
-								PingTimeout:           15000000000,
+							TLS: &dynamic.TLSClientConfig{},
+							HTTP: &dynamic.HTTPClientConfig{
+								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
+									DialTimeout:           30000000000,
+									ResponseHeaderTimeout: 0,
+									IdleConnTimeout:       90000000000,
+									ReadIdleTimeout:       0,
+									PingTimeout:           15000000000,
+								},
+								EnableHTTP2: false,
 							},
-							DisableHTTP2: true,
 						},
 					},
 				},
@@ -5514,14 +5526,17 @@ func TestCrossNamespace(t *testing.T) {
 					Services:    map[string]*dynamic.Service{},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"cross-ns-st-cross-ns": {
-							ForwardingTimeouts: &dynamic.ForwardingTimeouts{
-								DialTimeout:           30000000000,
-								ResponseHeaderTimeout: 0,
-								IdleConnTimeout:       90000000000,
-								ReadIdleTimeout:       0,
-								PingTimeout:           15000000000,
+							TLS: &dynamic.TLSClientConfig{},
+							HTTP: &dynamic.HTTPClientConfig{
+								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
+									DialTimeout:           30000000000,
+									ResponseHeaderTimeout: 0,
+									IdleConnTimeout:       90000000000,
+									ReadIdleTimeout:       0,
+									PingTimeout:           15000000000,
+								},
+								EnableHTTP2: false,
 							},
-							DisableHTTP2: true,
 						},
 					},
 				},
