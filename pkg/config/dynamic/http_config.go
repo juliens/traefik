@@ -261,10 +261,10 @@ type HealthCheck struct{}
 
 // +k8s:deepcopy-gen=true
 
-// ServersTransport options to configure communication between Traefik and the servers.
+// ServersTransport holds the configuration of the communication between Traefik and the servers.
 type ServersTransport struct {
-	HTTP *HTTPClientConfig `description:"." json:"http,omitempty" toml:"http,omitempty" yaml:"http,omitempty" export:"true"`
-	TLS  *TLSClientConfig  `description:"." json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty" export:"true"`
+	HTTP *HTTPClientConfig `json:"http,omitempty" toml:"http,omitempty" yaml:"http,omitempty" export:"true"`
+	TLS  *TLSClientConfig  `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty" export:"true"`
 }
 
 func (s *ServersTransport) SetDefaults() {
@@ -274,15 +274,24 @@ func (s *ServersTransport) SetDefaults() {
 
 // +k8s:deepcopy-gen=true
 
+// HTTPClientConfig holds the HTTP configuration to be used between Traefik and the servers.
+// FIXME: Compatibility to switch on previous implementation
 type HTTPClientConfig struct {
-	FlushInterval       ptypes.Duration     `json:"flushInterval,omitempty" toml:"flushInterval,omitempty" yaml:"flushInterval,omitempty" export:"true"`
-	PassHostHeader      bool                `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
-	MaxIdleConnsPerHost int                 `description:"If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used" json:"maxIdleConnsPerHost,omitempty" toml:"maxIdleConnsPerHost,omitempty" yaml:"maxIdleConnsPerHost,omitempty" export:"true"`
-	ForwardingTimeouts  *ForwardingTimeouts `description:"Timeouts for requests forwarded to the backend servers." json:"forwardingTimeouts,omitempty" toml:"forwardingTimeouts,omitempty" yaml:"forwardingTimeouts,omitempty" export:"true"`
-	EnableHTTP2         bool                `description:"Enable HTTP/2 for connections with backend servers." json:"enableHTTP2,omitempty" toml:"enableHTTP2,omitempty" yaml:"enableHTTP2,omitempty" export:"true"`
-	// FIXME Compatibility to switch on previous implementation
+	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
+	// FIXME: should we remove the flushInterval.
+	FlushInterval ptypes.Duration `json:"flushInterval,omitempty" toml:"flushInterval,omitempty" yaml:"flushInterval,omitempty" export:"true"`
+	// PassHostHeader defines whether to forward the client Host header to the server.
+	PassHostHeader bool `json:"passHostHeader,omitempty" toml:"passHostHeader,omitempty" yaml:"passHostHeader,omitempty" export:"true"`
+	// MaxIdleConnsPerHost controls the maximum number of idle (keep-alive) connections to keep per-host.
+	// If zero, DefaultMaxIdleConnsPerHost is used.
+	MaxIdleConnsPerHost int `json:"maxIdleConnsPerHost,omitempty" toml:"maxIdleConnsPerHost,omitempty" yaml:"maxIdleConnsPerHost,omitempty" export:"true"`
+	// ForwardingTimeouts defines the timeouts for the requests forwarded to the backend servers.
+	ForwardingTimeouts *ForwardingTimeouts `json:"forwardingTimeouts,omitempty" toml:"forwardingTimeouts,omitempty" yaml:"forwardingTimeouts,omitempty" export:"true"`
+	// EnableHTTP2 enables HTTP/2 between Traefik and the backends.
+	EnableHTTP2 bool `json:"enableHTTP2,omitempty" toml:"enableHTTP2,omitempty" yaml:"enableHTTP2,omitempty" export:"true"`
 }
 
+// SetDefaults sets the default HTTPClientConfig values.
 func (h *HTTPClientConfig) SetDefaults() {
 	h.PassHostHeader = true
 	h.MaxIdleConnsPerHost = 200
@@ -292,13 +301,20 @@ func (h *HTTPClientConfig) SetDefaults() {
 
 // +k8s:deepcopy-gen=true
 
+// TLSClientConfig holds the TLS configuration to be used between Traefik and the servers.
 type TLSClientConfig struct {
-	ServerName         string                     `description:"ServerName used to contact the server." json:"serverName,omitempty" toml:"serverName,omitempty" yaml:"serverName,omitempty"`
-	InsecureSkipVerify bool                       `description:"Disable SSL certificate verification." json:"insecureSkipVerify,omitempty" toml:"insecureSkipVerify,omitempty" yaml:"insecureSkipVerify,omitempty" export:"true"`
-	RootCAs            []traefiktls.FileOrContent `description:"Add cert file for self-signed certificate." json:"rootCAs,omitempty" toml:"rootCAs,omitempty" yaml:"rootCAs,omitempty"`
-	Certificates       traefiktls.Certificates    `description:"Certificates for mTLS." json:"certificates,omitempty" toml:"certificates,omitempty" yaml:"certificates,omitempty" export:"true"`
-	PeerCertURI        string                     `description:"URI used to match against SAN URI during the peer certificate verification." json:"peerCertURI,omitempty" toml:"peerCertURI,omitempty" yaml:"peerCertURI,omitempty" export:"true"`
-	Spiffe             *Spiffe                    `description:"Define the SPIFFE configuration." json:"spiffe,omitempty" toml:"spiffe,omitempty" yaml:"spiffe,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	// ServerName defines the ServerName.
+	ServerName string `json:"serverName,omitempty" toml:"serverName,omitempty" yaml:"serverName,omitempty"`
+	// InsecureSkipVerify defines whether to validate the server TLS certificate.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty" toml:"insecureSkipVerify,omitempty" yaml:"insecureSkipVerify,omitempty" export:"true"`
+	// RootCAs defines the CAs used to validate the server certificate.
+	RootCAs []traefiktls.FileOrContent `json:"rootCAs,omitempty" toml:"rootCAs,omitempty" yaml:"rootCAs,omitempty"`
+	// Certificates defines the client certificates for mTLS.
+	Certificates traefiktls.Certificates `json:"certificates,omitempty" toml:"certificates,omitempty" yaml:"certificates,omitempty" export:"true"`
+	// PeerCertURI defines the URI to match against SAN URI during the peer certificate verification.
+	PeerCertURI string `json:"peerCertURI,omitempty" toml:"peerCertURI,omitempty" yaml:"peerCertURI,omitempty" export:"true"`
+	// Spiffe defines the SPIFFE configuration.
+	Spiffe *Spiffe `json:"spiffe,omitempty" toml:"spiffe,omitempty" yaml:"spiffe,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -306,23 +322,31 @@ type TLSClientConfig struct {
 // Spiffe holds the SPIFFE configuration.
 type Spiffe struct {
 	// IDs defines the allowed SPIFFE IDs (takes precedence over the SPIFFE TrustDomain).
-	IDs []string `description:"Defines the allowed SPIFFE IDs (takes precedence over the SPIFFE TrustDomain)." json:"ids,omitempty" toml:"ids,omitempty" yaml:"ids,omitempty"`
+	IDs []string `json:"ids,omitempty" toml:"ids,omitempty" yaml:"ids,omitempty"`
 	// TrustDomain defines the allowed SPIFFE trust domain.
-	TrustDomain string `description:"Defines the allowed SPIFFE trust domain." json:"trustDomain,omitempty" yaml:"trustDomain,omitempty" toml:"trustDomain,omitempty"`
+	TrustDomain string `json:"trustDomain,omitempty" yaml:"trustDomain,omitempty" toml:"trustDomain,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
 
-// ForwardingTimeouts contains timeout configurations for forwarding requests to the backend servers.
+// ForwardingTimeouts contains the timeout configurations for forwarding requests to the backend servers.
 type ForwardingTimeouts struct {
-	DialTimeout           ptypes.Duration `description:"The amount of time to wait until a connection to a backend server can be established. If zero, no timeout exists." json:"dialTimeout,omitempty" toml:"dialTimeout,omitempty" yaml:"dialTimeout,omitempty" export:"true"`
-	ResponseHeaderTimeout ptypes.Duration `description:"The amount of time to wait for a server's response headers after fully writing the request (including its body, if any). If zero, no timeout exists." json:"responseHeaderTimeout,omitempty" toml:"responseHeaderTimeout,omitempty" yaml:"responseHeaderTimeout,omitempty" export:"true"`
-	IdleConnTimeout       ptypes.Duration `description:"The maximum period for which an idle HTTP keep-alive connection will remain open before closing itself." json:"idleConnTimeout,omitempty" toml:"idleConnTimeout,omitempty" yaml:"idleConnTimeout,omitempty" export:"true"`
-	ReadIdleTimeout       ptypes.Duration `description:"The timeout after which a health check using ping frame will be carried out if no frame is received on the HTTP/2 connection. If zero, no health check is performed." json:"readIdleTimeout,omitempty" toml:"readIdleTimeout,omitempty" yaml:"readIdleTimeout,omitempty" export:"true"`
-	PingTimeout           ptypes.Duration `description:"The timeout after which the HTTP/2 connection will be closed if a response to ping is not received." json:"pingTimeout,omitempty" toml:"pingTimeout,omitempty" yaml:"pingTimeout,omitempty" export:"true"`
+	// DialTimeout defines the amount of time to wait until a connection to a backend server can be established.
+	// If zero, no timeout exists.
+	DialTimeout ptypes.Duration `json:"dialTimeout,omitempty" toml:"dialTimeout,omitempty" yaml:"dialTimeout,omitempty" export:"true"`
+	// ResponseHeaderTimeout defines the amount of time to wait for a server's response headers after fully writing the request (including its body, if any).
+	// If zero, no timeout exists.
+	ResponseHeaderTimeout ptypes.Duration `json:"responseHeaderTimeout,omitempty" toml:"responseHeaderTimeout,omitempty" yaml:"responseHeaderTimeout,omitempty" export:"true"`
+	// IdleConnTimeout defines the maximum period for which an idle HTTP keep-alive connection will remain open before closing itself.
+	IdleConnTimeout ptypes.Duration `json:"idleConnTimeout,omitempty" toml:"idleConnTimeout,omitempty" yaml:"idleConnTimeout,omitempty" export:"true"`
+	// ReadIdleTimeout defines the timeout after which a health check using ping frame will be carried out if no frame is received on the HTTP/2 connection.
+	// If zero, no health check is performed.
+	ReadIdleTimeout ptypes.Duration `json:"readIdleTimeout,omitempty" toml:"readIdleTimeout,omitempty" yaml:"readIdleTimeout,omitempty" export:"true"`
+	// PingTimeout defines the timeout after which the HTTP/2 connection will be closed if a response to ping is not received.
+	PingTimeout ptypes.Duration `json:"pingTimeout,omitempty" toml:"pingTimeout,omitempty" yaml:"pingTimeout,omitempty" export:"true"`
 }
 
-// SetDefaults sets the default values.
+// SetDefaults sets the default ForwardingTimeouts values.
 func (f *ForwardingTimeouts) SetDefaults() {
 	f.DialTimeout = ptypes.Duration(30 * time.Second)
 	f.IdleConnTimeout = ptypes.Duration(90 * time.Second)
