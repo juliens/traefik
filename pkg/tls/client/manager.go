@@ -13,7 +13,7 @@ import (
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
-	tls2 "github.com/traefik/traefik/v2/pkg/tls"
+	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
 )
 
 // SpiffeX509Source allows to retrieve a x509 SVID and bundle.
@@ -22,12 +22,16 @@ type SpiffeX509Source interface {
 	x509bundle.Source
 }
 
+// TLSConfigManager is the manager of TLS client configuration.
+// The TLS client configuration is used when Traefik is forwarding requests to the backends.
 type TLSConfigManager struct {
-	configsLock      sync.RWMutex
-	configs          map[string]*dynamic.ServersTransport
 	spiffeX509Source SpiffeX509Source
+
+	configsLock sync.RWMutex
+	configs     map[string]*dynamic.ServersTransport
 }
 
+// NewTLSConfigManager returns a new TLSConfigManager.
 func NewTLSConfigManager(spiffeX509Source SpiffeX509Source) *TLSConfigManager {
 	return &TLSConfigManager{
 		configs:          make(map[string]*dynamic.ServersTransport),
@@ -35,48 +39,50 @@ func NewTLSConfigManager(spiffeX509Source SpiffeX509Source) *TLSConfigManager {
 	}
 }
 
-func (r *TLSConfigManager) Update(configs map[string]*dynamic.ServersTransport) {
-	r.configsLock.Lock()
-	defer r.configsLock.Unlock()
+// Update is the handler called when the dynamic configuration is updated.
+func (t *TLSConfigManager) Update(configs map[string]*dynamic.ServersTransport) {
+	t.configsLock.Lock()
+	defer t.configsLock.Unlock()
 
-	r.configs = configs
+	t.configs = configs
 }
 
-func (r *TLSConfigManager) GetTLSConfig(name string) (*tls.Config, error) {
+// GetTLSConfig returns the client TLS configuration corresponding to the given ServersTransport name.
+// When name is empty, it defaults to "default".
+func (t *TLSConfigManager) GetTLSConfig(name string) (*tls.Config, error) {
 	if len(name) == 0 {
 		name = "default"
 	}
 
-	r.configsLock.RLock()
-	defer r.configsLock.RUnlock()
+	t.configsLock.RLock()
+	defer t.configsLock.RUnlock()
 
-	config, ok := r.configs[name]
-
-	if ok {
-		return r.createTLSConfig(config.TLS)
+	if config, ok := t.configs[name]; ok {
+		return t.createTLSConfig(config.TLS)
 	}
 
-	return nil, fmt.Errorf("unable to find tls config for serversTransport: %s", name)
+	return nil, fmt.Errorf("unable to find client TLS configuration: %s", name)
 }
 
-func (r *TLSConfigManager) createTLSConfig(cfg *dynamic.TLSClientConfig) (*tls.Config, error) {
-	var tlsConfig *tls.Config
-
+// createTLSConfig returns a new tls.Config corresponding to the given TLSClientConfig.
+func (t *TLSConfigManager) createTLSConfig(cfg *dynamic.TLSClientConfig) (*tls.Config, error) {
 	if cfg == nil {
-		return tlsConfig, nil
+		return nil, nil
 	}
 
+	var tlsConfig *tls.Config
+
 	if cfg.Spiffe != nil {
-		if r.spiffeX509Source == nil {
+		if t.spiffeX509Source == nil {
 			return nil, errors.New("SPIFFE is enabled for this transport, but not configured")
 		}
 
-		spiffeAuthorizer, err := buildSpiffeAuthorizer(cfg.Spiffe)
+		authorizer, err := buildSpiffeAuthorizer(cfg.Spiffe)
 		if err != nil {
 			return nil, fmt.Errorf("unable to build SPIFFE authorizer: %w", err)
 		}
 
-		tlsConfig = tlsconfig.MTLSClientConfig(r.spiffeX509Source, r.spiffeX509Source, spiffeAuthorizer)
+		tlsConfig = tlsconfig.MTLSClientConfig(t.spiffeX509Source, t.spiffeX509Source, authorizer)
 	}
 
 	if cfg.InsecureSkipVerify || len(cfg.RootCAs) > 0 || len(cfg.ServerName) > 0 || len(cfg.Certificates) > 0 || cfg.PeerCertURI != "" {
@@ -87,32 +93,36 @@ func (r *TLSConfigManager) createTLSConfig(cfg *dynamic.TLSClientConfig) (*tls.C
 		tlsConfig = &tls.Config{
 			ServerName:         cfg.ServerName,
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
-			RootCAs:            createRootCACertPool(cfg.RootCAs),
+			RootCAs:            createRootCAPool(cfg.RootCAs),
 			Certificates:       cfg.Certificates.GetCertificates(),
 		}
 
 		if cfg.PeerCertURI != "" {
 			tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
-				return tls2.VerifyPeerCertificate(cfg.PeerCertURI, tlsConfig, rawCerts)
+				return traefiktls.VerifyPeerCertificate(cfg.PeerCertURI, tlsConfig, rawCerts)
 			}
 		}
 	}
+
 	return tlsConfig, nil
 }
 
-func createRootCACertPool(rootCAs []tls2.FileOrContent) *x509.CertPool {
+func createRootCAPool(rootCAs []traefiktls.FileOrContent) *x509.CertPool {
 	if len(rootCAs) == 0 {
 		return nil
 	}
 
 	roots := x509.NewCertPool()
-
 	for _, cert := range rootCAs {
 		certContent, err := cert.Read()
 		if err != nil {
-			log.WithoutContext().Error("Error while read RootCAs", err)
+			log.WithoutContext().
+				WithError(err).
+				Error("Unable to read RootCA")
+
 			continue
 		}
+
 		roots.AppendCertsFromPEM(certContent)
 	}
 

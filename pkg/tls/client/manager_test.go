@@ -140,15 +140,14 @@ func TestMTLS(t *testing.T) {
 
 	dynamicConf := map[string]*dynamic.ServersTransport{
 		"test": {
-			ServerName: "example.com",
-			// For TLS
-			RootCAs: []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
-
-			// For mTLS
-			Certificates: traefiktls.Certificates{
-				traefiktls.Certificate{
-					CertFile: traefiktls.FileOrContent(mTLSCert),
-					KeyFile:  traefiktls.FileOrContent(mTLSKey),
+			TLS: &dynamic.TLSClientConfig{
+				ServerName: "example.com",
+				RootCAs:    []traefiktls.FileOrContent{traefiktls.FileOrContent(LocalhostCert)},
+				Certificates: traefiktls.Certificates{
+					traefiktls.Certificate{
+						CertFile: traefiktls.FileOrContent(mTLSCert),
+						KeyFile:  traefiktls.FileOrContent(mTLSKey),
+					},
 				},
 			},
 		},
@@ -280,7 +279,9 @@ func TestSpiffeMTLS(t *testing.T) {
 
 			dynamicConf := map[string]*dynamic.ServersTransport{
 				"test": {
-					Spiffe: &test.config,
+					TLS: &dynamic.TLSClientConfig{
+						Spiffe: &test.config,
+					},
 				},
 			}
 
@@ -403,13 +404,13 @@ func (f *fakeSpiffePKI) genSVID(id spiffeid.ID) (*x509svid.SVID, error) {
 	return x509svid.ParseRaw(certDER, keyPKCS8)
 }
 
-// fakeSpiffeSource allows retrieving staticly an SVID and its associated bundle.
+// fakeSpiffeSource allows retrieving statically an SVID and its associated bundle.
 type fakeSpiffeSource struct {
 	bundle *x509bundle.Bundle
 	svid   *x509svid.SVID
 }
 
-func (s *fakeSpiffeSource) GetX509BundleForTrustDomain(trustDomain spiffeid.TrustDomain) (*x509bundle.Bundle, error) {
+func (s *fakeSpiffeSource) GetX509BundleForTrustDomain(_ spiffeid.TrustDomain) (*x509bundle.Bundle, error) {
 	return s.bundle, nil
 }
 
