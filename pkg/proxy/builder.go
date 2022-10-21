@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,29 +10,25 @@ import (
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/proxy/fasthttp"
 	"github.com/traefik/traefik/v2/pkg/proxy/httputil"
+	"github.com/traefik/traefik/v2/pkg/tls/client"
 )
-
-type TLSConfigGetter interface {
-	GetTLSConfig(configName string) (*tls.Config, error)
-}
 
 type Builder struct {
 	fasthttpBuilder *fasthttp.ProxyBuilder
 	httputilBuilder *httputil.ProxyBuilder
 
-	tlsConfigManager TLSConfigGetter
+	tlsConfigManager *client.TLSConfigManager
 
 	configsLock sync.RWMutex
 	configs     map[string]*dynamic.ServersTransport
 }
 
-func NewBuilder(tlsConfigManager TLSConfigGetter) *Builder {
+func NewBuilder(tlsConfigManager *client.TLSConfigManager) *Builder {
 	return &Builder{
 		fasthttpBuilder:  fasthttp.NewProxyBuilder(),
 		httputilBuilder:  httputil.NewProxyBuilder(),
 		tlsConfigManager: tlsConfigManager,
-
-		configs: make(map[string]*dynamic.ServersTransport),
+		configs:          make(map[string]*dynamic.ServersTransport),
 	}
 }
 

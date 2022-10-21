@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -20,12 +19,14 @@ import (
 	"github.com/traefik/traefik/v2/pkg/metrics"
 	"github.com/traefik/traefik/v2/pkg/middlewares/accesslog"
 	metricsMiddle "github.com/traefik/traefik/v2/pkg/middlewares/metrics"
+	"github.com/traefik/traefik/v2/pkg/proxy"
 	"github.com/traefik/traefik/v2/pkg/safe"
 	"github.com/traefik/traefik/v2/pkg/server/cookie"
 	"github.com/traefik/traefik/v2/pkg/server/provider"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/failover"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/mirror"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/wrr"
+	"github.com/traefik/traefik/v2/pkg/tls/client"
 )
 
 const defaultMaxBodySize int64 = -1
@@ -46,21 +47,13 @@ const defaultMaxBodySize int64 = -1
 
 // FIXME experimental
 
-type TLSConfigGetter interface {
-	GetTLSConfig(configName string) (*tls.Config, error)
-}
-
-type ProxyGetter interface {
-	Build(configName string, target *url.URL) (http.Handler, error)
-}
-
 // Manager The service manager.
 type Manager struct {
 	routinePool     *safe.Pool
 	metricsRegistry metrics.Registry
 
-	tlsConfigGetter TLSConfigGetter
-	proxyGetter     ProxyGetter
+	proxyBuilder     *proxy.Builder
+	tlsConfigManager *client.TLSConfigManager
 
 	services       map[string]http.Handler
 	configs        map[string]*runtime.ServiceInfo
@@ -69,16 +62,16 @@ type Manager struct {
 }
 
 // NewManager creates a new Manager.
-func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, proxyGetter ProxyGetter, tlsConfigGetter TLSConfigGetter) *Manager {
+func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, proxyBuilder *proxy.Builder, tlsConfigManager *client.TLSConfigManager) *Manager {
 	return &Manager{
-		routinePool:     routinePool,
-		metricsRegistry: metricsRegistry,
-		services:        make(map[string]http.Handler),
-		configs:         configs,
-		healthCheckers:  make(map[string]*healthcheck.ServiceHealthChecker),
-		rand:            rand.New(rand.NewSource(time.Now().UnixNano())),
-		tlsConfigGetter: tlsConfigGetter,
-		proxyGetter:     proxyGetter,
+		routinePool:      routinePool,
+		metricsRegistry:  metricsRegistry,
+		services:         make(map[string]http.Handler),
+		configs:          configs,
+		healthCheckers:   make(map[string]*healthcheck.ServiceHealthChecker),
+		rand:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		proxyBuilder:     proxyBuilder,
+		tlsConfigManager: tlsConfigManager,
 	}
 }
 
@@ -296,7 +289,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		}
 
 		logger.WithField(log.ServerName, proxyName).Debugf("Creating server %s", target)
-		proxy, err := m.proxyGetter.Build(service.ServersTransport, target)
+		proxy, err := m.proxyBuilder.Build(service.ServersTransport, target)
 		if err != nil {
 			return nil, err
 		}
@@ -318,7 +311,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 	}
 
 	if service.HealthCheck != nil {
-		tlsConfig, err := m.tlsConfigGetter.GetTLSConfig(service.ServersTransport)
+		tlsConfig, err := m.tlsConfigManager.GetTLSConfig(service.ServersTransport)
 		if err != nil {
 			return nil, err
 		}
