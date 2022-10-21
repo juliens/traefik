@@ -141,9 +141,9 @@ func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoint
 	}
 
 	if len(defaultServersTransportProviders) == 0 {
-		st := &dynamic.ServersTransport{}
-		st.SetDefaults()
-		conf.HTTP.ServersTransports["default"] = st
+		d := &dynamic.ServersTransport{}
+		d.SetDefaults()
+		conf.HTTP.ServersTransports["default"] = d
 	} else if len(defaultServersTransportProviders) > 1 {
 		log.WithoutContext().Errorf("Default ServersTransport defined multiple times in %v", defaultServersTransportProviders)
 		delete(conf.HTTP.ServersTransports, "default")
