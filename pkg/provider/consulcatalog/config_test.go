@@ -414,18 +414,20 @@ func Test_buildConfiguration(t *testing.T) {
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"tls-ns-dc1-dev-Test": {
-							ServerName:         "ns-dc1-dev/Test",
-							InsecureSkipVerify: true,
-							RootCAs: []tls.FileOrContent{
-								"root",
-							},
-							Certificates: []tls.Certificate{
-								{
-									CertFile: "cert",
-									KeyFile:  "key",
+							TLS: &dynamic.TLSClientConfig{
+								ServerName:         "ns-dc1-dev/Test",
+								InsecureSkipVerify: true,
+								RootCAs: []tls.FileOrContent{
+									"root",
 								},
+								Certificates: []tls.Certificate{
+									{
+										CertFile: "cert",
+										KeyFile:  "key",
+									},
+								},
+								PeerCertURI: "spiffe:///ns/ns/dc/dc1/svc/dev/Test",
 							},
-							PeerCertURI: "spiffe:///ns/ns/dc/dc1/svc/dev/Test",
 						},
 					},
 				},
@@ -503,18 +505,20 @@ func Test_buildConfiguration(t *testing.T) {
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"tls-ns-dc1-dev-Test": {
-							ServerName:         "ns-dc1-dev/Test",
-							InsecureSkipVerify: true,
-							RootCAs: []tls.FileOrContent{
-								"root",
-							},
-							Certificates: []tls.Certificate{
-								{
-									CertFile: "cert",
-									KeyFile:  "key",
+							TLS: &dynamic.TLSClientConfig{
+								ServerName:         "ns-dc1-dev/Test",
+								InsecureSkipVerify: true,
+								RootCAs: []tls.FileOrContent{
+									"root",
 								},
+								Certificates: []tls.Certificate{
+									{
+										CertFile: "cert",
+										KeyFile:  "key",
+									},
+								},
+								PeerCertURI: "spiffe:///ns/ns/dc/dc1/svc/dev/Test",
 							},
-							PeerCertURI: "spiffe:///ns/ns/dc/dc1/svc/dev/Test",
 						},
 					},
 				},
@@ -2804,18 +2808,20 @@ func Test_buildConfiguration(t *testing.T) {
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"tls-ns-dc1-Test": {
-							ServerName:         "ns-dc1-Test",
-							InsecureSkipVerify: true,
-							RootCAs: []tls.FileOrContent{
-								"root",
-							},
-							Certificates: []tls.Certificate{
-								{
-									CertFile: "cert",
-									KeyFile:  "key",
+							TLS: &dynamic.TLSClientConfig{
+								ServerName:         "ns-dc1-Test",
+								InsecureSkipVerify: true,
+								RootCAs: []tls.FileOrContent{
+									"root",
 								},
+								Certificates: []tls.Certificate{
+									{
+										CertFile: "cert",
+										KeyFile:  "key",
+									},
+								},
+								PeerCertURI: "spiffe:///ns/ns/dc/dc1/svc/Test",
 							},
-							PeerCertURI: "spiffe:///ns/ns/dc/dc1/svc/Test",
 						},
 					},
 				},
