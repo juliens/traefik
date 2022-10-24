@@ -823,23 +823,24 @@ func TestProviderOnMiddlewares(t *testing.T) {
 	assert.Equal(t, []string{"m1@docker", "m2@docker", "m1@file"}, rtConf.Middlewares["chain@docker"].Chain.Middlewares)
 }
 
-type staticRoundTripperGetter struct {
-	res *http.Response
-}
-
-func (s staticRoundTripperGetter) Get(name string) (http.RoundTripper, error) {
-	return &staticTransport{res: s.res}, nil
-}
-
-type staticTransport struct {
-	res *http.Response
-}
-
-func (t *staticTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
-	return t.res, nil
-}
-
 // FIXME think about benchmark
+
+// type staticRoundTripperGetter struct {
+// 	res *http.Response
+// }
+//
+// func (s staticRoundTripperGetter) Get(name string) (http.RoundTripper, error) {
+//	 return &staticTransport{res: s.res}, nil
+// }
+
+// type staticTransport struct {
+// 	res *http.Response
+// }
+//
+// func (t *staticTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
+// 	return t.res, nil
+// }
+
 // func BenchmarkRouterServe(b *testing.B) {
 // 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 //

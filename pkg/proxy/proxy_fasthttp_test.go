@@ -9,19 +9,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/proxy/fasthttp"
-	"github.com/traefik/traefik/v2/pkg/proxy/httputil"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
 )
 
 func buildFastHTTPProxy(u *url.URL) http.Handler {
-	return fasthttp.NewFastHTTPReverseProxy(u, true, fasthttp.NewConnectionPool(func() (net.Conn, error) {
+	return fasthttp.NewReverseProxy(u, true, fasthttp.NewConnectionPool(func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
 	}, 200))
 }
 
 func buildHTTPProxy(u *url.URL) http.Handler {
-	return httputil.BuildSingleHostProxy(u, true, 0, http.DefaultTransport, nil)
+	builder := fasthttp.NewProxyBuilder()
+	return builder.Build("default", &dynamic.HTTPClientConfig{PassHostHeader: true}, nil, u)
 }
 
 func TestPassHostHeader(t *testing.T) {
@@ -35,6 +36,8 @@ func TestEscapedPath(t *testing.T) {
 }
 
 func passHostHeader(t *testing.T, buildProxy func(u *url.URL) http.Handler) {
+	t.Helper()
+
 	var gotHostHeader string
 	backend := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		gotHostHeader = req.Host
@@ -51,10 +54,11 @@ func passHostHeader(t *testing.T, buildProxy func(u *url.URL) http.Handler) {
 
 	target := testhelpers.MustParseURL(proxy.URL)
 	assert.Equal(t, target.Host, gotHostHeader)
-
 }
 
 func escapedPath(t *testing.T, builder func(u *url.URL) http.Handler) {
+	t.Helper()
+
 	var gotEscapedPath string
 	backend := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		gotEscapedPath = req.URL.EscapedPath()

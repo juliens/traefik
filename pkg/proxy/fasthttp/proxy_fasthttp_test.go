@@ -1,6 +1,6 @@
 package fasthttp
 
-//func TestFastHTTPTrailer(t *testing.T) {
+// func TestFastHTTPTrailer(t *testing.T) {
 //	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 //		rw.Header().Add("Te", "trailers")
 //		// rw.Header().Add("Trailer", "X-Test")
@@ -24,7 +24,7 @@ package fasthttp
 //
 //	resp.BodyWriteTo(io.Discard)
 //
-//	// proxy := NewFastHTTPReverseProxy(&fasthttp.Client{})
+//	// proxy := NewReverseProxy(&fasthttp.Client{})
 //	// http.ListenAndServe(":8090", http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 //	//
 //	// 	fmt.Println("Host", req.Host)

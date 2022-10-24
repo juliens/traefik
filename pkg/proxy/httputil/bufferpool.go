@@ -1,10 +1,13 @@
 package httputil
 
-import (
-	"sync"
-)
+import "sync"
 
 const bufferPoolSize = 32 * 1024
+
+type bufferPool struct {
+	pool  sync.Pool
+	count int
+}
 
 func newBufferPool() *bufferPool {
 	b := &bufferPool{
@@ -16,11 +19,6 @@ func newBufferPool() *bufferPool {
 		return make([]byte, bufferPoolSize)
 	}
 	return b
-}
-
-type bufferPool struct {
-	pool  sync.Pool
-	count int
 }
 
 func (b *bufferPool) Get() []byte {

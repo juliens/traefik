@@ -8,53 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type mockConn struct {
-	closeFn func() error
-}
-
-func (m *mockConn) Read(b []byte) (n int, err error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (m *mockConn) Write(b []byte) (n int, err error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (m *mockConn) Close() error {
-	if m.closeFn != nil {
-		return m.closeFn()
-	}
-	return nil
-}
-
-func (m *mockConn) LocalAddr() net.Addr {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (m *mockConn) RemoteAddr() net.Addr {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (m *mockConn) SetDeadline(t time.Time) error {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (m *mockConn) SetReadDeadline(t time.Time) error {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (m *mockConn) SetWriteDeadline(t time.Time) error {
-	// TODO implement me
-	panic("implement me")
-}
-
-func TestConnectionReuse(t *testing.T) {
+func TestConnReuse(t *testing.T) {
 	testCases := []struct {
 		desc     string
 		poolFn   func(pool ConnectionPool)
@@ -65,7 +19,6 @@ func TestConnectionReuse(t *testing.T) {
 			poolFn: func(pool ConnectionPool) {
 				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
-
 			},
 			expected: 1,
 		},
@@ -158,4 +111,43 @@ func TestMaxIdleConn(t *testing.T) {
 			assert.Equal(t, test.expected, keepOpenedConn)
 		})
 	}
+}
+
+type mockConn struct {
+	closeFn func() error
+}
+
+func (m *mockConn) Read(_ []byte) (n int, err error) {
+	panic("implement me")
+}
+
+func (m *mockConn) Write(_ []byte) (n int, err error) {
+	panic("implement me")
+}
+
+func (m *mockConn) Close() error {
+	if m.closeFn != nil {
+		return m.closeFn()
+	}
+	return nil
+}
+
+func (m *mockConn) LocalAddr() net.Addr {
+	panic("implement me")
+}
+
+func (m *mockConn) RemoteAddr() net.Addr {
+	panic("implement me")
+}
+
+func (m *mockConn) SetDeadline(_ time.Time) error {
+	panic("implement me")
+}
+
+func (m *mockConn) SetReadDeadline(_ time.Time) error {
+	panic("implement me")
+}
+
+func (m *mockConn) SetWriteDeadline(_ time.Time) error {
+	panic("implement me")
 }

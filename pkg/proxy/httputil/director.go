@@ -19,6 +19,7 @@ const StatusClientClosedRequest = 499
 // StatusClientClosedRequestText non-standard HTTP status for client disconnection.
 const StatusClientClosedRequestText = "Client Closed Request"
 
+// DirectorBuilder returns a director modifying the incoming request before forwarding it to the backend.
 func DirectorBuilder(target *url.URL, passHostHeader bool) func(req *http.Request) {
 	return func(outReq *http.Request) {
 		outReq.URL.Scheme = target.Scheme
@@ -84,6 +85,7 @@ func isWebSocketUpgrade(req *http.Request) bool {
 		strings.EqualFold(req.Header.Get("Upgrade"), "websocket")
 }
 
+// ErrorHandler is the http.Handler called when something goes wrong when forwarding the request.
 func ErrorHandler(w http.ResponseWriter, req *http.Request, err error) {
 	statusCode := http.StatusInternalServerError
 

@@ -22,36 +22,45 @@ func (t *h2cTransportWrapper) RoundTrip(req *http.Request) (*http.Response, erro
 	return t.Transport.RoundTrip(req)
 }
 
-// ProxyBuilder handles roundtripper for the reverse proxy.
+// ProxyBuilder handles the http.RoundTripper for httputil reverse proxies.
 type ProxyBuilder struct {
-	roundTrippers map[string]http.RoundTripper
 	bufferPool    *bufferPool
+	roundTrippers map[string]http.RoundTripper // FIXME lock?
 }
 
 // NewProxyBuilder creates a new ProxyBuilder.
 func NewProxyBuilder() *ProxyBuilder {
 	return &ProxyBuilder{
-		roundTrippers: make(map[string]http.RoundTripper),
 		bufferPool:    newBufferPool(),
+		roundTrippers: make(map[string]http.RoundTripper),
 	}
 }
 
-func (r *ProxyBuilder) Delete(configName string) {
-	delete(r.roundTrippers, configName)
+// Delete deletes the round-tripper corresponding to the given dynamic.HTTPClientConfig.
+func (r *ProxyBuilder) Delete(cfgName string) {
+	delete(r.roundTrippers, cfgName)
 }
 
-func (r *ProxyBuilder) Build(configName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) (http.Handler, error) {
-	roundTripper, ok := r.roundTrippers[configName]
+// Build builds a new httputil.ReverseProxy with the given configuration.
+func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) (http.Handler, error) {
+	roundTripper, ok := r.roundTrippers[cfgName]
 	if !ok {
 		var err error
-		roundTripper, err = createRoundTripper(config, tlsConfig)
+		roundTripper, err = createRoundTripper(cfg, tlsConfig)
 		if err != nil {
 			return nil, err
 		}
 
-		r.roundTrippers[configName] = roundTripper
+		r.roundTrippers[cfgName] = roundTripper
 	}
-	return BuildSingleHostProxy(target, config.PassHostHeader, time.Duration(config.FlushInterval), roundTripper, r.bufferPool), nil
+
+	return &httputil.ReverseProxy{
+		Director:      DirectorBuilder(target, cfg.PassHostHeader),
+		Transport:     roundTripper,
+		FlushInterval: time.Duration(cfg.FlushInterval),
+		BufferPool:    r.bufferPool,
+		ErrorHandler:  ErrorHandler,
+	}, nil
 }
 
 // createRoundTripper creates an http.RoundTripper configured with the Transport configuration settings.
@@ -90,14 +99,4 @@ func createRoundTripper(cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config) (h
 	}
 
 	return newSmartRoundTripper(transport, cfg.ForwardingTimeouts)
-}
-
-func BuildSingleHostProxy(target *url.URL, passHostHeader bool, flushInterval time.Duration, roundTripper http.RoundTripper, bufferPool httputil.BufferPool) http.Handler {
-	return &httputil.ReverseProxy{
-		Director:      DirectorBuilder(target, passHostHeader),
-		Transport:     roundTripper,
-		FlushInterval: flushInterval,
-		BufferPool:    bufferPool,
-		ErrorHandler:  ErrorHandler,
-	}
 }

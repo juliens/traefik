@@ -38,13 +38,12 @@ type ChannelConnectionPool struct {
 	dialer   func() (net.Conn, error)
 }
 
-// TODO handle errors ( and timeout )
-// TODO handle idleConnLifetime
+// FIXME handle errors ( and timeout )
+// FIXME handle idleConnLifetime
 
 type conn struct {
 	net.Conn
 	lastUseTime time.Time
-	timer       *time.Timer
 }
 
 func (c *conn) isExpired() bool {

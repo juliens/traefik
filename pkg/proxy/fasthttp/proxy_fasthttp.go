@@ -29,60 +29,32 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
-type FastHTTPReverseProxy struct {
-	connectionPool ConnectionPool
+// ReverseProxy is the FastHTTP reverse proxy implementation.
+type ReverseProxy struct {
+	connPool ConnectionPool
 
-	readerPool      Pool[*bufio.Reader]
-	readerSyncPool  sync.Pool
-	writerPool      Pool[*bufio.Writer]
 	bufferPool      sync.Pool
+	readerPool      Pool[*bufio.Reader]
+	writerPool      Pool[*bufio.Writer]
 	limitReaderPool Pool[*io.LimitedReader]
 
 	director func(req *http.Request)
 }
 
-func NewFastHTTPReverseProxy(target *url.URL, passHostHeader bool, connectionPool ConnectionPool) http.Handler {
-
-	return &FastHTTPReverseProxy{
+// NewReverseProxy creates a new ReverseProxy.
+func NewReverseProxy(target *url.URL, passHostHeader bool, connPool ConnectionPool) *ReverseProxy {
+	return &ReverseProxy{
 		director: httputil.DirectorBuilder(target, passHostHeader),
-
+		connPool: connPool,
 		bufferPool: sync.Pool{
 			New: func() any {
 				return make([]byte, 32*1024)
 			},
 		},
-		readerSyncPool: sync.Pool{
-			New: func() any {
-				return bufio.NewReaderSize(nil, 64*1024)
-			},
-		},
-
-		connectionPool: connectionPool,
 	}
 }
 
-func upgradeType(h http.Header) string {
-	if !httpguts.HeaderValuesContainsToken(h["Connection"], "Upgrade") {
-		return ""
-	}
-	return h.Get("Upgrade")
-}
-
-func upgradeTypeFastHTTPReq(header *fasthttp.RequestHeader) string {
-	if !bytes.Contains(header.Peek("Connection"), []byte("Upgrade")) {
-		return ""
-	}
-	return string(header.Peek("Upgrade"))
-}
-
-func upgradeTypeFastHTTP(header *fasthttp.ResponseHeader) string {
-	if !bytes.Contains(header.Peek("Connection"), []byte("Upgrade")) {
-		return ""
-	}
-	return string(header.Peek("Upgrade"))
-}
-
-func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (r *ReverseProxy) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// FIXME adds auto gzip?
 	r.director(request)
 
@@ -152,7 +124,7 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		}
 	}
 
-	conn, err := r.connectionPool.AcquireConn()
+	conn, err := r.connPool.AcquireConn()
 	if err != nil {
 		httputil.ErrorHandler(writer, request, err)
 		return
@@ -198,7 +170,7 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 		return
 	}
 
-	removeConnectionHeadersFastHTTP(res.Header)
+	removeConnectionHeadersFastHTTP(&res.Header)
 
 	for _, header := range hopHeaders {
 		res.Header.Del(header)
@@ -268,7 +240,21 @@ func (r *FastHTTPReverseProxy) ServeHTTP(writer http.ResponseWriter, request *ht
 	}
 
 	r.readerPool.Put(br)
-	r.connectionPool.ReleaseConn(conn)
+	r.connPool.ReleaseConn(conn)
+}
+
+func upgradeType(h http.Header) string {
+	if !httpguts.HeaderValuesContainsToken(h["Connection"], "Upgrade") {
+		return ""
+	}
+	return h.Get("Upgrade")
+}
+
+func upgradeTypeFastHTTP(header *fasthttp.ResponseHeader) string {
+	if !bytes.Contains(header.Peek("Connection"), []byte("Upgrade")) {
+		return ""
+	}
+	return string(header.Peek("Upgrade"))
 }
 
 func handleUpgradeResponse(rw http.ResponseWriter, req *http.Request, reqUpType string, res *fasthttp.Response, backConn net.Conn) {
@@ -299,7 +285,7 @@ func handleUpgradeResponse(rw http.ResponseWriter, req *http.Request, reqUpType 
 
 	conn, brw, err := hj.Hijack()
 	if err != nil {
-		httputil.ErrorHandler(rw, req, fmt.Errorf("Hijack failed on protocol switch: %v", err))
+		httputil.ErrorHandler(rw, req, fmt.Errorf("hijack failed on protocol switch: %w", err))
 		return
 	}
 	defer conn.Close()
@@ -311,12 +297,12 @@ func handleUpgradeResponse(rw http.ResponseWriter, req *http.Request, reqUpType 
 	}
 
 	if err := res.Header.Write(brw.Writer); err != nil {
-		httputil.ErrorHandler(rw, req, fmt.Errorf("response write: %v", err))
+		httputil.ErrorHandler(rw, req, fmt.Errorf("response write: %w", err))
 		return
 	}
 
 	if err := brw.Flush(); err != nil {
-		httputil.ErrorHandler(rw, req, fmt.Errorf("response flush: %v", err))
+		httputil.ErrorHandler(rw, req, fmt.Errorf("response flush: %w", err))
 		return
 	}
 	errc := make(chan error, 1)
@@ -353,7 +339,7 @@ func (w *WriteFlusher) Write(b []byte) (int, error) {
 }
 
 // removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
-// See RFC 7230, section 6.1
+// See RFC 7230, section 6.1.
 func removeConnectionHeaders(h http.Header) {
 	for _, f := range h["Connection"] {
 		for _, sf := range strings.Split(f, ",") {
@@ -365,8 +351,8 @@ func removeConnectionHeaders(h http.Header) {
 }
 
 // removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
-// See RFC 7230, section 6.1
-func removeConnectionHeadersFastHTTP(h fasthttp.ResponseHeader) {
+// See RFC 7230, section 6.1.
+func removeConnectionHeadersFastHTTP(h *fasthttp.ResponseHeader) {
 	f := h.Peek(fasthttp.HeaderConnection)
 	for _, sf := range bytes.Split(f, []byte{','}) {
 		if sf = bytes.TrimSpace(sf); len(sf) > 0 {

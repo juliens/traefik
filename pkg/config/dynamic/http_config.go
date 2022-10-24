@@ -247,7 +247,7 @@ func (s *ServersTransport) SetDefaults() {
 // +k8s:deepcopy-gen=true
 
 // HTTPClientConfig holds the HTTP configuration to be used between Traefik and the servers.
-// FIXME: Compatibility to switch on previous implementation
+// FIXME: Compatibility to switch on previous implementation.
 type HTTPClientConfig struct {
 	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
 	// A negative value means to flush immediately after each write to the client.

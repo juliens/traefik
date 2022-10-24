@@ -13,6 +13,8 @@ import (
 	"github.com/traefik/traefik/v2/pkg/tls/client"
 )
 
+// Builder is a proxy builder which returns a fasthttp or httputil proxy corresponding
+// to the ServersTransport configuration.
 type Builder struct {
 	fasthttpBuilder *fasthttp.ProxyBuilder
 	httputilBuilder *httputil.ProxyBuilder
@@ -23,6 +25,7 @@ type Builder struct {
 	configs     map[string]*dynamic.ServersTransport
 }
 
+// NewBuilder creates and returns a new Builder instance.
 func NewBuilder(tlsConfigManager *client.TLSConfigManager) *Builder {
 	return &Builder{
 		fasthttpBuilder:  fasthttp.NewProxyBuilder(),
@@ -32,6 +35,30 @@ func NewBuilder(tlsConfigManager *client.TLSConfigManager) *Builder {
 	}
 }
 
+// Update is the handler called when the dynamic configuration is updated.
+func (b *Builder) Update(newConfigs map[string]*dynamic.ServersTransport) {
+	b.configsLock.Lock()
+	defer b.configsLock.Unlock()
+
+	for configName := range b.configs {
+		if _, ok := newConfigs[configName]; !ok {
+			b.httputilBuilder.Delete(configName)
+			b.fasthttpBuilder.Delete(configName)
+		}
+	}
+
+	for newConfigName, newConfig := range newConfigs {
+		if !reflect.DeepEqual(newConfig, b.configs[newConfigName]) {
+			// Delete previous builders cache because the configuration changed.
+			b.httputilBuilder.Delete(newConfigName)
+			b.fasthttpBuilder.Delete(newConfigName)
+		}
+	}
+
+	b.configs = newConfigs
+}
+
+// Build builds an HTTP proxy for the given URL using the ServersTransport with the given name.
 func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error) {
 	if len(configName) == 0 {
 		configName = "default"
@@ -42,7 +69,7 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 
 	config, ok := b.configs[configName]
 	if !ok {
-		return nil, fmt.Errorf("unknown serversTransport config %s", configName)
+		return nil, fmt.Errorf("unknown ServersTransport:  %s", configName)
 	}
 
 	tlsConfig, err := b.tlsConfigManager.GetTLSConfig(configName)
@@ -55,26 +82,4 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 	}
 
 	return b.fasthttpBuilder.Build(configName, config.HTTP, tlsConfig, target), nil
-}
-
-func (r *Builder) Update(newConfigs map[string]*dynamic.ServersTransport) {
-	r.configsLock.Lock()
-	defer r.configsLock.Unlock()
-
-	for configName := range r.configs {
-		if _, ok := newConfigs[configName]; !ok {
-			r.httputilBuilder.Delete(configName)
-			r.fasthttpBuilder.Delete(configName)
-		}
-	}
-
-	for newConfigName, newConfig := range newConfigs {
-		if !reflect.DeepEqual(newConfig, r.configs[newConfigName]) {
-			// Delete previous cache on builders because configuration changed.
-			r.httputilBuilder.Delete(newConfigName)
-			r.fasthttpBuilder.Delete(newConfigName)
-		}
-	}
-
-	r.configs = newConfigs
 }

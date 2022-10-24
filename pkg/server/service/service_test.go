@@ -18,7 +18,6 @@ import (
 )
 
 func TestGetLoadBalancer(t *testing.T) {
-
 	sm := NewManager(nil, nil, nil, nil, nil)
 
 	testCases := []struct {
@@ -341,18 +340,4 @@ func TestMultipleTypeOnBuildHTTP(t *testing.T) {
 
 	_, err := manager.BuildHTTP(context.Background(), "test@file")
 	assert.Error(t, err, "cannot create service: multi-types service not supported, consider declaring two different pieces of service instead")
-}
-
-func Bool(v bool) *bool { return &v }
-
-type MockForwarder struct{}
-
-func (MockForwarder) ServeHTTP(http.ResponseWriter, *http.Request) {
-	panic("implement me")
-}
-
-type rtMock struct{}
-
-func (r *rtMock) Get(_ string) (http.RoundTripper, error) {
-	return http.DefaultTransport, nil
 }

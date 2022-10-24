@@ -209,7 +209,7 @@ func TestDisableHTTP2(t *testing.T) {
 func BenchmarkName(b *testing.B) {
 	b.ReportAllocs()
 	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Write([]byte("TEST"))
+		_, _ = rw.Write([]byte("TEST"))
 	}))
 
 	req, err := http.NewRequest(http.MethodGet, srv.URL, http.NoBody)
