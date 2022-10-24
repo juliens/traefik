@@ -67,7 +67,6 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -122,7 +121,6 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -179,7 +177,6 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -229,7 +226,6 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -279,7 +275,6 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -334,7 +329,6 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -545,7 +539,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -619,7 +612,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 						"Test2": {
@@ -629,7 +621,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -704,7 +695,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -719,7 +709,7 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -755,12 +745,12 @@ func Test_buildConfiguration(t *testing.T) {
 					Services: map[string]*dynamic.Service{
 						"Service1": {
 							LoadBalancer: &dynamic.ServersLoadBalancer{
+								ServersTransport: "foo",
 								Servers: []dynamic.Server{
 									{
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -775,9 +765,9 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
-						"traefik.http.routers.Router1.rule":                          "Host(`foo.com`)",
-						"traefik.http.routers.Router1.service":                       "Service1",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
+						"traefik.http.routers.Router1.rule":                            "Host(`foo.com`)",
+						"traefik.http.routers.Router1.service":                         "Service1",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -813,12 +803,12 @@ func Test_buildConfiguration(t *testing.T) {
 					Services: map[string]*dynamic.Service{
 						"Service1": {
 							LoadBalancer: &dynamic.ServersLoadBalancer{
+								ServersTransport: "foo",
 								Servers: []dynamic.Server{
 									{
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -868,7 +858,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -889,8 +878,8 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.routers.Router1.rule":                          "Host(`foo.com`)",
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.http.routers.Router1.rule":                            "Host(`foo.com`)",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -926,12 +915,12 @@ func Test_buildConfiguration(t *testing.T) {
 					Services: map[string]*dynamic.Service{
 						"Service1": {
 							LoadBalancer: &dynamic.ServersLoadBalancer{
+								ServersTransport: "foo",
 								Servers: []dynamic.Server{
 									{
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -946,9 +935,9 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.routers.Router1.rule":                          "Host(`foo.com`)",
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
-						"traefik.http.services.Service2.loadbalancer.passhostheader": "true",
+						"traefik.http.routers.Router1.rule":                            "Host(`foo.com`)",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
+						"traefik.http.services.Service2.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -979,22 +968,22 @@ func Test_buildConfiguration(t *testing.T) {
 					Services: map[string]*dynamic.Service{
 						"Service1": {
 							LoadBalancer: &dynamic.ServersLoadBalancer{
+								ServersTransport: "foo",
 								Servers: []dynamic.Server{
 									{
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 						"Service2": {
 							LoadBalancer: &dynamic.ServersLoadBalancer{
+								ServersTransport: "foo",
 								Servers: []dynamic.Server{
 									{
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1051,7 +1040,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1060,14 +1048,14 @@ func Test_buildConfiguration(t *testing.T) {
 			},
 		},
 		{
-			desc: "two containers with same service name and different passhostheader",
+			desc: "two containers with same service name and different serverstransport",
 			containers: []dockerData{
 				{
 					ID:          "1",
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -1086,7 +1074,7 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "false",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "bar",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -1125,14 +1113,14 @@ func Test_buildConfiguration(t *testing.T) {
 			},
 		},
 		{
-			desc: "three containers with same service name and different passhostheader",
+			desc: "three containers with same service name and different serverstransport",
 			containers: []dockerData{
 				{
 					ID:          "1",
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "false",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -1151,7 +1139,7 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "bar",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -1170,7 +1158,7 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "bar",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -1216,7 +1204,7 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -1235,7 +1223,7 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -1271,6 +1259,7 @@ func Test_buildConfiguration(t *testing.T) {
 					Services: map[string]*dynamic.Service{
 						"Service1": {
 							LoadBalancer: &dynamic.ServersLoadBalancer{
+								ServersTransport: "foo",
 								Servers: []dynamic.Server{
 									{
 										URL: "http://127.0.0.1:80",
@@ -1279,7 +1268,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1334,7 +1322,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1426,7 +1413,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1505,7 +1491,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1606,7 +1591,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.3:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1680,7 +1664,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1776,7 +1759,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.3:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1855,7 +1837,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1924,7 +1905,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 						"Test2": {
@@ -1934,7 +1914,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1990,7 +1969,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -2047,7 +2025,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "h2c://127.0.0.1:8080",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -2099,7 +2076,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 						"Service2": {
@@ -2109,7 +2085,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:8080",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -2288,9 +2263,7 @@ func Test_buildConfiguration(t *testing.T) {
 					Middlewares: map[string]*dynamic.Middleware{},
 					Services: map[string]*dynamic.Service{
 						"Test": {
-							LoadBalancer: &dynamic.ServersLoadBalancer{
-								PassHostHeader: Bool(true),
-							},
+							LoadBalancer: &dynamic.ServersLoadBalancer{},
 						},
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{},
@@ -2528,7 +2501,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -2595,7 +2567,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -2956,9 +2927,9 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.udp.routers.foo.entrypoints":                        "mydns",
-						"traefik.udp.services.foo.loadbalancer.server.port":          "8080",
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.udp.routers.foo.entrypoints":                          "mydns",
+						"traefik.udp.services.foo.loadbalancer.server.port":            "8080",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -2977,9 +2948,9 @@ func Test_buildConfiguration(t *testing.T) {
 					ServiceName: "Test",
 					Name:        "Test",
 					Labels: map[string]string{
-						"traefik.udp.routers.foo.entrypoints":                        "mydns",
-						"traefik.udp.services.foo.loadbalancer.server.port":          "8080",
-						"traefik.http.services.Service1.loadbalancer.passhostheader": "true",
+						"traefik.udp.routers.foo.entrypoints":                          "mydns",
+						"traefik.udp.services.foo.loadbalancer.server.port":            "8080",
+						"traefik.http.services.Service1.loadbalancer.serverstransport": "foo",
 					},
 					NetworkSettings: networkSettings{
 						Ports: nat.PortMap{
@@ -3033,6 +3004,7 @@ func Test_buildConfiguration(t *testing.T) {
 					Services: map[string]*dynamic.Service{
 						"Service1": {
 							LoadBalancer: &dynamic.ServersLoadBalancer{
+								ServersTransport: "foo",
 								Servers: []dynamic.Server{
 									{
 										URL: "http://127.0.0.1:80",
@@ -3041,7 +3013,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -3207,7 +3178,6 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://192.168.0.1:8081",
 									},
 								},
-								PassHostHeader: Bool(true),
 							},
 						},
 					},

@@ -298,16 +298,7 @@ func (c configBuilder) buildServersLB(namespace string, svc v1alpha1.LoadBalance
 	}
 
 	lb := &dynamic.ServersLoadBalancer{}
-	lb.SetDefaults()
 	lb.Servers = servers
-
-	conf := svc
-	lb.PassHostHeader = conf.PassHostHeader
-	if lb.PassHostHeader == nil {
-		passHostHeader := true
-		lb.PassHostHeader = &passHostHeader
-	}
-
 	lb.Sticky = svc.Sticky
 
 	lb.ServersTransport, err = c.makeServersTransportKey(namespace, svc.ServersTransport)

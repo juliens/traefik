@@ -125,7 +125,6 @@ func TestGetLoadBalancerServiceHandler(t *testing.T) {
 			desc:        "Load balances between the two servers",
 			serviceName: "test",
 			service: &dynamic.ServersLoadBalancer{
-				PassHostHeader: Bool(true),
 				Servers: []dynamic.Server{
 					{
 						URL: server1.URL,

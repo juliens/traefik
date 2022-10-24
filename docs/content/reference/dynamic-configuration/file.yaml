@@ -69,7 +69,6 @@ http:
           headers:
             name0: foobar
             name1: foobar
-        passHostHeader: true
         serversTransport: foobar
     Service02:
       mirroring:

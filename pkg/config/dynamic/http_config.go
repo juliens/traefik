@@ -167,7 +167,6 @@ type ServersLoadBalancer struct {
 	// servers of this service are down) upwards, HealthCheck must also be enabled on
 	// the parent(s) of this service.
 	HealthCheck      *ServerHealthCheck `json:"healthCheck,omitempty" toml:"healthCheck,omitempty" yaml:"healthCheck,omitempty" export:"true"`
-	PassHostHeader   *bool              `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
 	ServersTransport string             `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
 }
 
@@ -186,12 +185,6 @@ func (l *ServersLoadBalancer) Mergeable(loadBalancer *ServersLoadBalancer) bool 
 	loadBalancer.Servers = nil
 
 	return reflect.DeepEqual(l, loadBalancer)
-}
-
-// SetDefaults Default values for a ServersLoadBalancer.
-func (l *ServersLoadBalancer) SetDefaults() {
-	defaultPassHostHeader := DefaultPassHostHeader
-	l.PassHostHeader = &defaultPassHostHeader
 }
 
 // +k8s:deepcopy-gen=true
@@ -277,7 +270,7 @@ type HTTPClientConfig struct {
 // SetDefaults sets the default HTTPClientConfig values.
 func (h *HTTPClientConfig) SetDefaults() {
 	h.FlushInterval = DefaultFlushInterval
-	h.PassHostHeader = true
+	h.PassHostHeader = DefaultPassHostHeader
 	h.MaxIdleConnsPerHost = 200
 	h.ForwardingTimeouts = &ForwardingTimeouts{}
 	h.ForwardingTimeouts.SetDefaults()

@@ -1151,11 +1151,6 @@ func (in *ServersLoadBalancer) DeepCopyInto(out *ServersLoadBalancer) {
 		*out = new(ServerHealthCheck)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.PassHostHeader != nil {
-		in, out := &in.PassHostHeader, &out.PassHostHeader
-		*out = new(bool)
-		**out = **in
-	}
 	return
 }
 

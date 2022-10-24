@@ -46,11 +46,13 @@ const defaultMaxBodySize int64 = -1
 // FIXME tests ( PassHostHeader )
 // FIXME comments
 // FIXME experimental
+// FIXME Make sure that the UI is working properly for passhostheader/flushinterval/new transport struct.
 
 // FIXME documentation vv
 // move flush interval documentation at the ServerTransport Level
 // remove ServersTransport documentation in static configuration
 // add some notes explaining how to configure serverstransport
+// move passHostHeader documentation at the server level
 
 // Manager The service manager.
 type Manager struct {

@@ -50,7 +50,6 @@ func Test_buildConfiguration(t *testing.T) {
 		"traefik/http/services/Service01/loadBalancer/healthCheck/scheme":                            "foobar",
 		"traefik/http/services/Service01/loadBalancer/healthCheck/mode":                              "foobar",
 		"traefik/http/services/Service01/loadBalancer/healthCheck/followredirects":                   "true",
-		"traefik/http/services/Service01/loadBalancer/passHostHeader":                                "true",
 		"traefik/http/services/Service01/loadBalancer/sticky/cookie/name":                            "foobar",
 		"traefik/http/services/Service01/loadBalancer/sticky/cookie/secure":                          "true",
 		"traefik/http/services/Service01/loadBalancer/sticky/cookie/httpOnly":                        "true",
@@ -654,7 +653,6 @@ func Test_buildConfiguration(t *testing.T) {
 								"name1": "foobar",
 							},
 						},
-						PassHostHeader: func(v bool) *bool { return &v }(true),
 					},
 				},
 				"Service02": {

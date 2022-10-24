@@ -205,14 +205,12 @@ func Test_convertAnnotations(t *testing.T) {
 			annotations: map[string]string{
 				"traefik.ingress.kubernetes.io/service.serversscheme":          "protocol",
 				"traefik.ingress.kubernetes.io/service.serverstransport":       "foobar@file",
-				"traefik.ingress.kubernetes.io/service.passhostheader":         "true",
 				"traefik.ingress.kubernetes.io/service.sticky.cookie":          "true",
 				"traefik.ingress.kubernetes.io/service.sticky.cookie.httponly": "true",
 				"traefik.ingress.kubernetes.io/service.sticky.cookie.name":     "foobar",
 				"traefik.ingress.kubernetes.io/service.sticky.cookie.secure":   "true",
 			},
 			expected: map[string]string{
-				"traefik.service.passhostheader":         "true",
 				"traefik.service.serversscheme":          "protocol",
 				"traefik.service.serverstransport":       "foobar@file",
 				"traefik.service.sticky.cookie":          "true",

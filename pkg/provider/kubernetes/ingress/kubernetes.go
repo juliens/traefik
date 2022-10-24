@@ -518,8 +518,6 @@ func (p *Provider) loadService(client Client, namespace string, backend networki
 	}
 
 	lb := &dynamic.ServersLoadBalancer{}
-	lb.SetDefaults()
-
 	svc := &dynamic.Service{LoadBalancer: lb}
 
 	svcConfig, err := parseServiceConfig(service.Annotations)

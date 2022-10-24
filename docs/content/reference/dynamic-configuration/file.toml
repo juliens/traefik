@@ -37,7 +37,6 @@
   [http.services]
     [http.services.Service01]
       [http.services.Service01.loadBalancer]
-        passHostHeader = true
         serversTransport = "foobar"
         [http.services.Service01.loadBalancer.sticky]
           [http.services.Service01.loadBalancer.sticky.cookie]

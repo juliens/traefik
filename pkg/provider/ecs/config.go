@@ -139,7 +139,6 @@ func (p *Provider) buildServiceConfiguration(_ context.Context, instance ecsInst
 	if len(configuration.Services) == 0 {
 		configuration.Services = make(map[string]*dynamic.Service)
 		lb := &dynamic.ServersLoadBalancer{}
-		lb.SetDefaults()
 		configuration.Services[serviceName] = &dynamic.Service{
 			LoadBalancer: lb,
 		}

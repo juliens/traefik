@@ -83,7 +83,6 @@
               "foo": "bar"
             }
           },
-          "passHostHeader": true,
           "serversTransport": "foo"
         }
       }
