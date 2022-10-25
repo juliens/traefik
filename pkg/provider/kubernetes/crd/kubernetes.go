@@ -307,29 +307,37 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 	for _, serversTransport := range client.GetServersTransports() {
 		logger := log.FromContext(ctx).WithField(log.ServersTransportName, serversTransport.Name)
 
-		var rootCAs []tls.FileOrContent
-		for _, secret := range serversTransport.Spec.RootCAsSecrets {
-			caSecret, err := loadCASecret(serversTransport.Namespace, secret, client)
-			if err != nil {
-				logger.Errorf("Error while loading rootCAs %s: %v", secret, err)
-				continue
+		var tlsClientConfig *dynamic.TLSClientConfig
+		if serversTransport.Spec.TLS != nil {
+			tlsClientConfig = &dynamic.TLSClientConfig{
+				ServerName:         serversTransport.Spec.TLS.ServerName,
+				InsecureSkipVerify: serversTransport.Spec.TLS.InsecureSkipVerify,
+				PeerCertURI:        serversTransport.Spec.TLS.PeerCertURI,
+				Spiffe:             serversTransport.Spec.TLS.Spiffe,
 			}
 
-			rootCAs = append(rootCAs, tls.FileOrContent(caSecret))
-		}
+			for _, secret := range serversTransport.Spec.TLS.RootCAsSecrets {
+				caSecret, err := loadCASecret(serversTransport.Namespace, secret, client)
+				if err != nil {
+					logger.Errorf("Error while loading rootCAs %s: %v", secret, err)
+					continue
+				}
 
-		var certs tls.Certificates
-		for _, secret := range serversTransport.Spec.CertificatesSecrets {
-			tlsSecret, tlsKey, err := loadAuthTLSSecret(serversTransport.Namespace, secret, client)
-			if err != nil {
-				logger.Errorf("Error while loading certificates %s: %v", secret, err)
-				continue
+				tlsClientConfig.RootCAs = append(tlsClientConfig.RootCAs, tls.FileOrContent(caSecret))
 			}
 
-			certs = append(certs, tls.Certificate{
-				CertFile: tls.FileOrContent(tlsSecret),
-				KeyFile:  tls.FileOrContent(tlsKey),
-			})
+			for _, secret := range serversTransport.Spec.TLS.CertificatesSecrets {
+				tlsSecret, tlsKey, err := loadAuthTLSSecret(serversTransport.Namespace, secret, client)
+				if err != nil {
+					logger.Errorf("Error while loading certificates %s: %v", secret, err)
+					continue
+				}
+
+				tlsClientConfig.Certificates = append(tlsClientConfig.Certificates, tls.Certificate{
+					CertFile: tls.FileOrContent(tlsSecret),
+					KeyFile:  tls.FileOrContent(tlsKey),
+				})
+			}
 		}
 
 		forwardingTimeout := &dynamic.ForwardingTimeouts{}
@@ -374,19 +382,12 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 
 		id := provider.Normalize(makeID(serversTransport.Namespace, serversTransport.Name))
 		conf.HTTP.ServersTransports[id] = &dynamic.ServersTransport{
+			TLS: tlsClientConfig,
 			HTTP: &dynamic.HTTPClientConfig{
 				MaxIdleConnsPerHost: serversTransport.Spec.MaxIdleConnsPerHost,
 				ForwardingTimeouts:  forwardingTimeout,
+				EnableHTTP2:         !serversTransport.Spec.DisableHTTP2,
 				// FIXME modify crds
-				EnableHTTP2: !serversTransport.Spec.DisableHTTP2,
-			},
-			TLS: &dynamic.TLSClientConfig{
-				ServerName:         serversTransport.Spec.ServerName,
-				InsecureSkipVerify: serversTransport.Spec.InsecureSkipVerify,
-				RootCAs:            rootCAs,
-				Certificates:       certs,
-				PeerCertURI:        serversTransport.Spec.PeerCertURI,
-				Spiffe:             serversTransport.Spec.Spiffe,
 			},
 		}
 	}

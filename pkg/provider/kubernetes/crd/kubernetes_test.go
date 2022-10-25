@@ -27,8 +27,7 @@ import (
 
 var _ provider.Provider = (*Provider)(nil)
 
-func Int(v int) *int    { return &v }
-func Bool(v bool) *bool { return &v }
+func Int(v int) *int { return &v }
 
 func TestLoadIngressRouteTCPs(t *testing.T) {
 	testCases := []struct {
@@ -5247,7 +5246,6 @@ func TestCrossNamespace(t *testing.T) {
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"cross-ns-st-cross-ns": {
-							TLS: &dynamic.TLSClientConfig{},
 							HTTP: &dynamic.HTTPClientConfig{
 								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
 									DialTimeout:           30000000000,
@@ -5283,7 +5281,6 @@ func TestCrossNamespace(t *testing.T) {
 					Services:    map[string]*dynamic.Service{},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"cross-ns-st-cross-ns": {
-							TLS: &dynamic.TLSClientConfig{},
 							HTTP: &dynamic.HTTPClientConfig{
 								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
 									DialTimeout:           30000000000,

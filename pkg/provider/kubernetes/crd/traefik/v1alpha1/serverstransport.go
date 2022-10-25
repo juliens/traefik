@@ -27,6 +27,22 @@ type ServersTransport struct {
 
 // ServersTransportSpec defines the desired state of a ServersTransport.
 type ServersTransportSpec struct {
+	TLS *TLSClientConfig `json:"tls,omitempty"`
+
+	// MaxIdleConnsPerHost controls the maximum idle (keep-alive) to keep per-host.
+	MaxIdleConnsPerHost int `json:"maxIdleConnsPerHost,omitempty"`
+	// ForwardingTimeouts defines the timeouts for requests forwarded to the backend servers.
+	ForwardingTimeouts *ForwardingTimeouts `json:"forwardingTimeouts,omitempty"`
+	// DisableHTTP2 disables HTTP/2 for connections with backend servers.
+	DisableHTTP2 bool `json:"disableHTTP2,omitempty"`
+
+	// FIXME passHostHeader flushInterval
+}
+
+// +k8s:deepcopy-gen=true
+
+// TLSClientConfig holds the TLS configuration to be used between Traefik and the servers.
+type TLSClientConfig struct {
 	// ServerName defines the server name used to contact the server.
 	ServerName string `json:"serverName,omitempty"`
 	// InsecureSkipVerify disables SSL certificate verification.
@@ -35,17 +51,10 @@ type ServersTransportSpec struct {
 	RootCAsSecrets []string `json:"rootCAsSecrets,omitempty"`
 	// CertificatesSecrets defines a list of secret storing client certificates for mTLS.
 	CertificatesSecrets []string `json:"certificatesSecrets,omitempty"`
-	// MaxIdleConnsPerHost controls the maximum idle (keep-alive) to keep per-host.
-	MaxIdleConnsPerHost int `json:"maxIdleConnsPerHost,omitempty"`
-	// ForwardingTimeouts defines the timeouts for requests forwarded to the backend servers.
-	ForwardingTimeouts *ForwardingTimeouts `json:"forwardingTimeouts,omitempty"`
-	// DisableHTTP2 disables HTTP/2 for connections with backend servers.
-	DisableHTTP2 bool `json:"disableHTTP2,omitempty"`
 	// PeerCertURI defines the peer cert URI used to match against SAN URI during the peer certificate verification.
 	PeerCertURI string `json:"peerCertURI,omitempty"`
 	// Spiffe defines the SPIFFE configuration.
 	Spiffe *dynamic.Spiffe `json:"spiffe,omitempty"`
-	// FIXME passHostHeader flushInterval
 }
 
 // +k8s:deepcopy-gen=true
