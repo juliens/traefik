@@ -15,7 +15,7 @@ import (
 )
 
 func buildFastHTTPProxy(u *url.URL) http.Handler {
-	return fasthttp.NewReverseProxy(u, true, fasthttp.NewConnectionPool(func() (net.Conn, error) {
+	return fasthttp.NewReverseProxy(u, true, fasthttp.NewConnPool(func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
 	}, 200))
 }

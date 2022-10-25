@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConnReuse(t *testing.T) {
+func TestConnPool_ConnReuse(t *testing.T) {
 	testCases := []struct {
 		desc     string
-		poolFn   func(pool ConnectionPool)
+		poolFn   func(pool *ConnPool)
 		expected int
 	}{
 		{
 			desc: "Simple case",
-			poolFn: func(pool ConnectionPool) {
+			poolFn: func(pool *ConnPool) {
 				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 			},
@@ -24,7 +24,7 @@ func TestConnReuse(t *testing.T) {
 		},
 		{
 			desc: "Simple with reuse",
-			poolFn: func(pool ConnectionPool) {
+			poolFn: func(pool *ConnPool) {
 				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 
@@ -35,7 +35,7 @@ func TestConnReuse(t *testing.T) {
 		},
 		{
 			desc: "Two connection at the same time",
-			poolFn: func(pool ConnectionPool) {
+			poolFn: func(pool *ConnPool) {
 				c1, _ := pool.AcquireConn()
 				c2, _ := pool.AcquireConn()
 
@@ -55,7 +55,7 @@ func TestConnReuse(t *testing.T) {
 				connAlloc++
 				return &net.TCPConn{}, nil
 			}
-			pool := NewConnectionPool(dialer, 2)
+			pool := NewConnPool(dialer, 2)
 			test.poolFn(pool)
 
 			assert.Equal(t, test.expected, connAlloc)
@@ -63,16 +63,16 @@ func TestConnReuse(t *testing.T) {
 	}
 }
 
-func TestMaxIdleConn(t *testing.T) {
+func TestConnPool_MaxIdleConn(t *testing.T) {
 	testCases := []struct {
 		desc        string
-		poolFn      func(pool ConnectionPool)
+		poolFn      func(pool *ConnPool)
 		maxIdleConn int
 		expected    int
 	}{
 		{
 			desc: "Simple case",
-			poolFn: func(pool ConnectionPool) {
+			poolFn: func(pool *ConnPool) {
 				c1, _ := pool.AcquireConn()
 				pool.ReleaseConn(c1)
 			},
@@ -81,7 +81,7 @@ func TestMaxIdleConn(t *testing.T) {
 		},
 		{
 			desc: "Multiple conn with release",
-			poolFn: func(pool ConnectionPool) {
+			poolFn: func(pool *ConnPool) {
 				for i := 0; i < 7; i++ {
 					c, _ := pool.AcquireConn()
 					defer pool.ReleaseConn(c)
@@ -105,7 +105,7 @@ func TestMaxIdleConn(t *testing.T) {
 					return nil
 				}}, nil
 			}
-			pool := NewConnectionPool(dialer, test.maxIdleConn)
+			pool := NewConnPool(dialer, test.maxIdleConn)
 			test.poolFn(pool)
 
 			assert.Equal(t, test.expected, keepOpenedConn)

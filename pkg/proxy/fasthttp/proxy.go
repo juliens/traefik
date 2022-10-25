@@ -12,13 +12,13 @@ import (
 
 // ProxyBuilder handles the connection pools for the FastHTTP proxies.
 type ProxyBuilder struct {
-	pools map[string]map[string]ConnectionPool // FIXME lock?
+	pools map[string]map[string]*ConnPool // FIXME lock?
 }
 
 // NewProxyBuilder creates a new ProxyBuilder.
 func NewProxyBuilder() *ProxyBuilder {
 	return &ProxyBuilder{
-		pools: make(map[string]map[string]ConnectionPool),
+		pools: make(map[string]map[string]*ConnPool),
 	}
 }
 
@@ -35,7 +35,7 @@ func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsC
 }
 
 // FIXME Support IdleConnTimeout.
-func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) ConnectionPool {
+func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) *ConnPool {
 	addr := target.Host
 	if target.Port() == "" {
 		if target.Scheme == "https" {
@@ -47,7 +47,7 @@ func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig,
 
 	pool, ok := r.pools[cfgName]
 	if !ok {
-		pool = make(map[string]ConnectionPool)
+		pool = make(map[string]*ConnPool)
 		r.pools[cfgName] = pool
 	}
 
@@ -70,7 +70,7 @@ func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig,
 		}
 		return dialer.Dial("tcp", addr)
 	}
-	connPool := NewConnectionPool(dial, config.MaxIdleConnsPerHost)
+	connPool := NewConnPool(dial, config.MaxIdleConnsPerHost)
 
 	r.pools[cfgName][target.String()] = connPool
 	return connPool

@@ -29,20 +29,42 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
+type pool[T any] struct {
+	pool sync.Pool
+	New  func() T
+}
+
+func (p *pool[T]) Get() T {
+	if tmp := p.pool.Get(); tmp != nil {
+		return tmp.(T)
+	}
+
+	if p.New != nil {
+		return p.New()
+	}
+
+	var res T
+	return res
+}
+
+func (p *pool[T]) Put(x T) {
+	p.pool.Put(x)
+}
+
 // ReverseProxy is the FastHTTP reverse proxy implementation.
 type ReverseProxy struct {
-	connPool ConnectionPool
+	connPool *ConnPool
 
 	bufferPool      sync.Pool
-	readerPool      Pool[*bufio.Reader]
-	writerPool      Pool[*bufio.Writer]
-	limitReaderPool Pool[*io.LimitedReader]
+	readerPool      pool[*bufio.Reader]
+	writerPool      pool[*bufio.Writer]
+	limitReaderPool pool[*io.LimitedReader]
 
 	director func(req *http.Request)
 }
 
 // NewReverseProxy creates a new ReverseProxy.
-func NewReverseProxy(target *url.URL, passHostHeader bool, connPool ConnectionPool) *ReverseProxy {
+func NewReverseProxy(target *url.URL, passHostHeader bool, connPool *ConnPool) *ReverseProxy {
 	return &ReverseProxy{
 		director: httputil.DirectorBuilder(target, passHostHeader),
 		connPool: connPool,
