@@ -35,17 +35,14 @@ const defaultMaxBodySize int64 = -1
 
 // FIXME websocket
 
-// FIXME serversTransport Config : EnableHTTP2 + h2c?
-
-// FIXME naming
-
 // FIXME configure serversTransport through labels
 
-// FIXME Bench final
 // FIXME crds
-// FIXME tests ( PassHostHeader )
-// FIXME comments
+
 // FIXME experimental
+
+// FIXME Bench final
+
 // FIXME Make sure that the UI is working properly for passhostheader/flushinterval/new transport struct.
 
 // FIXME documentation vv
