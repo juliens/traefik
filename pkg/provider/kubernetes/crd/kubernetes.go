@@ -307,9 +307,11 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 	for _, serversTransport := range client.GetServersTransports() {
 		logger := log.FromContext(ctx).WithField(log.ServersTransportName, serversTransport.Name)
 
-		var tlsClientConfig *dynamic.TLSClientConfig
+		st := &dynamic.ServersTransport{}
+		st.SetDefaults()
+
 		if serversTransport.Spec.TLS != nil {
-			tlsClientConfig = &dynamic.TLSClientConfig{
+			st.TLS = &dynamic.TLSClientConfig{
 				ServerName:         serversTransport.Spec.TLS.ServerName,
 				InsecureSkipVerify: serversTransport.Spec.TLS.InsecureSkipVerify,
 				PeerCertURI:        serversTransport.Spec.TLS.PeerCertURI,
@@ -323,7 +325,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 					continue
 				}
 
-				tlsClientConfig.RootCAs = append(tlsClientConfig.RootCAs, tls.FileOrContent(caSecret))
+				st.TLS.RootCAs = append(st.TLS.RootCAs, tls.FileOrContent(caSecret))
 			}
 
 			for _, secret := range serversTransport.Spec.TLS.CertificatesSecrets {
@@ -333,63 +335,61 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 					continue
 				}
 
-				tlsClientConfig.Certificates = append(tlsClientConfig.Certificates, tls.Certificate{
+				st.TLS.Certificates = append(st.TLS.Certificates, tls.Certificate{
 					CertFile: tls.FileOrContent(tlsSecret),
 					KeyFile:  tls.FileOrContent(tlsKey),
 				})
 			}
 		}
 
-		forwardingTimeout := &dynamic.ForwardingTimeouts{}
-		forwardingTimeout.SetDefaults()
+		if serversTransport.Spec.HTTP != nil {
+			st.HTTP = &dynamic.HTTPClientConfig{}
+			st.HTTP.SetDefaults()
 
-		if serversTransport.Spec.ForwardingTimeouts != nil {
-			if serversTransport.Spec.ForwardingTimeouts.DialTimeout != nil {
-				err := forwardingTimeout.DialTimeout.Set(serversTransport.Spec.ForwardingTimeouts.DialTimeout.String())
-				if err != nil {
-					logger.Errorf("Error while reading DialTimeout: %v", err)
+			st.HTTP.EnableHTTP2 = serversTransport.Spec.HTTP.EnableHTTP2
+			st.HTTP.MaxIdleConnsPerHost = serversTransport.Spec.HTTP.MaxIdleConnsPerHost
+
+			if serversTransport.Spec.HTTP.ForwardingTimeouts != nil {
+				if serversTransport.Spec.HTTP.ForwardingTimeouts.DialTimeout != nil {
+					err := st.HTTP.ForwardingTimeouts.DialTimeout.Set(serversTransport.Spec.HTTP.ForwardingTimeouts.DialTimeout.String())
+					if err != nil {
+						logger.Errorf("Error while reading DialTimeout: %v", err)
+					}
+				}
+
+				if serversTransport.Spec.HTTP.ForwardingTimeouts.ResponseHeaderTimeout != nil {
+					err := st.HTTP.ForwardingTimeouts.ResponseHeaderTimeout.Set(serversTransport.Spec.HTTP.ForwardingTimeouts.ResponseHeaderTimeout.String())
+					if err != nil {
+						logger.Errorf("Error while reading ResponseHeaderTimeout: %v", err)
+					}
+				}
+
+				if serversTransport.Spec.HTTP.ForwardingTimeouts.IdleConnTimeout != nil {
+					err := st.HTTP.ForwardingTimeouts.IdleConnTimeout.Set(serversTransport.Spec.HTTP.ForwardingTimeouts.IdleConnTimeout.String())
+					if err != nil {
+						logger.Errorf("Error while reading IdleConnTimeout: %v", err)
+					}
+				}
+
+				if serversTransport.Spec.HTTP.ForwardingTimeouts.ReadIdleTimeout != nil {
+					err := st.HTTP.ForwardingTimeouts.ReadIdleTimeout.Set(serversTransport.Spec.HTTP.ForwardingTimeouts.ReadIdleTimeout.String())
+					if err != nil {
+						logger.Errorf("Error while reading ReadIdleTimeout: %v", err)
+					}
+				}
+
+				if serversTransport.Spec.HTTP.ForwardingTimeouts.PingTimeout != nil {
+					err := st.HTTP.ForwardingTimeouts.PingTimeout.Set(serversTransport.Spec.HTTP.ForwardingTimeouts.PingTimeout.String())
+					if err != nil {
+						logger.Errorf("Error while reading PingTimeout: %v", err)
+					}
 				}
 			}
 
-			if serversTransport.Spec.ForwardingTimeouts.ResponseHeaderTimeout != nil {
-				err := forwardingTimeout.ResponseHeaderTimeout.Set(serversTransport.Spec.ForwardingTimeouts.ResponseHeaderTimeout.String())
-				if err != nil {
-					logger.Errorf("Error while reading ResponseHeaderTimeout: %v", err)
-				}
-			}
-
-			if serversTransport.Spec.ForwardingTimeouts.IdleConnTimeout != nil {
-				err := forwardingTimeout.IdleConnTimeout.Set(serversTransport.Spec.ForwardingTimeouts.IdleConnTimeout.String())
-				if err != nil {
-					logger.Errorf("Error while reading IdleConnTimeout: %v", err)
-				}
-			}
-
-			if serversTransport.Spec.ForwardingTimeouts.ReadIdleTimeout != nil {
-				err := forwardingTimeout.ReadIdleTimeout.Set(serversTransport.Spec.ForwardingTimeouts.ReadIdleTimeout.String())
-				if err != nil {
-					logger.Errorf("Error while reading ReadIdleTimeout: %v", err)
-				}
-			}
-
-			if serversTransport.Spec.ForwardingTimeouts.PingTimeout != nil {
-				err := forwardingTimeout.PingTimeout.Set(serversTransport.Spec.ForwardingTimeouts.PingTimeout.String())
-				if err != nil {
-					logger.Errorf("Error while reading PingTimeout: %v", err)
-				}
-			}
 		}
 
 		id := provider.Normalize(makeID(serversTransport.Namespace, serversTransport.Name))
-		conf.HTTP.ServersTransports[id] = &dynamic.ServersTransport{
-			TLS: tlsClientConfig,
-			HTTP: &dynamic.HTTPClientConfig{
-				MaxIdleConnsPerHost: serversTransport.Spec.MaxIdleConnsPerHost,
-				ForwardingTimeouts:  forwardingTimeout,
-				EnableHTTP2:         !serversTransport.Spec.DisableHTTP2,
-				// FIXME modify crds
-			},
-		}
+		conf.HTTP.ServersTransports[id] = st
 	}
 
 	return conf

@@ -90,14 +90,15 @@ metadata:
   namespace: foo
 
 spec:
-  disableHTTP2: true
-  maxIdleConnsPerHost: 42
-  forwardingTimeouts:
-    dialTimeout: 42
-    responseHeaderTimeout: 42s
-    idleConnTimeout: 42ms
-    readIdleTimeout: 42s
-    pingTimeout: 42s
+  http:
+    enableHTTP2: true
+    maxIdleConnsPerHost: 42
+    forwardingTimeouts:
+      dialTimeout: 42
+      responseHeaderTimeout: 42s
+      idleConnTimeout: 42ms
+      readIdleTimeout: 42s
+      pingTimeout: 42s
 
   tls:
     serverName: "test"

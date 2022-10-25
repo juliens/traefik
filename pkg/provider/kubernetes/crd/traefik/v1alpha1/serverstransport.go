@@ -12,8 +12,6 @@ import (
 
 // ServersTransport is the CRD implementation of a ServersTransport.
 // If no serversTransport is specified, the default will be used.
-// The default serversTransport is created from the static configuration.
-// More info: https://doc.traefik.io/traefik/v2.9/routing/services/#serverstransport_1
 type ServersTransport struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -27,16 +25,8 @@ type ServersTransport struct {
 
 // ServersTransportSpec defines the desired state of a ServersTransport.
 type ServersTransportSpec struct {
-	TLS *TLSClientConfig `json:"tls,omitempty"`
-
-	// MaxIdleConnsPerHost controls the maximum idle (keep-alive) to keep per-host.
-	MaxIdleConnsPerHost int `json:"maxIdleConnsPerHost,omitempty"`
-	// ForwardingTimeouts defines the timeouts for requests forwarded to the backend servers.
-	ForwardingTimeouts *ForwardingTimeouts `json:"forwardingTimeouts,omitempty"`
-	// DisableHTTP2 disables HTTP/2 for connections with backend servers.
-	DisableHTTP2 bool `json:"disableHTTP2,omitempty"`
-
-	// FIXME passHostHeader flushInterval
+	TLS  *TLSClientConfig  `json:"tls,omitempty"`
+	HTTP *HTTPClientConfig `json:"http,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -55,6 +45,19 @@ type TLSClientConfig struct {
 	PeerCertURI string `json:"peerCertURI,omitempty"`
 	// Spiffe defines the SPIFFE configuration.
 	Spiffe *dynamic.Spiffe `json:"spiffe,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// HTTPClientConfig holds the HTTP configuration to be used between Traefik and the servers.
+// FIXME passHostHeader flushInterval
+type HTTPClientConfig struct {
+	// MaxIdleConnsPerHost controls the maximum idle (keep-alive) to keep per-host.
+	MaxIdleConnsPerHost int `json:"maxIdleConnsPerHost,omitempty"`
+	// ForwardingTimeouts defines the timeouts for requests forwarded to the backend servers.
+	ForwardingTimeouts *ForwardingTimeouts `json:"forwardingTimeouts,omitempty"`
+	// EnableHTTP2 enables HTTP/2 or connections with backend servers.
+	EnableHTTP2 bool `json:"enableHTTP2,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
