@@ -15,11 +15,13 @@ const (
 	// DefaultHealthCheckTimeout is the default value for the ServerHealthCheck timeout.
 	DefaultHealthCheckTimeout = ptypes.Duration(5 * time.Second)
 
-	// DefaultPassHostHeader is the default value for the ServersLoadBalancer passHostHeader.
+	// DefaultPassHostHeader is the default value for the HTTPClientConfig passHostHeader.
 	DefaultPassHostHeader = true
-
-	// DefaultFlushInterval is the default value for the ResponseForwarding flush interval.
+	// DefaultFlushInterval is the default value for the HTTPClientConfig flushInterval.
 	DefaultFlushInterval = ptypes.Duration(100 * time.Millisecond)
+
+	// DefaultIdleConnTimeout is the default value for the ForwardingTimeouts idleConnTimeout.
+	DefaultIdleConnTimeout = ptypes.Duration(90 * time.Second)
 )
 
 // +k8s:deepcopy-gen=true
@@ -326,6 +328,6 @@ type ForwardingTimeouts struct {
 // SetDefaults sets the default ForwardingTimeouts values.
 func (f *ForwardingTimeouts) SetDefaults() {
 	f.DialTimeout = ptypes.Duration(30 * time.Second)
-	f.IdleConnTimeout = ptypes.Duration(90 * time.Second)
+	f.IdleConnTimeout = DefaultIdleConnTimeout
 	f.PingTimeout = ptypes.Duration(15 * time.Second)
 }

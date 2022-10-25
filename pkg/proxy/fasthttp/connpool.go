@@ -10,27 +10,30 @@ import (
 
 type conn struct {
 	net.Conn
-	lastUseTime time.Time
+
+	idleAt      time.Time // the last time it was marked as idle.
+	idleTimeout time.Duration
 }
 
 func (c *conn) isExpired() bool {
-	expTime := c.lastUseTime.Add(60 * time.Second)
-	return time.Now().After(expTime)
+	expTime := c.idleAt.Add(c.idleTimeout)
+	return c.idleTimeout > 0 && time.Now().After(expTime)
 }
 
 // ConnPool is a net.Conn pool implementation using channels.
-// FIXME handle errors/timeout
-// FIXME handle idleConnLifetime
 type ConnPool struct {
-	idleConns chan *conn
-	dialer    func() (net.Conn, error)
+	dialer func() (net.Conn, error)
+
+	idleConns       chan *conn
+	idleConnTimeout time.Duration
 }
 
 // NewConnPool creates a new ConnPool.
-func NewConnPool(dialer func() (net.Conn, error), maxIdleConn int) *ConnPool {
+func NewConnPool(maxIdleConn int, idleConnTimeout time.Duration, dialer func() (net.Conn, error)) *ConnPool {
 	c := &ConnPool{
-		dialer:    dialer,
-		idleConns: make(chan *conn, maxIdleConn),
+		dialer:          dialer,
+		idleConns:       make(chan *conn, maxIdleConn),
+		idleConnTimeout: idleConnTimeout,
 	}
 	c.cleanIdleConns()
 
@@ -61,13 +64,18 @@ func (c *ConnPool) AcquireConn() (net.Conn, error) {
 
 // ReleaseConn releases the given net.Conn to the pool.
 func (c *ConnPool) ReleaseConn(co net.Conn) {
-	c.releaseConn(&conn{Conn: co, lastUseTime: time.Now()})
+	c.releaseConn(&conn{
+		Conn:        co,
+		idleAt:      time.Now(),
+		idleTimeout: c.idleConnTimeout,
+	})
 }
 
 // cleanIdleConns is a routine cleaning the expired connections at a regular basis.
-// FIXME should we cancel the timer when the pool is deleted?
+// FIXME idleConnTimeout implementation might be too naive as the net.Conn will not be closed immediately.
+// FIXME We could also likely not add back a connection to the pool if it is full of expired connections.
 func (c *ConnPool) cleanIdleConns() {
-	defer time.AfterFunc(time.Minute, c.cleanIdleConns)
+	defer time.AfterFunc(c.idleConnTimeout/2, c.cleanIdleConns)
 
 	for {
 		select {

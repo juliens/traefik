@@ -34,7 +34,6 @@ func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsC
 	return NewReverseProxy(target, cfg.PassHostHeader, pool)
 }
 
-// FIXME Support IdleConnTimeout.
 func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) *ConnPool {
 	addr := target.Host
 	if target.Port() == "" {
@@ -64,13 +63,17 @@ func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig,
 		dialer.Timeout = time.Duration(config.ForwardingTimeouts.DialTimeout)
 	}
 
-	dial := func() (net.Conn, error) {
+	idleConnTimeout := time.Duration(dynamic.DefaultIdleConnTimeout)
+	if config.ForwardingTimeouts != nil {
+		idleConnTimeout = time.Duration(config.ForwardingTimeouts.IdleConnTimeout)
+	}
+
+	connPool := NewConnPool(config.MaxIdleConnsPerHost, idleConnTimeout, func() (net.Conn, error) {
 		if tlsConfig != nil {
 			return tls.Dial("tcp", addr, tlsConfig)
 		}
 		return dialer.Dial("tcp", addr)
-	}
-	connPool := NewConnPool(dial, config.MaxIdleConnsPerHost)
+	})
 
 	r.pools[cfgName][target.String()] = connPool
 	return connPool

@@ -352,9 +352,9 @@ func TestWebSocketRequestWithHeadersInResponseWriter(t *testing.T) {
 	defer srv.Close()
 
 	u := parseURI(t, srv.URL)
-	f := NewReverseProxy(u, true, NewConnPool(func() (net.Conn, error) {
+	f := NewReverseProxy(u, true, NewConnPool(1, 0, func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
-	}, 1))
+	}))
 
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		req.URL = parseURI(t, srv.URL)
@@ -423,9 +423,9 @@ func TestWebSocketUpgradeFailed(t *testing.T) {
 	defer srv.Close()
 
 	u := parseURI(t, srv.URL)
-	f := NewReverseProxy(u, true, NewConnPool(func() (net.Conn, error) {
+	f := NewReverseProxy(u, true, NewConnPool(1, 0, func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
-	}, 1))
+	}))
 
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		path := req.URL.Path // keep the original path
@@ -640,12 +640,12 @@ func parseURI(t *testing.T, uri string) *url.URL {
 
 func createConnectionPool(target string, tlsConfig *tls.Config) *ConnPool {
 	u := testhelpers.MustParseURL(target)
-	return NewConnPool(func() (net.Conn, error) {
+	return NewConnPool(200, 0, func() (net.Conn, error) {
 		if tlsConfig != nil {
 			return tls.Dial("tcp", u.Host, tlsConfig)
 		}
 		return net.Dial("tcp", u.Host)
-	}, 200)
+	})
 }
 
 func createProxyWithForwarder(t *testing.T, uri string, pool *ConnPool) *httptest.Server {

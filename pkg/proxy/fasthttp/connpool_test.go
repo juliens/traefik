@@ -55,7 +55,7 @@ func TestConnPool_ConnReuse(t *testing.T) {
 				connAlloc++
 				return &net.TCPConn{}, nil
 			}
-			pool := NewConnPool(dialer, 2)
+			pool := NewConnPool(2, 0, dialer)
 			test.poolFn(pool)
 
 			assert.Equal(t, test.expected, connAlloc)
@@ -105,7 +105,7 @@ func TestConnPool_MaxIdleConn(t *testing.T) {
 					return nil
 				}}, nil
 			}
-			pool := NewConnPool(dialer, test.maxIdleConn)
+			pool := NewConnPool(test.maxIdleConn, 0, dialer)
 			test.poolFn(pool)
 
 			assert.Equal(t, test.expected, keepOpenedConn)
