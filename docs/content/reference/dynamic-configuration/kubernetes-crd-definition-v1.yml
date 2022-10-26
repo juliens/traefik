@@ -104,11 +104,6 @@ spec:
                             description: Namespace defines the namespace of the referenced
                               Kubernetes Service or TraefikService.
                             type: string
-                          passHostHeader:
-                            description: PassHostHeader defines whether the client
-                              Host header is forwarded to the upstream Kubernetes
-                              Service. By default, passHostHeader is true.
-                            type: boolean
                           port:
                             anyOf:
                             - type: integer
@@ -812,11 +807,6 @@ spec:
                         description: Namespace defines the namespace of the referenced
                           Kubernetes Service or TraefikService.
                         type: string
-                      passHostHeader:
-                        description: PassHostHeader defines whether the client Host
-                          header is forwarded to the upstream Kubernetes Service.
-                          By default, passHostHeader is true.
-                        type: boolean
                       port:
                         anyOf:
                         - type: integer
@@ -1586,7 +1576,7 @@ spec:
             properties:
               http:
                 description: HTTPClientConfig holds the HTTP configuration to be used
-                  between Traefik and the servers. FIXME passHostHeader flushInterval
+                  between Traefik and the servers. FIXME flushInterval
                 properties:
                   enableHTTP2:
                     description: EnableHTTP2 enables HTTP/2 or connections with backend
@@ -1639,6 +1629,11 @@ spec:
                     description: MaxIdleConnsPerHost controls the maximum idle (keep-alive)
                       to keep per-host.
                     type: integer
+                  passHostHeader:
+                    description: PassHostHeader defines whether the client Host header
+                      is forwarded to the upstream Kubernetes Service. By default,
+                      passHostHeader is true.
+                    type: boolean
                 type: object
               tls:
                 description: TLSClientConfig holds the TLS configuration to be used
@@ -1984,11 +1979,6 @@ spec:
                           description: Namespace defines the namespace of the referenced
                             Kubernetes Service or TraefikService.
                           type: string
-                        passHostHeader:
-                          description: PassHostHeader defines whether the client Host
-                            header is forwarded to the upstream Kubernetes Service.
-                            By default, passHostHeader is true.
-                          type: boolean
                         percent:
                           description: 'Percent defines the part of the traffic to
                             mirror. Supported values: 0 to 100.'
@@ -2059,11 +2049,6 @@ spec:
                     description: Namespace defines the namespace of the referenced
                       Kubernetes Service or TraefikService.
                     type: string
-                  passHostHeader:
-                    description: PassHostHeader defines whether the client Host header
-                      is forwarded to the upstream Kubernetes Service. By default,
-                      passHostHeader is true.
-                    type: boolean
                   port:
                     anyOf:
                     - type: integer
@@ -2142,11 +2127,6 @@ spec:
                           description: Namespace defines the namespace of the referenced
                             Kubernetes Service or TraefikService.
                           type: string
-                        passHostHeader:
-                          description: PassHostHeader defines whether the client Host
-                            header is forwarded to the upstream Kubernetes Service.
-                            By default, passHostHeader is true.
-                          type: boolean
                         port:
                           anyOf:
                           - type: integer

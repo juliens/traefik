@@ -92,6 +92,7 @@ metadata:
 spec:
   http:
     enableHTTP2: true
+    passHostHeader: false
     maxIdleConnsPerHost: 42
     forwardingTimeouts:
       dialTimeout: 42

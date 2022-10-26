@@ -349,6 +349,10 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 			st.HTTP.EnableHTTP2 = serversTransport.Spec.HTTP.EnableHTTP2
 			st.HTTP.MaxIdleConnsPerHost = serversTransport.Spec.HTTP.MaxIdleConnsPerHost
 
+			if serversTransport.Spec.HTTP.PassHostHeader != nil {
+				st.HTTP.PassHostHeader = *serversTransport.Spec.HTTP.PassHostHeader
+			}
+
 			if serversTransport.Spec.HTTP.ForwardingTimeouts != nil {
 				if serversTransport.Spec.HTTP.ForwardingTimeouts.DialTimeout != nil {
 					err := st.HTTP.ForwardingTimeouts.DialTimeout.Set(serversTransport.Spec.HTTP.ForwardingTimeouts.DialTimeout.String())

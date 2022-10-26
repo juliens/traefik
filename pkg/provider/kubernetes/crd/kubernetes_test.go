@@ -3870,7 +3870,7 @@ func TestLoadIngressRoutes(t *testing.T) {
 							HTTP: &dynamic.HTTPClientConfig{
 								MaxIdleConnsPerHost: 42,
 								EnableHTTP2:         true,
-								PassHostHeader:      true,
+								PassHostHeader:      false,
 								FlushInterval:       ptypes.Duration(100 * time.Millisecond),
 								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
 									DialTimeout:           ptypes.Duration(42 * time.Second),

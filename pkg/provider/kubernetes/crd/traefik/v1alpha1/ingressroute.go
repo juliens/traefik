@@ -106,9 +106,6 @@ type LoadBalancerSpec struct {
 	// Strategy defines the load balancing strategy between the servers.
 	// RoundRobin is the only supported value at the moment.
 	Strategy string `json:"strategy,omitempty"`
-	// PassHostHeader defines whether the client Host header is forwarded to the upstream Kubernetes Service.
-	// By default, passHostHeader is true.
-	PassHostHeader *bool `json:"passHostHeader,omitempty"`
 	// ServersTransport defines the name of ServersTransport resource to use.
 	// It allows to configure the transport between Traefik and your servers.
 	// Can only be used on a Kubernetes Service.
