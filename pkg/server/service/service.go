@@ -37,8 +37,6 @@ const defaultMaxBodySize int64 = -1
 
 // FIXME configure serversTransport through labels
 
-// FIXME crds
-
 // FIXME experimental
 
 // FIXME Bench final

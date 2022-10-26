@@ -15,5 +15,3 @@ spec:
     services:
     - name: whoami
       port: 80
-      responseForwarding:
-        flushInterval: 10s

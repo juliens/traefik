@@ -93,6 +93,7 @@ spec:
   http:
     enableHTTP2: true
     passHostHeader: false
+    flushInterval: 10s
     maxIdleConnsPerHost: 42
     forwardingTimeouts:
       dialTimeout: 42

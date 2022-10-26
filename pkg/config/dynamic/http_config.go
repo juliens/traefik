@@ -249,14 +249,13 @@ func (s *ServersTransport) SetDefaults() {
 // +k8s:deepcopy-gen=true
 
 // HTTPClientConfig holds the HTTP configuration to be used between Traefik and the servers.
-// FIXME: Compatibility to switch on previous implementation.
+// FIXME: should we remove the flushInterval.
 type HTTPClientConfig struct {
 	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
 	// A negative value means to flush immediately after each write to the client.
 	// This configuration is ignored when ReverseProxy recognizes a response as a streaming response;
 	// for such responses, writes are flushed to the client immediately.
 	// Default: 100ms
-	// FIXME: should we remove the flushInterval.
 	FlushInterval ptypes.Duration `json:"flushInterval,omitempty" toml:"flushInterval,omitempty" yaml:"flushInterval,omitempty" export:"true"`
 	// PassHostHeader defines whether to forward the client Host header to the server.
 	PassHostHeader bool `json:"passHostHeader,omitempty" toml:"passHostHeader,omitempty" yaml:"passHostHeader,omitempty" export:"true"`
