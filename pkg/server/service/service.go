@@ -29,13 +29,13 @@ import (
 	"github.com/traefik/traefik/v2/pkg/tls/client"
 )
 
-const defaultMaxBodySize int64 = -1
-
 // FIXME clean fasthttp proxy
 
 // FIXME websocket
 
 // FIXME configure serversTransport through labels
+
+// FIXME Configure default serversTransport with CRDs
 
 // FIXME experimental
 
@@ -48,6 +48,8 @@ const defaultMaxBodySize int64 = -1
 // remove ServersTransport documentation in static configuration
 // add some notes explaining how to configure serverstransport
 // move passHostHeader documentation at the server level
+
+const defaultMaxBodySize int64 = -1
 
 // Manager The service manager.
 type Manager struct {

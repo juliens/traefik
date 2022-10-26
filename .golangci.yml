@@ -187,8 +187,3 @@ issues:
       text: 'Duplicate words \(sub\) found'
       linters:
         - dupword
-    - path: pkg/proxy/fasthttp/chunked.go
-      linters:
-        - errorlint
-        - unparam
-        - gocritic
