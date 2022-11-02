@@ -216,7 +216,8 @@ func TestSpiffeMTLS(t *testing.T) {
 		config         dynamic.Spiffe
 		clientSource   SpiffeX509Source
 		wantStatusCode int
-		wantError      bool
+		wantBuildErr   bool
+		wantErr        bool
 	}{
 		{
 			desc:           "supports SPIFFE mTLS",
@@ -238,7 +239,7 @@ func TestSpiffeMTLS(t *testing.T) {
 				IDs: []string{"spiffe://traefik.test/not-server"},
 			},
 			clientSource: &clientSource,
-			wantError:    true,
+			wantErr:      true,
 		},
 		{
 			desc: "allows expected server trust domain",
@@ -254,7 +255,7 @@ func TestSpiffeMTLS(t *testing.T) {
 				TrustDomain: "spiffe://not-traefik.test",
 			},
 			clientSource: &clientSource,
-			wantError:    true,
+			wantErr:      true,
 		},
 		{
 			desc: "spiffe IDs allowlist takes precedence",
@@ -263,13 +264,13 @@ func TestSpiffeMTLS(t *testing.T) {
 				TrustDomain: "spiffe://not-traefik.test",
 			},
 			clientSource: &clientSource,
-			wantError:    true,
+			wantErr:      true,
 		},
 		{
 			desc:         "raises an error when spiffe is enabled on the transport but no workloadapi address is given",
 			config:       dynamic.Spiffe{},
 			clientSource: nil,
-			wantError:    true,
+			wantBuildErr: true,
 		},
 	}
 
@@ -289,12 +290,16 @@ func TestSpiffeMTLS(t *testing.T) {
 
 			tr := http.DefaultTransport.(*http.Transport).Clone()
 			tr.TLSClientConfig, err = tlsConfigManager.GetTLSConfig("test")
+			if test.wantBuildErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 
 			client := http.Client{Transport: tr}
 
 			resp, err := client.Get(srv.URL)
-			if test.wantError {
+			if test.wantErr {
 				require.Error(t, err)
 				return
 			}
