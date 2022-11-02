@@ -396,7 +396,6 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 					}
 				}
 			}
-
 		}
 
 		id := provider.Normalize(makeID(serversTransport.Namespace, serversTransport.Name))

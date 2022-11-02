@@ -43,6 +43,8 @@ import (
 
 // FIXME Make sure that the UI is working properly for passhostheader/flushinterval/new transport struct.
 
+// FIXME integration tests
+
 // FIXME documentation vv
 // move flush interval documentation at the ServerTransport Level
 // remove ServersTransport documentation in static configuration
@@ -293,6 +295,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		}
 
 		logger.WithField(log.ServerName, proxyName).Debugf("Creating server %s", target)
+
 		proxy, err := m.proxyBuilder.Build(service.ServersTransport, target)
 		if err != nil {
 			return nil, err
