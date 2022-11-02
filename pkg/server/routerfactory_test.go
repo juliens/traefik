@@ -50,12 +50,14 @@ func TestReuseService(t *testing.T) {
 		),
 	)
 
-	tlsConfigManager := client.NewTLSConfigManager(nil)
-	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+	tlsClientConfigManager := client.NewTLSConfigManager(nil)
+	proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
+
 	configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
-	tlsConfigManager.Update(configs)
+	tlsClientConfigManager.Update(configs)
 	proxyBuilder.Update(configs)
-	managerFactory := service.NewManagerFactory(staticConfig, nil, metrics.NewVoidRegistry(), proxyBuilder, tlsConfigManager, nil)
+
+	managerFactory := service.NewManagerFactory(staticConfig, nil, metrics.NewVoidRegistry(), proxyBuilder, tlsClientConfigManager, nil)
 	tlsManager := tls.NewManager()
 
 	factory := NewRouterFactory(staticConfig, managerFactory, tlsManager, middleware.NewChainBuilder(nil, nil, nil), nil, metrics.NewVoidRegistry())
@@ -189,12 +191,14 @@ func TestServerResponseEmptyBackend(t *testing.T) {
 				},
 			}
 
-			tlsConfigManager := client.NewTLSConfigManager(nil)
-			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+			tlsClientConfigManager := client.NewTLSConfigManager(nil)
+			proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
+
 			configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
-			tlsConfigManager.Update(configs)
+			tlsClientConfigManager.Update(configs)
 			proxyBuilder.Update(configs)
-			managerFactory := service.NewManagerFactory(staticConfig, nil, metrics.NewVoidRegistry(), proxyBuilder, tlsConfigManager, nil)
+
+			managerFactory := service.NewManagerFactory(staticConfig, nil, metrics.NewVoidRegistry(), proxyBuilder, tlsClientConfigManager, nil)
 			tlsManager := tls.NewManager()
 
 			factory := NewRouterFactory(staticConfig, managerFactory, tlsManager, middleware.NewChainBuilder(nil, nil, nil), nil, metrics.NewVoidRegistry())
@@ -233,12 +237,14 @@ func TestInternalServices(t *testing.T) {
 		),
 	)
 
-	tlsConfigManager := client.NewTLSConfigManager(nil)
-	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+	tlsClientConfigManager := client.NewTLSConfigManager(nil)
+	proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
+
 	configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
-	tlsConfigManager.Update(configs)
+	tlsClientConfigManager.Update(configs)
 	proxyBuilder.Update(configs)
-	managerFactory := service.NewManagerFactory(staticConfig, nil, metrics.NewVoidRegistry(), proxyBuilder, tlsConfigManager, nil)
+
+	managerFactory := service.NewManagerFactory(staticConfig, nil, metrics.NewVoidRegistry(), proxyBuilder, tlsClientConfigManager, nil)
 	tlsManager := tls.NewManager()
 
 	voidRegistry := metrics.NewVoidRegistry()

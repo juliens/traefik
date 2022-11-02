@@ -136,7 +136,7 @@ func TestMTLS(t *testing.T) {
 	}
 	srv.StartTLS()
 
-	tlsConfigManager := NewTLSConfigManager(nil)
+	tlsClientConfigManager := NewTLSConfigManager(nil)
 
 	dynamicConf := map[string]*dynamic.ServersTransport{
 		"test": {
@@ -153,10 +153,10 @@ func TestMTLS(t *testing.T) {
 		},
 	}
 
-	tlsConfigManager.Update(dynamicConf)
+	tlsClientConfigManager.Update(dynamicConf)
 
 	tr := http.DefaultTransport.(*http.Transport).Clone()
-	tr.TLSClientConfig, err = tlsConfigManager.GetTLSConfig("test")
+	tr.TLSClientConfig, err = tlsClientConfigManager.GetTLSConfig("test")
 	require.NoError(t, err)
 
 	client := http.Client{Transport: tr}
@@ -276,7 +276,7 @@ func TestSpiffeMTLS(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.desc, func(t *testing.T) {
-			tlsConfigManager := NewTLSConfigManager(test.clientSource)
+			tlsClientConfigManager := NewTLSConfigManager(test.clientSource)
 
 			dynamicConf := map[string]*dynamic.ServersTransport{
 				"test": {
@@ -286,10 +286,10 @@ func TestSpiffeMTLS(t *testing.T) {
 				},
 			}
 
-			tlsConfigManager.Update(dynamicConf)
+			tlsClientConfigManager.Update(dynamicConf)
 
 			tr := http.DefaultTransport.(*http.Transport).Clone()
-			tr.TLSClientConfig, err = tlsConfigManager.GetTLSConfig("test")
+			tr.TLSClientConfig, err = tlsClientConfigManager.GetTLSConfig("test")
 			if test.wantBuildErr {
 				require.Error(t, err)
 				return

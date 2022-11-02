@@ -56,8 +56,8 @@ type Manager struct {
 	routinePool     *safe.Pool
 	metricsRegistry metrics.Registry
 
-	proxyBuilder     *proxy.Builder
-	tlsConfigManager *client.TLSConfigManager
+	proxyBuilder           *proxy.Builder
+	tlsClientConfigManager *client.TLSConfigManager
 
 	services       map[string]http.Handler
 	configs        map[string]*runtime.ServiceInfo
@@ -66,16 +66,16 @@ type Manager struct {
 }
 
 // NewManager creates a new Manager.
-func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, proxyBuilder *proxy.Builder, tlsConfigManager *client.TLSConfigManager) *Manager {
+func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, proxyBuilder *proxy.Builder, tlsClientConfigManager *client.TLSConfigManager) *Manager {
 	return &Manager{
-		routinePool:      routinePool,
-		metricsRegistry:  metricsRegistry,
-		services:         make(map[string]http.Handler),
-		configs:          configs,
-		healthCheckers:   make(map[string]*healthcheck.ServiceHealthChecker),
-		rand:             rand.New(rand.NewSource(time.Now().UnixNano())),
-		proxyBuilder:     proxyBuilder,
-		tlsConfigManager: tlsConfigManager,
+		routinePool:            routinePool,
+		metricsRegistry:        metricsRegistry,
+		services:               make(map[string]http.Handler),
+		configs:                configs,
+		healthCheckers:         make(map[string]*healthcheck.ServiceHealthChecker),
+		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
+		proxyBuilder:           proxyBuilder,
+		tlsClientConfigManager: tlsClientConfigManager,
 	}
 }
 
@@ -315,7 +315,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 	}
 
 	if service.HealthCheck != nil {
-		tlsConfig, err := m.tlsConfigManager.GetTLSConfig(service.ServersTransport)
+		tlsConfig, err := m.tlsClientConfigManager.GetTLSConfig(service.ServersTransport)
 		if err != nil {
 			return nil, err
 		}

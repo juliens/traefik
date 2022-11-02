@@ -19,19 +19,19 @@ type Builder struct {
 	fasthttpBuilder *fasthttp.ProxyBuilder
 	httputilBuilder *httputil.ProxyBuilder
 
-	tlsConfigManager *client.TLSConfigManager
+	tlsClientConfigManager *client.TLSConfigManager
 
 	configsLock sync.RWMutex
 	configs     map[string]*dynamic.ServersTransport
 }
 
 // NewBuilder creates and returns a new Builder instance.
-func NewBuilder(tlsConfigManager *client.TLSConfigManager) *Builder {
+func NewBuilder(tlsClientConfigManager *client.TLSConfigManager) *Builder {
 	return &Builder{
-		fasthttpBuilder:  fasthttp.NewProxyBuilder(),
-		httputilBuilder:  httputil.NewProxyBuilder(),
-		tlsConfigManager: tlsConfigManager,
-		configs:          make(map[string]*dynamic.ServersTransport),
+		fasthttpBuilder:        fasthttp.NewProxyBuilder(),
+		httputilBuilder:        httputil.NewProxyBuilder(),
+		tlsClientConfigManager: tlsClientConfigManager,
+		configs:                make(map[string]*dynamic.ServersTransport),
 	}
 }
 
@@ -72,7 +72,7 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 		return nil, fmt.Errorf("unknown ServersTransport:  %s", configName)
 	}
 
-	tlsConfig, err := b.tlsConfigManager.GetTLSConfig(configName)
+	tlsConfig, err := b.tlsClientConfigManager.GetTLSConfig(configName)
 	if err != nil {
 		return nil, err
 	}

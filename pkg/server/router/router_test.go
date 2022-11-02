@@ -314,13 +314,14 @@ func TestRouterManager_Get(t *testing.T) {
 				},
 			})
 
-			tlsConfigManager := client.NewTLSConfigManager(nil)
-			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+			tlsClientConfigManager := client.NewTLSConfigManager(nil)
+			proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
+
 			configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
-			tlsConfigManager.Update(configs)
+			tlsClientConfigManager.Update(configs)
 			proxyBuilder.Update(configs)
 
-			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsConfigManager)
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsClientConfigManager)
 
 			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
 			chainBuilder := middleware.NewChainBuilder(nil, nil, nil)
@@ -425,13 +426,14 @@ func TestAccessLog(t *testing.T) {
 				},
 			})
 
-			tlsConfigManager := client.NewTLSConfigManager(nil)
-			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+			tlsClientConfigManager := client.NewTLSConfigManager(nil)
+			proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
+
 			configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
-			tlsConfigManager.Update(configs)
+			tlsClientConfigManager.Update(configs)
 			proxyBuilder.Update(configs)
 
-			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsConfigManager)
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsClientConfigManager)
 			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
 			chainBuilder := middleware.NewChainBuilder(nil, nil, nil)
 
@@ -724,13 +726,14 @@ func TestRuntimeConfiguration(t *testing.T) {
 				},
 			})
 
-			tlsConfigManager := client.NewTLSConfigManager(nil)
-			proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+			tlsClientConfigManager := client.NewTLSConfigManager(nil)
+			proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
+
 			configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
-			tlsConfigManager.Update(configs)
+			tlsClientConfigManager.Update(configs)
 			proxyBuilder.Update(configs)
 
-			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsConfigManager)
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsClientConfigManager)
 			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
 			chainBuilder := middleware.NewChainBuilder(nil, nil, nil)
 
@@ -803,13 +806,14 @@ func TestProviderOnMiddlewares(t *testing.T) {
 		},
 	})
 
-	tlsConfigManager := client.NewTLSConfigManager(nil)
-	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+	tlsClientConfigManager := client.NewTLSConfigManager(nil)
+	proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
+
 	configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
-	tlsConfigManager.Update(configs)
+	tlsClientConfigManager.Update(configs)
 	proxyBuilder.Update(configs)
 
-	serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsConfigManager)
+	serviceManager := service.NewManager(rtConf.Services, nil, nil, proxyBuilder, tlsClientConfigManager)
 	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
 	chainBuilder := middleware.NewChainBuilder(nil, nil, nil)
 

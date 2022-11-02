@@ -75,8 +75,8 @@ func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
 	srv.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 	srv.StartTLS()
 
-	tlsConfigGetter := client.NewTLSConfigManager(nil)
-	proxyBuilder := NewBuilder(tlsConfigGetter)
+	tlsClientConfigGetter := client.NewTLSConfigManager(nil)
+	proxyBuilder := NewBuilder(tlsClientConfigGetter)
 
 	dynamicConf := map[string]*dynamic.ServersTransport{
 		"test": {
@@ -89,7 +89,7 @@ func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		tlsConfigGetter.Update(dynamicConf)
+		tlsClientConfigGetter.Update(dynamicConf)
 		proxyBuilder.Update(dynamicConf)
 
 		proxy, err := proxyBuilder.Build("test", testhelpers.MustParseURL(srv.URL))
@@ -116,7 +116,7 @@ func TestKeepConnectionWhenSameConfiguration(t *testing.T) {
 		},
 	}
 
-	tlsConfigGetter.Update(dynamicConf)
+	tlsClientConfigGetter.Update(dynamicConf)
 	proxyBuilder.Update(dynamicConf)
 
 	proxy, err := proxyBuilder.Build("test", testhelpers.MustParseURL(srv.URL))
@@ -175,8 +175,8 @@ func TestDisableHTTP2(t *testing.T) {
 			srv.EnableHTTP2 = test.serverHTTP2
 			srv.StartTLS()
 
-			tlsConfigGetter := client.NewTLSConfigManager(nil)
-			proxyBuilder := NewBuilder(tlsConfigGetter)
+			tlsClientConfigGetter := client.NewTLSConfigManager(nil)
+			proxyBuilder := NewBuilder(tlsClientConfigGetter)
 
 			dynamicConf := map[string]*dynamic.ServersTransport{
 				"test": {
@@ -189,7 +189,7 @@ func TestDisableHTTP2(t *testing.T) {
 				},
 			}
 
-			tlsConfigGetter.Update(dynamicConf)
+			tlsClientConfigGetter.Update(dynamicConf)
 			proxyBuilder.Update(dynamicConf)
 
 			proxy, err := proxyBuilder.Build("test", testhelpers.MustParseURL(srv.URL))

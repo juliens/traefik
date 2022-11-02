@@ -280,10 +280,10 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		log.WithoutContext().Info("Successfully obtained SPIFFE SVID.")
 	}
 
-	tlsConfigManager := client.NewTLSConfigManager(spiffeX509Source)
-	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+	tlsClientConfigManager := client.NewTLSConfigManager(spiffeX509Source)
+	proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
 	acmeHTTPHandler := getHTTPChallengeHandler(acmeProviders, httpChallengeProvider)
-	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, metricsRegistry, proxyBuilder, tlsConfigManager, acmeHTTPHandler)
+	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, metricsRegistry, proxyBuilder, tlsClientConfigManager, acmeHTTPHandler)
 
 	// Router factory
 
@@ -321,7 +321,7 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 
 	// Server Transports
 	watcher.AddListener(func(conf dynamic.Configuration) {
-		tlsConfigManager.Update(conf.HTTP.ServersTransports)
+		tlsClientConfigManager.Update(conf.HTTP.ServersTransports)
 		proxyBuilder.Update(conf.HTTP.ServersTransports)
 	})
 

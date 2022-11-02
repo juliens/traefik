@@ -75,11 +75,12 @@ func TestGetLoadBalancer(t *testing.T) {
 func TestGetLoadBalancerServiceHandler(t *testing.T) {
 	configs := map[string]*dynamic.ServersTransport{"default": {HTTP: &dynamic.HTTPClientConfig{}}}
 
-	tlsConfigManager := client.NewTLSConfigManager(nil)
-	tlsConfigManager.Update(configs)
-	proxyBuilder := proxy.NewBuilder(tlsConfigManager)
+	tlsClientConfigManager := client.NewTLSConfigManager(nil)
+	tlsClientConfigManager.Update(configs)
+	proxyBuilder := proxy.NewBuilder(tlsClientConfigManager)
 	proxyBuilder.Update(configs)
-	sm := NewManager(nil, nil, nil, proxyBuilder, tlsConfigManager)
+
+	sm := NewManager(nil, nil, nil, proxyBuilder, tlsClientConfigManager)
 
 	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-From", "first")
