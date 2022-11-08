@@ -42,7 +42,6 @@ func (s *HTTPSuite) TestSimpleConfiguration(c *check.C) {
 			Services: map[string]*dynamic.Service{
 				"serviceHTTP": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
-						PassHostHeader: boolRef(true),
 						Servers: []dynamic.Server{
 							{
 								URL: "http://bacon:80",

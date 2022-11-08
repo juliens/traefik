@@ -180,9 +180,6 @@
           }
         ],
         "passHostHeader": true,
-        "responseForwarding": {
-          "flushInterval": "100ms"
-        }
       },
       "status": "enabled",
       "usedBy": [
@@ -205,9 +202,6 @@
           }
         ],
         "passHostHeader": true,
-        "responseForwarding": {
-          "flushInterval": "100ms"
-        }
       },
       "status": "enabled"
     },
@@ -222,9 +216,6 @@
           }
         ],
         "passHostHeader": true,
-        "responseForwarding": {
-          "flushInterval": "100ms"
-        }
       },
       "status": "enabled"
     }

@@ -431,8 +431,6 @@
           [http.services.Service0.loadBalancer.healthCheck.headers]
             name0 = "foobar"
             name1 = "foobar"
-        [http.services.Service0.loadBalancer.responseForwarding]
-          flushInterval = "10s"
 
 [tcp]
   [tcp.routers]

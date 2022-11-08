@@ -31,8 +31,6 @@ import (
 
 // FIXME clean fasthttp proxy
 
-// FIXME websocket
-
 // FIXME configure serversTransport through labels
 
 // FIXME Configure default serversTransport with CRDs

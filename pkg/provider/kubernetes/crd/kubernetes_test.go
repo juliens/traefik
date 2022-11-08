@@ -3871,7 +3871,6 @@ func TestLoadIngressRoutes(t *testing.T) {
 								MaxIdleConnsPerHost: 42,
 								EnableHTTP2:         true,
 								PassHostHeader:      false,
-								FlushInterval:       ptypes.Duration(10 * time.Second),
 								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
 									DialTimeout:           ptypes.Duration(42 * time.Second),
 									ResponseHeaderTimeout: ptypes.Duration(42 * time.Second),
@@ -3887,7 +3886,6 @@ func TestLoadIngressRoutes(t *testing.T) {
 							},
 							HTTP: &dynamic.HTTPClientConfig{
 								PassHostHeader:      true,
-								FlushInterval:       ptypes.Duration(100 * time.Millisecond),
 								MaxIdleConnsPerHost: 200,
 								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
 									DialTimeout:     ptypes.Duration(30 * time.Second),
@@ -5260,7 +5258,6 @@ func TestCrossNamespace(t *testing.T) {
 								},
 								EnableHTTP2:    true,
 								PassHostHeader: true,
-								FlushInterval:  ptypes.Duration(100 * time.Millisecond),
 							},
 						},
 					},
@@ -5297,7 +5294,6 @@ func TestCrossNamespace(t *testing.T) {
 								},
 								EnableHTTP2:    true,
 								PassHostHeader: true,
-								FlushInterval:  ptypes.Duration(100 * time.Millisecond),
 							},
 						},
 					},

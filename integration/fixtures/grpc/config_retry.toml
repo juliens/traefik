@@ -33,8 +33,6 @@
 
 [http.services]
   [http.services.service1.loadBalancer]
-  [http.services.service1.loadBalancer.responseForwarding]
-    flushInterval = "1ms"
     [[http.services.service1.loadBalancer.servers]]
       url = "https://127.0.0.1:{{ .GRPCServerPort }}"
 

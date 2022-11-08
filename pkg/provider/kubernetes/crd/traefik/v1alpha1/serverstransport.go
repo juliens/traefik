@@ -54,12 +54,6 @@ type HTTPClientConfig struct {
 	// PassHostHeader defines whether the client Host header is forwarded to the upstream Kubernetes Service.
 	// By default, passHostHeader is true.
 	PassHostHeader *bool `json:"passHostHeader,omitempty"`
-	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
-	// A negative value means to flush immediately after each write to the client.
-	// This configuration is ignored when ReverseProxy recognizes a response as a streaming response;
-	// for such responses, writes are flushed to the client immediately.
-	// Default: 100ms
-	FlushInterval *intstr.IntOrString `json:"flushInterval,omitempty"`
 	// MaxIdleConnsPerHost controls the maximum idle (keep-alive) to keep per-host.
 	MaxIdleConnsPerHost int `json:"maxIdleConnsPerHost,omitempty"`
 	// ForwardingTimeouts defines the timeouts for requests forwarded to the backend servers.

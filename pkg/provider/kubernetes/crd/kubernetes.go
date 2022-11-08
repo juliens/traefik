@@ -353,13 +353,6 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 				st.HTTP.PassHostHeader = *serversTransport.Spec.HTTP.PassHostHeader
 			}
 
-			if serversTransport.Spec.HTTP.FlushInterval != nil {
-				err := st.HTTP.FlushInterval.Set(serversTransport.Spec.HTTP.FlushInterval.String())
-				if err != nil {
-					logger.Errorf("Error while reading FlushInterval: %v", err)
-				}
-			}
-
 			if serversTransport.Spec.HTTP.ForwardingTimeouts != nil {
 				if serversTransport.Spec.HTTP.ForwardingTimeouts.DialTimeout != nil {
 					err := st.HTTP.ForwardingTimeouts.DialTimeout.Set(serversTransport.Spec.HTTP.ForwardingTimeouts.DialTimeout.String())

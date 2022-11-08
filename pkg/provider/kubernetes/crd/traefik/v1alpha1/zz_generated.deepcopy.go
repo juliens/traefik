@@ -277,11 +277,6 @@ func (in *HTTPClientConfig) DeepCopyInto(out *HTTPClientConfig) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.FlushInterval != nil {
-		in, out := &in.FlushInterval, &out.FlushInterval
-		*out = new(intstr.IntOrString)
-		**out = **in
-	}
 	if in.ForwardingTimeouts != nil {
 		in, out := &in.ForwardingTimeouts, &out.ForwardingTimeouts
 		*out = new(ForwardingTimeouts)

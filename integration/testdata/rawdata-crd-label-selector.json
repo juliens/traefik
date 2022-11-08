@@ -48,9 +48,7 @@
 					}
 				],
 				"passHostHeader": true,
-				"responseForwarding": {
-					"flushInterval": "100ms"
-				}
+
 			},
 			"status": "enabled",
 			"usedBy": [

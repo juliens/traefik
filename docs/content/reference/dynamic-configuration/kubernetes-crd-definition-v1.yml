@@ -1582,17 +1582,6 @@ spec:
                     description: EnableHTTP2 enables HTTP/2 or connections with backend
                       servers.
                     type: boolean
-                  flushInterval:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    description: 'FlushInterval defines the interval, in milliseconds,
-                      in between flushes to the client while copying the response
-                      body. A negative value means to flush immediately after each
-                      write to the client. This configuration is ignored when ReverseProxy
-                      recognizes a response as a streaming response; for such responses,
-                      writes are flushed to the client immediately. Default: 100ms'
-                    x-kubernetes-int-or-string: true
                   forwardingTimeouts:
                     description: ForwardingTimeouts defines the timeouts for requests
                       forwarded to the backend servers.

@@ -138,9 +138,6 @@
 					}
 				],
 				"passHostHeader": true,
-				"responseForwarding": {
-					"flushInterval": "100ms"
-				}
 			},
 			"status": "enabled",
 			"usedBy": [
@@ -162,9 +159,6 @@
 					}
 				],
 				"passHostHeader": true,
-				"responseForwarding": {
-					"flushInterval": "100ms"
-				}
 			},
 			"status": "enabled",
 			"usedBy": [
@@ -186,9 +180,6 @@
 					}
 				],
 				"passHostHeader": true,
-				"responseForwarding": {
-					"flushInterval": "100ms"
-				},
 				"serversTransport": "default-mytransport@kubernetescrd"
 			},
 			"status": "enabled",
@@ -211,9 +202,6 @@
 					}
 				],
 				"passHostHeader": true,
-				"responseForwarding": {
-					"flushInterval": "100ms"
-				}
 			},
 			"status": "enabled",
 			"serverStatus": {

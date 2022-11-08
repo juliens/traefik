@@ -55,11 +55,10 @@ func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsC
 	}
 
 	return &httputil.ReverseProxy{
-		Director:      DirectorBuilder(target, cfg.PassHostHeader),
-		Transport:     roundTripper,
-		FlushInterval: time.Duration(cfg.FlushInterval),
-		BufferPool:    r.bufferPool,
-		ErrorHandler:  ErrorHandler,
+		Director:     DirectorBuilder(target, cfg.PassHostHeader),
+		Transport:    roundTripper,
+		BufferPool:   r.bufferPool,
+		ErrorHandler: ErrorHandler,
 	}, nil
 }
 

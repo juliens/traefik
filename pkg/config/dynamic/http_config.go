@@ -17,8 +17,6 @@ const (
 
 	// DefaultPassHostHeader is the default value for the HTTPClientConfig passHostHeader.
 	DefaultPassHostHeader = true
-	// DefaultFlushInterval is the default value for the HTTPClientConfig flushInterval.
-	DefaultFlushInterval = ptypes.Duration(100 * time.Millisecond)
 
 	// DefaultIdleConnTimeout is the default value for the ForwardingTimeouts idleConnTimeout.
 	DefaultIdleConnTimeout = ptypes.Duration(90 * time.Second)
@@ -249,14 +247,7 @@ func (s *ServersTransport) SetDefaults() {
 // +k8s:deepcopy-gen=true
 
 // HTTPClientConfig holds the HTTP configuration to be used between Traefik and the servers.
-// FIXME: should we remove the flushInterval.
 type HTTPClientConfig struct {
-	// FlushInterval defines the interval, in milliseconds, in between flushes to the client while copying the response body.
-	// A negative value means to flush immediately after each write to the client.
-	// This configuration is ignored when ReverseProxy recognizes a response as a streaming response;
-	// for such responses, writes are flushed to the client immediately.
-	// Default: 100ms
-	FlushInterval ptypes.Duration `json:"flushInterval,omitempty" toml:"flushInterval,omitempty" yaml:"flushInterval,omitempty" export:"true"`
 	// PassHostHeader defines whether to forward the client Host header to the server.
 	PassHostHeader bool `json:"passHostHeader,omitempty" toml:"passHostHeader,omitempty" yaml:"passHostHeader,omitempty" export:"true"`
 	// MaxIdleConnsPerHost controls the maximum number of idle (keep-alive) connections to keep per-host.
@@ -270,7 +261,6 @@ type HTTPClientConfig struct {
 
 // SetDefaults sets the default HTTPClientConfig values.
 func (h *HTTPClientConfig) SetDefaults() {
-	h.FlushInterval = DefaultFlushInterval
 	h.PassHostHeader = DefaultPassHostHeader
 	h.MaxIdleConnsPerHost = 200
 	h.ForwardingTimeouts = &ForwardingTimeouts{}
