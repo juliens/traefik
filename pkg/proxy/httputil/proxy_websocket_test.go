@@ -115,10 +115,10 @@ func TestWebSocketEcho(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.Handle("/ws", websocket.Handler(func(conn *websocket.Conn) {
 		msg := make([]byte, 4)
-		_, err := conn.Read(msg)
+		n, err := conn.Read(msg)
 		require.NoError(t, err)
 
-		_, err = conn.Write(msg)
+		_, err = conn.Write(msg[:n])
 		require.NoError(t, err)
 
 		err = conn.Close()
@@ -140,6 +140,11 @@ func TestWebSocketEcho(t *testing.T) {
 
 	err = conn.WriteMessage(gorillawebsocket.TextMessage, []byte("OK"))
 	require.NoError(t, err)
+
+	_, msg, err := conn.ReadMessage()
+	require.NoError(t, err)
+
+	assert.Equal(t, "OK", string(msg))
 
 	err = conn.Close()
 	require.NoError(t, err)
@@ -164,6 +169,7 @@ func TestWebSocketPassHost(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.desc, func(t *testing.T) {
+
 			mux := http.NewServeMux()
 			mux.Handle("/ws", websocket.Handler(func(conn *websocket.Conn) {
 				req := conn.Request()
@@ -175,10 +181,10 @@ func TestWebSocketPassHost(t *testing.T) {
 				}
 
 				msg := make([]byte, 4)
-				_, err := conn.Read(msg)
+				n, err := conn.Read(msg)
 				require.NoError(t, err)
 
-				_, err = conn.Write(msg)
+				_, err = conn.Write(msg[:n])
 				require.NoError(t, err)
 
 				err = conn.Close()
@@ -202,6 +208,11 @@ func TestWebSocketPassHost(t *testing.T) {
 
 			err = conn.WriteMessage(gorillawebsocket.TextMessage, []byte("OK"))
 			require.NoError(t, err)
+
+			_, msg, err := conn.ReadMessage()
+			require.NoError(t, err)
+
+			assert.Equal(t, "OK", string(msg))
 
 			err = conn.Close()
 			require.NoError(t, err)
