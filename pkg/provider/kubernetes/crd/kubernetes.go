@@ -304,6 +304,8 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 		}
 	}
 
+	var nsDefault []string
+
 	for _, serversTransport := range client.GetServersTransports() {
 		logger := log.FromContext(ctx).WithField(log.ServersTransportName, serversTransport.Name)
 
@@ -392,7 +394,17 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 		}
 
 		id := provider.Normalize(makeID(serversTransport.Namespace, serversTransport.Name))
+		if serversTransport.Name == "default" {
+			id = serversTransport.Name
+			nsDefault = append(nsDefault, serversTransport.Namespace)
+		}
+
 		conf.HTTP.ServersTransports[id] = st
+	}
+
+	if len(nsDefault) > 1 {
+		delete(conf.HTTP.ServersTransports, "default")
+		log.FromContext(ctx).Errorf("Default serversTransport defined in multiple namespaces: %v", nsDefault)
 	}
 
 	return conf
