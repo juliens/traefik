@@ -43,7 +43,7 @@ import (
 
 // FIXME integration tests
 
-// FIXME tracing
+// FIXME tracing ( retry middleware )
 
 // FIXME documentation vv
 // move flush interval documentation at the ServerTransport Level

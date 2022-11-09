@@ -12,7 +12,8 @@ import (
 
 // ProxyBuilder handles the connection pools for the FastHTTP proxies.
 type ProxyBuilder struct {
-	pools map[string]map[string]*ConnPool // FIXME lock?
+	// lock isn't needed because ProxyBuilder is not called concurrently.
+	pools map[string]map[string]*ConnPool
 }
 
 // NewProxyBuilder creates a new ProxyBuilder.

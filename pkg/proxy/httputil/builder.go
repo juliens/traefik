@@ -24,8 +24,9 @@ func (t *h2cTransportWrapper) RoundTrip(req *http.Request) (*http.Response, erro
 
 // ProxyBuilder handles the http.RoundTripper for httputil reverse proxies.
 type ProxyBuilder struct {
-	bufferPool    *bufferPool
-	roundTrippers map[string]http.RoundTripper // FIXME lock?
+	bufferPool *bufferPool
+	// lock isn't needed because ProxyBuilder is not called concurrently.
+	roundTrippers map[string]http.RoundTripper
 }
 
 // NewProxyBuilder creates a new ProxyBuilder.
