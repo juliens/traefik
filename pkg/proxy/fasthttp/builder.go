@@ -2,7 +2,9 @@ package fasthttp
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
+	"errors"
 	"net"
 	"net/http"
 	"net/url"
@@ -10,8 +12,6 @@ import (
 	"time"
 
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/valyala/fasthttp/fasthttpproxy"
-	"golang.org/x/net/internal/socks"
 	"golang.org/x/net/proxy"
 )
 
@@ -50,7 +50,6 @@ func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig,
 		}
 	}
 
-
 	pool, ok := r.pools[cfgName]
 	if !ok {
 		pool = make(map[string]*ConnPool)
@@ -65,7 +64,6 @@ func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
-
 
 	if config.ForwardingTimeouts != nil {
 		dialer.Timeout = time.Duration(config.ForwardingTimeouts.DialTimeout)
@@ -90,227 +88,186 @@ func getModifyRequest(target *url.URL, config *tls.Config) func(*http.Request) {
 }
 
 func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPClientConfig) func() (net.Conn, error) {
-	dialProxyURL, err := http.ProxyFromEnvironment(&http.Request{
-		URL: realTarget,
-	})
+	proxyURL, err := http.ProxyFromEnvironment(&http.Request{URL: realTarget})
 	if err != nil {
 		return func() (net.Conn, error) {
 			return nil, err
 		}
 	}
 
-	target := realTarget
+	realTargetAddr := addrFromURL(realTarget)
 
-	if dialProxyURL != nil {
-		target = dialProxyURL
-	}
+	dialer := getDialer(proxyURL.Scheme, tlsConfig, config)
+	proxyAddr := addrFromURL(proxyURL)
 
-
-	addr := target.Host
-	if target.Port() == "" {
-		if target.Scheme == "https" {
-			addr += ":443"
-		} else {
-			addr += ":80"
-		}
-	}
-
-
-
-	dialer := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
-
-	if config.ForwardingTimeouts != nil {
-		dialer.Timeout = time.Duration(config.ForwardingTimeouts.DialTimeout)
-	}
-
-	if dialProxyURL.Scheme == "socks5" {
-		var auth *proxy.Auth
-		if u := dialProxyURL.User; u != nil {
-			auth = &proxy.Auth{
-				User: u.Username(),
-			}
-			auth.Password, _ = u.Password()
-		}
-
-		// never returns errors
-		dialerSock, _ := proxy.SOCKS5("tcp", addr, auth, dialer)
-
-		return func() (net.Conn, error) {
-			conn, err :=  dialerSock.Dial("tcp", addr)
-
-			if tlsConfig != nil {
-				if tlsConfig.ServerName == "" {
-					// Make a copy to avoid polluting argument or default.
-					c := tlsConfig.Clone()
-					// FIXME
-					c.ServerName = realTarget.Hostname()
-					tlsConfig = c
-				}
-				return tls.Client(conn, tlsConfig), err
-			}
-			return conn, err
-		}
-	}
-
-
-	if tlsConfig != nil {
-		return func() (net.Conn, error) {
-			return tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
-		}
-	}
-	return func() (net.Conn, error) {
-		return dialer.Dial("tcp", addr)
-	}
-}
-
-func getDialer(target *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPClientConfig) func() (net.Conn, error) {
-	dialProxyURL, err := http.ProxyFromEnvironment(&http.Request{
-		URL: target,
-	})
-	if err != nil {
-		return func() (net.Conn, error) {
-			return nil, err
-		}
-	}
-	if dialProxyURL != nil {
-		target = dialProxyURL
-	}
-
-	addr := target.Host
-	if target.Port() == "" {
-		if target.Scheme == "https" {
-			addr += ":443"
-		} else {
-			addr += ":80"
-		}
-	}
-
-	dialer := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
-
-	if config.ForwardingTimeouts != nil {
-		dialer.Timeout = time.Duration(config.ForwardingTimeouts.DialTimeout)
-	}
-
-	dialFn := dialer.Dial
-
-	if tlsConfig != nil {
-		return tls.Dial("tcp", addr, tlsConfig)
-	}
-	return dialFn
-}
-}
-
-func getProxyDialer(proxyUrl) func() (net.Conn, error) {
 	switch {
-	case cm.proxyURL == nil:
-		// Do nothing. Not using a proxy.
-	case cm.proxyURL.Scheme == "socks5":
-		conn := pconn.conn
-		d := socksNewDialer("tcp", conn.RemoteAddr().String())
-		if u := cm.proxyURL.User; u != nil {
-			auth := &socksUsernamePassword{
-				Username: u.Username(),
-			}
+	case proxyURL == nil:
+		// Nothing to do.
+
+	case proxyURL.Scheme == "socks5":
+		var auth *proxy.Auth
+		if u := proxyURL.User; u != nil {
+			auth = &proxy.Auth{User: u.Username()}
 			auth.Password, _ = u.Password()
-			d.AuthMethods = []socksAuthMethod{
-				socksAuthMethodNotRequired,
-				socksAuthMethodUsernamePassword,
+		}
+
+		// SOCKS5 implementation do not return errors.
+		socksDialer, _ := proxy.SOCKS5("tcp", proxyAddr, auth, dialer)
+
+		return func() (net.Conn, error) {
+			co, err := socksDialer.Dial("tcp", realTargetAddr)
+			if err != nil {
+				return nil, err
 			}
-			d.Authenticate = auth.Authenticate
-		}
-		if _, err := d.DialWithConn(ctx, conn, "tcp", cm.targetAddr); err != nil {
-			conn.Close()
-			return nil, err
-		}
-	case cm.targetScheme == "http":
-		pconn.isProxy = true
-		if pa := cm.proxyAuth(); pa != "" {
-			pconn.mutateHeaderFunc = func(h Header) {
-				h.Set("Proxy-Authorization", pa)
+
+			if realTarget.Scheme == "https" {
+				c := &tls.Config{}
+				if tlsConfig != nil {
+					c = tlsConfig.Clone()
+				}
+
+				if c.ServerName == "" {
+					c.ServerName = realTarget.Hostname()
+				}
+				return tls.Client(co, c), nil
 			}
+			return co, nil
 		}
-	case cm.targetScheme == "https":
-		conn := pconn.conn
-		var hdr Header
-		if t.GetProxyConnectHeader != nil {
-			var err error
-			hdr, err = t.GetProxyConnectHeader(ctx, cm.proxyURL, cm.targetAddr)
+
+	case realTarget.Scheme == "http":
+		if u := proxyURL.User; u != nil {
+			// FIXME
+			//auth = &proxy.Auth{User: u.Username()}
+			//auth.Password, _ = u.Password()
+			//h.Set("Proxy-Authorization", pa)
+		}
+
+	case realTarget.Scheme == "https":
+		// FIXME
+		//if pa := cm.proxyAuth(); pa != "" {
+		//	hdr = hdr.Clone()
+		//	hdr.Set("Proxy-Authorization", pa)
+		//}
+
+		return func() (net.Conn, error) {
+			conn, err := dialer.Dial("tcp", proxyAddr)
+			if err != nil {
+				return nil, err
+			}
+
+			connectReq := &http.Request{
+				Method: http.MethodConnect,
+				URL:    &url.URL{Opaque: realTargetAddr},
+				Host:   realTarget.Host,
+				Header: make(http.Header),
+			}
+
+			// If there's no done channel (no deadline or cancellation
+			// from the caller possible), at least set some (long)
+			// timeout here. This will make sure we don't block forever
+			// and leak a goroutine if the connection stops replying
+			// after the TCP connect.
+			// FIXME comment
+			connectCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer cancel()
+
+			didReadResponse := make(chan struct{}) // closed after CONNECT write+read is done or fails
+			var resp *http.Response
+
+			// Write the CONNECT request & read the response.
+			go func() {
+				defer close(didReadResponse)
+				err = connectReq.Write(conn)
+				if err != nil {
+					return
+				}
+				// Okay to use and discard buffered reader here, because
+				// TLS server will not speak until spoken to.
+				br := bufio.NewReader(conn)
+				resp, err = http.ReadResponse(br, connectReq)
+			}()
+			select {
+			case <-connectCtx.Done():
+				conn.Close()
+				<-didReadResponse
+				return nil, connectCtx.Err()
+			case <-didReadResponse:
+				// resp or err now set
+			}
 			if err != nil {
 				conn.Close()
 				return nil, err
 			}
-		} else {
-			hdr = t.ProxyConnectHeader
-		}
-		if hdr == nil {
-			hdr = make(Header)
-		}
-		if pa := cm.proxyAuth(); pa != "" {
-			hdr = hdr.Clone()
-			hdr.Set("Proxy-Authorization", pa)
-		}
-		connectReq := &Request{
-			Method: "CONNECT",
-			URL:    &url.URL{Opaque: cm.targetAddr},
-			Host:   cm.targetAddr,
-			Header: hdr,
-		}
-
-		// If there's no done channel (no deadline or cancellation
-		// from the caller possible), at least set some (long)
-		// timeout here. This will make sure we don't block forever
-		// and leak a goroutine if the connection stops replying
-		// after the TCP connect.
-		connectCtx := ctx
-		if ctx.Done() == nil {
-			newCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-			defer cancel()
-			connectCtx = newCtx
-		}
-
-		didReadResponse := make(chan struct{}) // closed after CONNECT write+read is done or fails
-		var (
-			resp *Response
-			err  error // write or read error
-		)
-		// Write the CONNECT request & read the response.
-		go func() {
-			defer close(didReadResponse)
-			err = connectReq.Write(conn)
-			if err != nil {
-				return
+			if resp.StatusCode != 200 {
+				_, text, ok := strings.Cut(resp.Status, " ")
+				conn.Close()
+				if !ok {
+					return nil, errors.New("unknown status code")
+				}
+				return nil, errors.New(text)
 			}
-			// Okay to use and discard buffered reader here, because
-			// TLS server will not speak until spoken to.
-			br := bufio.NewReader(conn)
-			resp, err = ReadResponse(br, connectReq)
-		}()
-		select {
-		case <-connectCtx.Done():
-			conn.Close()
-			<-didReadResponse
-			return nil, connectCtx.Err()
-		case <-didReadResponse:
-			// resp or err now set
-		}
-		if err != nil {
-			conn.Close()
-			return nil, err
-		}
-		if resp.StatusCode != 200 {
-			_, text, ok := strings.Cut(resp.Status, " ")
-			conn.Close()
-			if !ok {
-				return nil, errors.New("unknown status code")
+
+			if realTarget.Scheme == "https" {
+				c := &tls.Config{}
+				if tlsConfig != nil {
+					c = tlsConfig.Clone()
+				}
+
+				if c.ServerName == "" {
+					c.ServerName = realTarget.Hostname()
+				}
+				return tls.Client(conn, c), nil
 			}
-			return nil, errors.New(text)
+			return conn, nil
 		}
 	}
 
+	return func() (net.Conn, error) {
+		d := getDialer(realTarget.Scheme, tlsConfig, config)
+		return d.Dial("tcp", realTargetAddr)
+	}
+
+}
+
+func addrFromURL(u *url.URL) string {
+	addr := u.Host
+
+	if u.Port() != "" {
+		if u.Scheme == "http" {
+			return addr + ":80"
+		}
+		if u.Scheme == "https" {
+			return addr + ":443"
+		}
+	}
+
+	return addr
+}
+
+type Dialer interface {
+	Dial(network, addr string) (c net.Conn, err error)
+}
+
+type DialerFunc func(network, addr string) (c net.Conn, err error)
+
+func (d DialerFunc) Dial(network, addr string) (c net.Conn, err error) {
+	return d(network, addr)
+}
+
+func getDialer(scheme string, tlsConfig *tls.Config, cfg *dynamic.HTTPClientConfig) Dialer {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	if cfg.ForwardingTimeouts != nil {
+		dialer.Timeout = time.Duration(cfg.ForwardingTimeouts.DialTimeout)
+	}
+
+	if scheme == "https" && tlsConfig != nil {
+		return DialerFunc(func(network, addr string) (c net.Conn, err error) {
+			return tls.DialWithDialer(dialer, network, addr, tlsConfig)
+		})
+	}
+	return dialer
 }
