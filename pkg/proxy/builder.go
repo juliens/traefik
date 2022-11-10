@@ -81,5 +81,5 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 		return b.httputilBuilder.Build(configName, config.HTTP, tlsConfig, target)
 	}
 
-	return b.fasthttpBuilder.Build(configName, config.HTTP, tlsConfig, target), nil
+	return b.fasthttpBuilder.Build(configName, config.HTTP, tlsConfig, target)
 }

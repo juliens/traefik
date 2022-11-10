@@ -3,6 +3,7 @@ package fasthttp
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -66,14 +67,31 @@ type ReverseProxy struct {
 }
 
 // NewReverseProxy creates a new ReverseProxy.
-func NewReverseProxy(target *url.URL, passHostHeader bool, connPool *ConnPool) *ReverseProxy {
+func NewReverseProxy(target *url.URL, passHostHeader bool, connPool *ConnPool) (*ReverseProxy, error) {
 	director := proxyhttputil.DirectorBuilder(target, passHostHeader)
-	if connPool.modifyRequest != nil {
+
+	proxyURL, err := http.ProxyFromEnvironment(&http.Request{URL: target})
+	if err != nil {
+		return nil, err
+	}
+
+	var proxyAuthorization string
+	if proxyURL != nil && proxyURL.Scheme != "socks5" && target.Scheme == "http" && proxyURL.User != nil {
+		username := proxyURL.User.Username()
+		password, _ := proxyURL.User.Password()
+
+		proxyAuthorization = base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+	}
+
+	if proxyURL != nil {
 		director = func(req *http.Request) {
 			director(req)
-			connPool.modifyRequest(req)
+			if proxyAuthorization != "" {
+				req.Header.Set("Proxy-Authorization", "Basic "+proxyAuthorization)
+			}
 		}
 	}
+
 	return &ReverseProxy{
 		director: director,
 		connPool: connPool,
@@ -82,7 +100,7 @@ func NewReverseProxy(target *url.URL, passHostHeader bool, connPool *ConnPool) *
 				return make([]byte, 32*1024)
 			},
 		},
-	}
+	}, nil
 }
 
 // FIXME auto gzip like in httputil reverse proxy?

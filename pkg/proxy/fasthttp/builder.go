@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"net"
 	"net/http"
@@ -34,9 +35,8 @@ func (r *ProxyBuilder) Delete(cfgName string) {
 }
 
 // Build builds a new ReverseProxy with the given configuration.
-func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) http.Handler {
+func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) (http.Handler, error) {
 	pool := r.getPool(cfgName, cfg, tlsConfig, target)
-
 	return NewReverseProxy(target, cfg.PassHostHeader, pool)
 }
 
@@ -78,13 +78,8 @@ func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig,
 
 	connPool := NewConnPool(config.MaxIdleConnsPerHost, idleConnTimeout, dialFn)
 
-	connPool.modifyRequest = getModifyRequest(target, tlsConfig)
 	r.pools[cfgName][target.String()] = connPool
 	return connPool
-}
-
-func getModifyRequest(target *url.URL, config *tls.Config) func(*http.Request) {
-
 }
 
 func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPClientConfig) func() (net.Conn, error) {
@@ -97,7 +92,7 @@ func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPC
 
 	realTargetAddr := addrFromURL(realTarget)
 
-	dialer := getDialer(proxyURL.Scheme, tlsConfig, config)
+	proxyDialer := getDialer(proxyURL.Scheme, tlsConfig, config)
 	proxyAddr := addrFromURL(proxyURL)
 
 	switch {
@@ -112,7 +107,7 @@ func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPC
 		}
 
 		// SOCKS5 implementation do not return errors.
-		socksDialer, _ := proxy.SOCKS5("tcp", proxyAddr, auth, dialer)
+		socksDialer, _ := proxy.SOCKS5("tcp", proxyAddr, auth, proxyDialer)
 
 		return func() (net.Conn, error) {
 			co, err := socksDialer.Dial("tcp", realTargetAddr)
@@ -135,22 +130,19 @@ func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPC
 		}
 
 	case realTarget.Scheme == "http":
-		if u := proxyURL.User; u != nil {
-			// FIXME
-			//auth = &proxy.Auth{User: u.Username()}
-			//auth.Password, _ = u.Password()
-			//h.Set("Proxy-Authorization", pa)
-		}
+		// Nothing to do the Proxy-Authorization header will be added by the ReverseProxy.
 
 	case realTarget.Scheme == "https":
-		// FIXME
-		//if pa := cm.proxyAuth(); pa != "" {
-		//	hdr = hdr.Clone()
-		//	hdr.Set("Proxy-Authorization", pa)
-		//}
+		hdr := make(http.Header)
+		if u := proxyURL.User; u != nil {
+			username := u.Username()
+			password, _ := u.Password()
+			auth := username + ":" + password
+			hdr.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
+		}
 
 		return func() (net.Conn, error) {
-			conn, err := dialer.Dial("tcp", proxyAddr)
+			conn, err := proxyDialer.Dial("tcp", proxyAddr)
 			if err != nil {
 				return nil, err
 			}
