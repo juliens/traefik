@@ -3,6 +3,7 @@ package fasthttp
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/traefik/traefik/v2/pkg/log"
@@ -22,8 +23,8 @@ func (c *conn) isExpired() bool {
 
 // ConnPool is a net.Conn pool implementation using channels.
 type ConnPool struct {
-	dialer func() (net.Conn, error)
-
+	dialer          func() (net.Conn, error)
+	modifyRequest   func(*http.Request)
 	idleConns       chan *conn
 	idleConnTimeout time.Duration
 }

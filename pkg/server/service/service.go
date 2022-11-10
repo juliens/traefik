@@ -29,21 +29,21 @@ import (
 	"github.com/traefik/traefik/v2/pkg/tls/client"
 )
 
+// FIXME tracing ( retry middleware ) verify split WroteHeaders / WroteRequest
+
 // FIXME clean fasthttp proxy
 
-// FIXME configure serversTransport through labels
+// FIXME handle closed conn from pool
 
-// FIXME Configure default serversTransport with CRDs
+// FIXME handle proxy env
 
-// FIXME experimental
+// FIXME test to compare stdlib / fasthttp
 
 // FIXME Bench final
 
 // FIXME Make sure that the UI is working properly for passhostheader/flushinterval/new transport struct.
 
 // FIXME integration tests
-
-// FIXME tracing ( retry middleware )
 
 // FIXME documentation vv
 // move flush interval documentation at the ServerTransport Level

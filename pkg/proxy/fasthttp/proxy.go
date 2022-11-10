@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/http/httputil"
 	"net/textproto"
 	"net/url"
@@ -66,8 +67,15 @@ type ReverseProxy struct {
 
 // NewReverseProxy creates a new ReverseProxy.
 func NewReverseProxy(target *url.URL, passHostHeader bool, connPool *ConnPool) *ReverseProxy {
+	director := proxyhttputil.DirectorBuilder(target, passHostHeader)
+	if connPool.modifyRequest != nil {
+		director = func(req *http.Request) {
+			director(req)
+			connPool.modifyRequest(req)
+		}
+	}
 	return &ReverseProxy{
-		director: proxyhttputil.DirectorBuilder(target, passHostHeader),
+		director: director,
 		connPool: connPool,
 		bufferPool: sync.Pool{
 			New: func() any {
@@ -79,6 +87,8 @@ func NewReverseProxy(target *url.URL, passHostHeader bool, connPool *ConnPool) *
 
 // FIXME auto gzip like in httputil reverse proxy?
 func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	trace := httptrace.ContextClientTrace(req.Context())
+
 	if req.Body != nil {
 		defer req.Body.Close()
 	}
@@ -160,10 +170,15 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// FIXME retry on broken idle connection
 	bw.Reset(co)
+
 	if err = outReq.Write(bw); err != nil {
 		proxyhttputil.ErrorHandler(rw, req, err)
 		return
 	}
+	if trace != nil && trace.WroteRequest != nil {
+		trace.WroteRequest(httptrace.WroteRequestInfo{})
+	}
+
 	bw.Flush()
 	p.writerPool.Put(bw)
 
