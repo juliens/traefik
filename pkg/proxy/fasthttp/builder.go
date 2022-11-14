@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,12 +21,14 @@ import (
 type ProxyBuilder struct {
 	// lock isn't needed because ProxyBuilder is not called concurrently.
 	pools map[string]map[string]*ConnPool
+	proxy func(*http.Request) (*url.URL, error)
 }
 
 // NewProxyBuilder creates a new ProxyBuilder.
 func NewProxyBuilder() *ProxyBuilder {
 	return &ProxyBuilder{
 		pools: make(map[string]map[string]*ConnPool),
+		proxy: http.ProxyFromEnvironment,
 	}
 }
 
@@ -35,28 +38,24 @@ func (r *ProxyBuilder) Delete(cfgName string) {
 }
 
 // Build builds a new ReverseProxy with the given configuration.
-func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) (http.Handler, error) {
-	pool := r.getPool(cfgName, cfg, tlsConfig, target)
-	return NewReverseProxy(target, cfg.PassHostHeader, pool)
-}
-
-func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) *ConnPool {
-	addr := target.Host
-	if target.Port() == "" {
-		if target.Scheme == "https" {
-			addr += ":443"
-		} else {
-			addr += ":80"
-		}
+func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config, targetURL *url.URL) (http.Handler, error) {
+	proxyURL, err := r.proxy(&http.Request{URL: targetURL})
+	if err != nil {
+		return nil, err
 	}
 
+	pool := r.getPool(cfgName, cfg, tlsConfig, targetURL, proxyURL)
+	return NewReverseProxy(targetURL, proxyURL, cfg.PassHostHeader, pool)
+}
+
+func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, targetURL *url.URL, proxyURL *url.URL) *ConnPool {
 	pool, ok := r.pools[cfgName]
 	if !ok {
 		pool = make(map[string]*ConnPool)
 		r.pools[cfgName] = pool
 	}
 
-	if connPool, ok := pool[target.String()]; ok {
+	if connPool, ok := pool[targetURL.String()]; ok {
 		return connPool
 	}
 
@@ -74,31 +73,28 @@ func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig,
 		idleConnTimeout = time.Duration(config.ForwardingTimeouts.IdleConnTimeout)
 	}
 
-	dialFn := getDialFn(target, tlsConfig, config)
+	dialFn := getDialFn(targetURL, proxyURL, tlsConfig, config)
 
 	connPool := NewConnPool(config.MaxIdleConnsPerHost, idleConnTimeout, dialFn)
 
-	r.pools[cfgName][target.String()] = connPool
+	r.pools[cfgName][targetURL.String()] = connPool
 	return connPool
 }
 
-func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPClientConfig) func() (net.Conn, error) {
-	proxyURL, err := http.ProxyFromEnvironment(&http.Request{URL: realTarget})
-	if err != nil {
+func getDialFn(targetURL *url.URL, proxyURL *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPClientConfig) func() (net.Conn, error) {
+	targetAddr := addrFromURL(targetURL)
+
+	if proxyURL == nil {
 		return func() (net.Conn, error) {
-			return nil, err
+			d := getDialer(targetURL.Scheme, tlsConfig, config)
+			return d.Dial("tcp", targetAddr)
 		}
 	}
-
-	realTargetAddr := addrFromURL(realTarget)
 
 	proxyDialer := getDialer(proxyURL.Scheme, tlsConfig, config)
 	proxyAddr := addrFromURL(proxyURL)
 
 	switch {
-	case proxyURL == nil:
-		// Nothing to do.
-
 	case proxyURL.Scheme == "socks5":
 		var auth *proxy.Auth
 		if u := proxyURL.User; u != nil {
@@ -108,32 +104,32 @@ func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPC
 
 		// SOCKS5 implementation do not return errors.
 		socksDialer, _ := proxy.SOCKS5("tcp", proxyAddr, auth, proxyDialer)
-
 		return func() (net.Conn, error) {
-			co, err := socksDialer.Dial("tcp", realTargetAddr)
+			co, err := socksDialer.Dial("tcp", targetAddr)
 			if err != nil {
 				return nil, err
 			}
 
-			if realTarget.Scheme == "https" {
+			if targetURL.Scheme == "https" {
 				c := &tls.Config{}
 				if tlsConfig != nil {
 					c = tlsConfig.Clone()
 				}
 
 				if c.ServerName == "" {
-					c.ServerName = realTarget.Hostname()
+					c.ServerName = targetURL.Hostname()
 				}
 				return tls.Client(co, c), nil
 			}
 			return co, nil
 		}
 
-	case realTarget.Scheme == "http":
+	case targetURL.Scheme == "http":
 		// Nothing to do the Proxy-Authorization header will be added by the ReverseProxy.
 
-	case realTarget.Scheme == "https":
+	case targetURL.Scheme == "https":
 		hdr := make(http.Header)
+		fmt.Println(proxyURL.User)
 		if u := proxyURL.User; u != nil {
 			username := u.Username()
 			password, _ := u.Password()
@@ -149,9 +145,9 @@ func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPC
 
 			connectReq := &http.Request{
 				Method: http.MethodConnect,
-				URL:    &url.URL{Opaque: realTargetAddr},
-				Host:   realTarget.Host,
-				Header: make(http.Header),
+				URL:    &url.URL{Opaque: targetAddr},
+				Host:   targetURL.Host,
+				Header: hdr,
 			}
 
 			// If there's no done channel (no deadline or cancellation
@@ -196,17 +192,18 @@ func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPC
 				if !ok {
 					return nil, errors.New("unknown status code")
 				}
+				fmt.Println("ERRROR", text)
 				return nil, errors.New(text)
 			}
 
-			if realTarget.Scheme == "https" {
+			if targetURL.Scheme == "https" {
 				c := &tls.Config{}
 				if tlsConfig != nil {
 					c = tlsConfig.Clone()
 				}
 
 				if c.ServerName == "" {
-					c.ServerName = realTarget.Hostname()
+					c.ServerName = targetURL.Hostname()
 				}
 				return tls.Client(conn, c), nil
 			}
@@ -215,8 +212,7 @@ func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPC
 	}
 
 	return func() (net.Conn, error) {
-		d := getDialer(realTarget.Scheme, tlsConfig, config)
-		return d.Dial("tcp", realTargetAddr)
+		return proxyDialer.Dial("tcp", proxyAddr)
 	}
 
 }
@@ -224,7 +220,7 @@ func getDialFn(realTarget *url.URL, tlsConfig *tls.Config, config *dynamic.HTTPC
 func addrFromURL(u *url.URL) string {
 	addr := u.Host
 
-	if u.Port() != "" {
+	if u.Port() == "" {
 		if u.Scheme == "http" {
 			return addr + ":80"
 		}

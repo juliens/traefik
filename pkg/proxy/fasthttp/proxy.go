@@ -63,43 +63,29 @@ type ReverseProxy struct {
 	writerPool      pool[*bufio.Writer]
 	limitReaderPool pool[*io.LimitedReader]
 
-	director func(req *http.Request)
+	director  func(req *http.Request)
+	proxyAuth string
 }
 
 // NewReverseProxy creates a new ReverseProxy.
-func NewReverseProxy(target *url.URL, passHostHeader bool, connPool *ConnPool) (*ReverseProxy, error) {
-	director := proxyhttputil.DirectorBuilder(target, passHostHeader)
-
-	proxyURL, err := http.ProxyFromEnvironment(&http.Request{URL: target})
-	if err != nil {
-		return nil, err
-	}
-
+func NewReverseProxy(target *url.URL, proxyURL *url.URL, passHostHeader bool, connPool *ConnPool) (*ReverseProxy, error) {
 	var proxyAuthorization string
-	if proxyURL != nil && proxyURL.Scheme != "socks5" && target.Scheme == "http" && proxyURL.User != nil {
+	if proxyURL != nil && proxyURL.User != nil && proxyURL.Scheme != "socks5" && target.Scheme == "http" {
 		username := proxyURL.User.Username()
 		password, _ := proxyURL.User.Password()
 
-		proxyAuthorization = base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-	}
-
-	if proxyURL != nil {
-		director = func(req *http.Request) {
-			director(req)
-			if proxyAuthorization != "" {
-				req.Header.Set("Proxy-Authorization", "Basic "+proxyAuthorization)
-			}
-		}
+		proxyAuthorization = "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
 	}
 
 	return &ReverseProxy{
-		director: director,
+		director: proxyhttputil.DirectorBuilder(target, passHostHeader),
 		connPool: connPool,
 		bufferPool: sync.Pool{
 			New: func() any {
 				return make([]byte, 32*1024)
 			},
 		},
+		proxyAuth: proxyAuthorization,
 	}, nil
 }
 
@@ -131,6 +117,10 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	defer fasthttp.ReleaseRequest(outReq)
 
 	outReq.Header.DisableNormalizing()
+
+	if p.proxyAuth != "" {
+		outReq.Header.Set("Proxy-Authorization", p.proxyAuth)
+	}
 
 	if announcedTrailer {
 		outReq.Header.Set("Te", "trailers")
