@@ -68,9 +68,9 @@ type ReverseProxy struct {
 }
 
 // NewReverseProxy creates a new ReverseProxy.
-func NewReverseProxy(target *url.URL, proxyURL *url.URL, passHostHeader bool, connPool *ConnPool) (*ReverseProxy, error) {
+func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool, connPool *ConnPool) (*ReverseProxy, error) {
 	var proxyAuthorization string
-	if proxyURL != nil && proxyURL.User != nil && proxyURL.Scheme != "socks5" && target.Scheme == "http" {
+	if proxyURL != nil && proxyURL.User != nil && proxyURL.Scheme != "socks5" && targetURL.Scheme == "http" {
 		username := proxyURL.User.Username()
 		password, _ := proxyURL.User.Password()
 
@@ -78,7 +78,7 @@ func NewReverseProxy(target *url.URL, proxyURL *url.URL, passHostHeader bool, co
 	}
 
 	return &ReverseProxy{
-		director: proxyhttputil.DirectorBuilder(target, passHostHeader),
+		director: proxyhttputil.DirectorBuilder(targetURL, passHostHeader),
 		connPool: connPool,
 		bufferPool: sync.Pool{
 			New: func() any {

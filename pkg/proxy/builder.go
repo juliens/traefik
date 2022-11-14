@@ -59,7 +59,7 @@ func (b *Builder) Update(newConfigs map[string]*dynamic.ServersTransport) {
 }
 
 // Build builds an HTTP proxy for the given URL using the ServersTransport with the given name.
-func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error) {
+func (b *Builder) Build(configName string, targetURL *url.URL) (http.Handler, error) {
 	if len(configName) == 0 {
 		configName = "default"
 	}
@@ -77,9 +77,9 @@ func (b *Builder) Build(configName string, target *url.URL) (http.Handler, error
 		return nil, err
 	}
 
-	if config.HTTP != nil && config.HTTP.EnableHTTP2 && target.Scheme == "https" || target.Scheme == "h2c" {
-		return b.httputilBuilder.Build(configName, config.HTTP, tlsConfig, target)
+	if config.HTTP != nil && config.HTTP.EnableHTTP2 && targetURL.Scheme == "https" || targetURL.Scheme == "h2c" {
+		return b.httputilBuilder.Build(configName, config.HTTP, tlsConfig, targetURL)
 	}
 
-	return b.fasthttpBuilder.Build(configName, config.HTTP, tlsConfig, target)
+	return b.fasthttpBuilder.Build(configName, config.HTTP, tlsConfig, targetURL)
 }

@@ -43,7 +43,7 @@ func (r *ProxyBuilder) Delete(cfgName string) {
 }
 
 // Build builds a new httputil.ReverseProxy with the given configuration.
-func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config, target *url.URL) (http.Handler, error) {
+func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config, targetURL *url.URL) (http.Handler, error) {
 	roundTripper, ok := r.roundTrippers[cfgName]
 	if !ok {
 		var err error
@@ -56,7 +56,7 @@ func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsC
 	}
 
 	return &httputil.ReverseProxy{
-		Director:     DirectorBuilder(target, cfg.PassHostHeader),
+		Director:     DirectorBuilder(targetURL, cfg.PassHostHeader),
 		Transport:    roundTripper,
 		BufferPool:   r.bufferPool,
 		ErrorHandler: ErrorHandler,

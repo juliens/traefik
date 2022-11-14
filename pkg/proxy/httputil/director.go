@@ -20,10 +20,10 @@ const StatusClientClosedRequest = 499
 const StatusClientClosedRequestText = "Client Closed Request"
 
 // DirectorBuilder returns a director modifying the incoming request before forwarding it to the backend.
-func DirectorBuilder(target *url.URL, passHostHeader bool) func(req *http.Request) {
+func DirectorBuilder(targetURL *url.URL, passHostHeader bool) func(req *http.Request) {
 	return func(outReq *http.Request) {
-		outReq.URL.Scheme = target.Scheme
-		outReq.URL.Host = target.Host
+		outReq.URL.Scheme = targetURL.Scheme
+		outReq.URL.Host = targetURL.Host
 
 		u := outReq.URL
 		if outReq.RequestURI != "" {
