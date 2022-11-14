@@ -214,7 +214,6 @@ func getDialFn(targetURL *url.URL, proxyURL *url.URL, tlsConfig *tls.Config, con
 	return func() (net.Conn, error) {
 		return proxyDialer.Dial("tcp", proxyAddr)
 	}
-
 }
 
 func addrFromURL(u *url.URL) string {

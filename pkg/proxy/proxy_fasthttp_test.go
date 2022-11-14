@@ -11,18 +11,24 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/proxy/fasthttp"
+	"github.com/traefik/traefik/v2/pkg/proxy/httputil"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
 )
 
-func buildFastHTTPProxy(u *url.URL) http.Handler {
-	return fasthttp.NewReverseProxy(u, true, fasthttp.NewConnPool(200, 0, func() (net.Conn, error) {
+func buildFastHTTPProxy(t *testing.T, u *url.URL) http.Handler {
+	f, err := fasthttp.NewReverseProxy(u, nil, true, fasthttp.NewConnPool(200, 0, func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
 	}))
+	require.NoError(t, err)
+
+	return f
 }
 
-func buildHTTPProxy(u *url.URL) http.Handler {
-	builder := fasthttp.NewProxyBuilder()
-	return builder.Build("default", &dynamic.HTTPClientConfig{PassHostHeader: true}, nil, u)
+func buildHTTPProxy(t *testing.T, u *url.URL) http.Handler {
+	f, err := httputil.NewProxyBuilder().Build("default", &dynamic.HTTPClientConfig{PassHostHeader: true}, nil, u)
+	require.NoError(t, err)
+
+	return f
 }
 
 func TestPassHostHeader(t *testing.T) {
@@ -35,7 +41,7 @@ func TestEscapedPath(t *testing.T) {
 	escapedPath(t, buildHTTPProxy)
 }
 
-func passHostHeader(t *testing.T, buildProxy func(u *url.URL) http.Handler) {
+func passHostHeader(t *testing.T, buildProxy func(*testing.T, *url.URL) http.Handler) {
 	t.Helper()
 
 	var gotHostHeader string
@@ -44,7 +50,7 @@ func passHostHeader(t *testing.T, buildProxy func(u *url.URL) http.Handler) {
 	}))
 
 	u := testhelpers.MustParseURL(backend.URL)
-	h := buildProxy(u)
+	h := buildProxy(t, u)
 	proxy := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		h.ServeHTTP(rw, req)
 	}))
@@ -56,7 +62,7 @@ func passHostHeader(t *testing.T, buildProxy func(u *url.URL) http.Handler) {
 	assert.Equal(t, target.Host, gotHostHeader)
 }
 
-func escapedPath(t *testing.T, builder func(u *url.URL) http.Handler) {
+func escapedPath(t *testing.T, builder func(*testing.T, *url.URL) http.Handler) {
 	t.Helper()
 
 	var gotEscapedPath string
@@ -65,7 +71,7 @@ func escapedPath(t *testing.T, builder func(u *url.URL) http.Handler) {
 	}))
 
 	u := testhelpers.MustParseURL(backend.URL)
-	h := builder(u)
+	h := builder(t, u)
 	proxy := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		h.ServeHTTP(rw, req)
 	}))

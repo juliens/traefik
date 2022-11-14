@@ -3,6 +3,7 @@ package fasthttp
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -14,51 +15,14 @@ import (
 	"time"
 
 	"github.com/armon/go-socks5"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
 	"github.com/traefik/traefik/v2/pkg/tls/generate"
 )
 
-type proxyHandler struct {
-	call func()
-}
-
-func newProxy(call func()) http.Handler {
-	return &proxyHandler{call: call}
-}
-
-func (p *proxyHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	p.call()
-	if req.Method == http.MethodConnect {
-		conn, err := net.Dial("tcp", req.Host)
-		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		hj, ok := rw.(http.Hijacker)
-		if !ok {
-			rw.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		rw.WriteHeader(http.StatusOK)
-		connHj, _, err := hj.Hijack()
-		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		go io.Copy(connHj, conn)
-		io.Copy(conn, connHj)
-		return
-	}
-	proxy := httputil.NewSingleHostReverseProxy(testhelpers.MustParseURL("http://" + req.Host))
-	proxy.ServeHTTP(rw, req)
-}
-
+// FIXME
 // func TestFastHTTPTrailer(t *testing.T) {
 //	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 //		rw.Header().Add("Te", "trailers")
@@ -119,116 +83,139 @@ const (
 	proxySocks5 = "socks"
 )
 
+type authCreds struct {
+	user     string
+	password string
+}
+
 func TestProxyFromEnvironment(t *testing.T) {
 	testCases := []struct {
 		desc      string
-		tls       bool
-		auth      bool
 		proxyType string
+		tls       bool
+		auth      *authCreds
 	}{
 		{
 			desc:      "Proxy HTTP with HTTP Backend",
 			proxyType: proxyHTTP,
 		},
 		{
-			desc:      "Proxy HTTP with HTTP Backend and proxy auth",
+			desc:      "Proxy HTTP with HTTP backend and proxy auth",
 			proxyType: proxyHTTP,
-			auth:      true,
 			tls:       false,
+			auth: &authCreds{
+				user:     "user",
+				password: "password",
+			},
 		},
 		{
-			desc:      "Proxy HTTP with HTTPS Backend",
+			desc:      "Proxy HTTP with HTTPS backend",
 			proxyType: proxyHTTP,
 			tls:       true,
 		},
 		{
-			desc:      "Proxy HTTP with HTTPS Backend with proxy auth",
+			desc:      "Proxy HTTP with HTTPS backend and proxy auth",
 			proxyType: proxyHTTP,
-			auth:      true,
 			tls:       true,
+			auth: &authCreds{
+				user:     "user",
+				password: "password",
+			},
 		},
 		{
-			desc:      "Proxy HTTPS with HTTP Backend",
+			desc:      "Proxy HTTPS with HTTP backend",
 			proxyType: proxyHTTPS,
 		},
 		{
-			desc:      "Proxy HTTPS with HTTP Backend and proxy auth",
+			desc:      "Proxy HTTPS with HTTP backend and proxy auth",
 			proxyType: proxyHTTPS,
-			auth:      true,
 			tls:       false,
+			auth: &authCreds{
+				user:     "user",
+				password: "password",
+			},
 		},
 		{
-			desc:      "Proxy HTTPS with HTTPS Backend",
+			desc:      "Proxy HTTPS with HTTPS backend",
 			proxyType: proxyHTTPS,
 			tls:       true,
 		},
 		{
-			desc:      "Proxy HTTPS with HTTPS Backend with proxy auth",
+			desc:      "Proxy HTTPS with HTTPS backend and proxy auth",
 			proxyType: proxyHTTPS,
-			auth:      true,
+			tls:       true,
+			auth: &authCreds{
+				user:     "user",
+				password: "password",
+			},
+		},
+		{
+			desc:      "Proxy Socks5 with HTTP backend",
+			proxyType: proxySocks5,
+		},
+		{
+			desc:      "Proxy Socks5 with HTTP backend and proxy auth",
+			proxyType: proxySocks5,
+			auth: &authCreds{
+				user:     "user",
+				password: "password",
+			},
+		},
+		{
+			desc:      "Proxy Socks5 with HTTPS backend",
+			proxyType: proxySocks5,
 			tls:       true,
 		},
 		{
-			desc:      "Proxy Socks5 with HTTP Backend",
-			proxyType: proxySocks5,
-		},
-		{
-			desc:      "Proxy Socks5 with HTTP Backend with auth",
-			proxyType: proxySocks5,
-			auth:      true,
-		},
-
-		{
-			desc:      "Proxy Socks5 with HTTPS Backend",
+			desc:      "Proxy Socks5 with HTTPS backend and proxy auth",
 			proxyType: proxySocks5,
 			tls:       true,
-		},
-		{
-			desc:      "Proxy Socks5 with HTTPS Backend with auth",
-			proxyType: proxySocks5,
-			auth:      true,
-			tls:       true,
+			auth: &authCreds{
+				user:     "user",
+				password: "password",
+			},
 		},
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
-			log.SetLevel(logrus.DebugLevel)
-			backendURL, backendCert := backendServer(t, test.tls, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				rw.Write([]byte("backend"))
+			backendURL, backendCert := newBackendServer(t, test.tls, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				_, _ = rw.Write([]byte("backend"))
 			}))
 
-			var proxyfied bool
-			fwdProxyHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				proxyfied = true
+			var proxyCalled bool
+			proxyHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				proxyCalled = true
 
-				if test.auth {
-					require.Equal(t, "Basic dXNlcjpwYXNzd29yZA==", req.Header.Get("Proxy-Authorization"))
+				if test.auth != nil {
+					proxyAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(test.auth.user+":"+test.auth.password))
+					require.Equal(t, proxyAuth, req.Header.Get("Proxy-Authorization"))
 				}
 
-				if req.Method == http.MethodConnect {
-					conn, err := net.Dial("tcp", req.Host)
-					require.NoError(t, err)
-
-					hj, ok := rw.(http.Hijacker)
-					require.True(t, ok)
-
-					rw.WriteHeader(http.StatusOK)
-					connHj, _, err := hj.Hijack()
-					require.NoError(t, err)
-
-					go io.Copy(connHj, conn)
-					io.Copy(conn, connHj)
+				if req.Method != http.MethodConnect {
+					proxy := httputil.NewSingleHostReverseProxy(testhelpers.MustParseURL("http://" + req.Host))
+					proxy.ServeHTTP(rw, req)
 					return
 				}
 
-				proxy := httputil.NewSingleHostReverseProxy(testhelpers.MustParseURL("http://" + req.Host))
-				proxy.ServeHTTP(rw, req)
+				// CONNECT method
+				conn, err := net.Dial("tcp", req.Host)
+				require.NoError(t, err)
+
+				hj, ok := rw.(http.Hijacker)
+				require.True(t, ok)
+
+				rw.WriteHeader(http.StatusOK)
+				connHj, _, err := hj.Hijack()
+				require.NoError(t, err)
+
+				go io.Copy(connHj, conn)
+				io.Copy(conn, connHj)
 			})
 
 			var proxyURL string
 			var proxyCert *x509.Certificate
+
 			switch test.proxyType {
 			case proxySocks5:
 				ln, err := net.Listen("tcp", ":0")
@@ -240,11 +227,11 @@ func TestProxyFromEnvironment(t *testing.T) {
 					conn, err := ln.Accept()
 					require.NoError(t, err)
 
-					proxyfied = true
+					proxyCalled = true
 
 					conf := &socks5.Config{}
-					if test.auth {
-						conf.Credentials = socks5.StaticCredentials{"user": "password"}
+					if test.auth != nil {
+						conf.Credentials = socks5.StaticCredentials{test.auth.user: test.auth.password}
 					}
 
 					server, err := socks5.New(conf)
@@ -256,43 +243,49 @@ func TestProxyFromEnvironment(t *testing.T) {
 					err = ln.Close()
 					require.NoError(t, err)
 				}()
+
 			case proxyHTTP:
-				proxy := httptest.NewServer(fwdProxyHandler)
-				t.Cleanup(proxy.Close)
+				proxyServer := httptest.NewServer(proxyHandler)
+				t.Cleanup(proxyServer.Close)
 
-				proxyURL = proxy.URL
+				proxyURL = proxyServer.URL
+
 			case proxyHTTPS:
-				proxy := httptest.NewServer(fwdProxyHandler)
-				t.Cleanup(proxy.Close)
+				proxyServer := httptest.NewServer(proxyHandler)
+				t.Cleanup(proxyServer.Close)
 
-				proxyURL = proxy.URL
-				proxyCert = proxy.Certificate()
+				proxyURL = proxyServer.URL
+				proxyCert = proxyServer.Certificate()
 			}
 
 			builder := NewProxyBuilder()
 			builder.proxy = func(req *http.Request) (*url.URL, error) {
 				u, err := url.Parse(proxyURL)
-				if test.auth {
-					u.User = url.UserPassword("user", "password")
+				if err != nil {
+					return nil, err
 				}
-				return u, err
+
+				if test.auth != nil {
+					u.User = url.UserPassword(test.auth.user, test.auth.password)
+				}
+				return u, nil
 			}
 
-			certpool := x509.NewCertPool()
+			certPool := x509.NewCertPool()
+			if proxyCert != nil {
+				certPool.AddCert(proxyCert)
+			}
 			if backendCert != nil {
 				cert, err := x509.ParseCertificate(backendCert.Certificate[0])
 				require.NoError(t, err)
 
-				certpool.AddCert(cert)
-			}
-			if proxyCert != nil {
-				certpool.AddCert(proxyCert)
+				certPool.AddCert(cert)
 			}
 			tlsConfig := &tls.Config{
-				RootCAs: certpool,
+				RootCAs: certPool,
 			}
 
-			reverseProxy, err := builder.Build("toto", &dynamic.HTTPClientConfig{}, tlsConfig, testhelpers.MustParseURL(backendURL))
+			reverseProxy, err := builder.Build("foo", &dynamic.HTTPClientConfig{}, tlsConfig, testhelpers.MustParseURL(backendURL))
 			require.NoError(t, err)
 
 			reverseProxyServer := httptest.NewServer(reverseProxy)
@@ -307,7 +300,7 @@ func TestProxyFromEnvironment(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, "backend", string(body))
-			assert.True(t, proxyfied)
+			assert.True(t, proxyCalled)
 		})
 	}
 }
@@ -326,7 +319,7 @@ func newCertificate(domain string) (*tls.Certificate, error) {
 	return &certificate, nil
 }
 
-func backendServer(t *testing.T, isTLS bool, handler http.Handler) (string, *tls.Certificate) {
+func newBackendServer(t *testing.T, isTLS bool, handler http.Handler) (string, *tls.Certificate) {
 	var err error
 	var ln net.Listener
 	var cert *tls.Certificate
