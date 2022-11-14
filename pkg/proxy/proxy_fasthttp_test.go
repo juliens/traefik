@@ -15,6 +15,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
 )
 
+// FIXME: refactor
 func buildFastHTTPProxy(t *testing.T, u *url.URL) http.Handler {
 	f, err := fasthttp.NewReverseProxy(u, nil, true, fasthttp.NewConnPool(200, 0, func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
