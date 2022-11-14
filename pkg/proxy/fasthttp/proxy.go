@@ -54,6 +54,15 @@ func (p *pool[T]) Put(x T) {
 	p.pool.Put(x)
 }
 
+type buffConn struct {
+	*bufio.Reader
+	net.Conn
+}
+
+func (b buffConn) Read(p []byte) (int, error) {
+	return b.Reader.Read(p)
+}
+
 // ReverseProxy is the FastHTTP reverse proxy implementation.
 type ReverseProxy struct {
 	connPool *ConnPool
@@ -209,7 +218,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// Deal with 101 Switching Protocols responses: (WebSocket, h2c, etc)
 	if res.StatusCode() == http.StatusSwitchingProtocols {
-		handleUpgradeResponse(rw, req, reqUpType, res, bufferedConnection{Conn: co, Reader: br})
+		handleUpgradeResponse(rw, req, reqUpType, res, buffConn{Conn: co, Reader: br})
 		return
 	}
 
@@ -316,13 +325,4 @@ func removeConnectionHeadersFastHTTP(h *fasthttp.ResponseHeader) {
 			h.DelBytes(sf)
 		}
 	}
-}
-
-type bufferedConnection struct {
-	*bufio.Reader
-	net.Conn
-}
-
-func (b bufferedConnection) Read(p []byte) (int, error) {
-	return b.Reader.Read(p)
 }
