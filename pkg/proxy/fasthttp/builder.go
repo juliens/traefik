@@ -196,7 +196,7 @@ func getDialFn(targetURL *url.URL, proxyURL *url.URL, tlsConfig *tls.Config, con
 				conn.Close()
 				return nil, err
 			}
-			if resp.StatusCode != 200 {
+			if resp.StatusCode != http.StatusOK {
 				_, text, ok := strings.Cut(resp.Status, " ")
 				conn.Close()
 				if !ok {

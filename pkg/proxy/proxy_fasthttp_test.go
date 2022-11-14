@@ -17,6 +17,8 @@ import (
 
 // FIXME: refactor
 func buildFastHTTPProxy(t *testing.T, u *url.URL) http.Handler {
+	t.Helper()
+
 	f, err := fasthttp.NewReverseProxy(u, nil, true, fasthttp.NewConnPool(200, 0, func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
 	}))
@@ -26,6 +28,8 @@ func buildFastHTTPProxy(t *testing.T, u *url.URL) http.Handler {
 }
 
 func buildHTTPProxy(t *testing.T, u *url.URL) http.Handler {
+	t.Helper()
+	
 	f, err := httputil.NewProxyBuilder().Build("default", &dynamic.HTTPClientConfig{PassHostHeader: true}, nil, u)
 	require.NoError(t, err)
 

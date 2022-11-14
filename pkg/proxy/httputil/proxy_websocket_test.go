@@ -169,7 +169,6 @@ func TestWebSocketPassHost(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.desc, func(t *testing.T) {
-
 			mux := http.NewServeMux()
 			mux.Handle("/ws", websocket.Handler(func(conn *websocket.Conn) {
 				req := conn.Request()

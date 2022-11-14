@@ -80,7 +80,3 @@ func startTestServerWithResponse(response []byte) (ts *httptest.Server) {
 	ts.Start()
 	return ts
 }
-
-func boolRef(b bool) *bool {
-	return &b
-}

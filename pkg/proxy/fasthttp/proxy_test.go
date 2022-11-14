@@ -320,20 +320,22 @@ func newCertificate(domain string) (*tls.Certificate, error) {
 }
 
 func newBackendServer(t *testing.T, isTLS bool, handler http.Handler) (string, *tls.Certificate) {
+	t.Helper()
+
 	var err error
 	var ln net.Listener
 	var cert *tls.Certificate
 
+	scheme := "http"
 	domain := "backend.localhost"
-	var scheme = "http"
 	if isTLS {
+		scheme = "https"
+
 		cert, err = newCertificate(domain)
 		require.NoError(t, err)
 
 		ln, err = tls.Listen("tcp", ":0", &tls.Config{Certificates: []tls.Certificate{*cert}})
 		require.NoError(t, err)
-
-		scheme = "https"
 	} else {
 		ln, err = net.Listen("tcp", ":0")
 		require.NoError(t, err)
