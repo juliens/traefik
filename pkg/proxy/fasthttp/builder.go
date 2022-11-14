@@ -17,6 +17,16 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+type dialer interface {
+	Dial(network, addr string) (c net.Conn, err error)
+}
+
+type dialerFunc func(network, addr string) (c net.Conn, err error)
+
+func (d dialerFunc) Dial(network, addr string) (c net.Conn, err error) {
+	return d(network, addr)
+}
+
 // ProxyBuilder handles the connection pools for the FastHTTP proxies.
 type ProxyBuilder struct {
 	// lock isn't needed because ProxyBuilder is not called concurrently.
@@ -216,6 +226,24 @@ func getDialFn(targetURL *url.URL, proxyURL *url.URL, tlsConfig *tls.Config, con
 	}
 }
 
+func getDialer(scheme string, tlsConfig *tls.Config, cfg *dynamic.HTTPClientConfig) dialer {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	if cfg.ForwardingTimeouts != nil {
+		dialer.Timeout = time.Duration(cfg.ForwardingTimeouts.DialTimeout)
+	}
+
+	if scheme == "https" && tlsConfig != nil {
+		return dialerFunc(func(network, addr string) (c net.Conn, err error) {
+			return tls.DialWithDialer(dialer, network, addr, tlsConfig)
+		})
+	}
+	return dialer
+}
+
 func addrFromURL(u *url.URL) string {
 	addr := u.Host
 
@@ -229,32 +257,4 @@ func addrFromURL(u *url.URL) string {
 	}
 
 	return addr
-}
-
-type Dialer interface {
-	Dial(network, addr string) (c net.Conn, err error)
-}
-
-type DialerFunc func(network, addr string) (c net.Conn, err error)
-
-func (d DialerFunc) Dial(network, addr string) (c net.Conn, err error) {
-	return d(network, addr)
-}
-
-func getDialer(scheme string, tlsConfig *tls.Config, cfg *dynamic.HTTPClientConfig) Dialer {
-	dialer := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
-
-	if cfg.ForwardingTimeouts != nil {
-		dialer.Timeout = time.Duration(cfg.ForwardingTimeouts.DialTimeout)
-	}
-
-	if scheme == "https" && tlsConfig != nil {
-		return DialerFunc(func(network, addr string) (c net.Conn, err error) {
-			return tls.DialWithDialer(dialer, network, addr, tlsConfig)
-		})
-	}
-	return dialer
 }
