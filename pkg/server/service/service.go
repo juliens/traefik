@@ -31,15 +31,13 @@ import (
 
 // FIXME clean fasthttp proxy
 
-// FIXME handle closed conn from pool
-
 // FIXME Bench final
-
-// FIXME Make sure that the UI is working properly for passhostheader/flushinterval/new transport struct.
 
 // FIXME integration tests
 
-// FIXME tracing ( retry middleware ) verify split WroteHeaders / WroteRequest
+// FIXME handle closed conn from pool TEST ?
+
+// FIXME Make sure that the UI is working properly for passhostheader/flushinterval/new transport struct.
 
 // FIXME documentation vv
 // move flush interval documentation at the ServerTransport Level

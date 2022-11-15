@@ -40,6 +40,8 @@ func (w *WriteFlusher) Write(b []byte) (int, error) {
 }
 
 func handleUpgradeResponse(rw http.ResponseWriter, req *http.Request, reqUpType string, res *fasthttp.Response, backConn net.Conn) {
+	defer backConn.Close()
+
 	resUpType := upgradeTypeFastHTTP(&res.Header)
 
 	if !strings.EqualFold(reqUpType, resUpType) {

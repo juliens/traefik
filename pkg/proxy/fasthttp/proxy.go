@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/traefik/traefik/v2/pkg/log"
 	proxyhttputil "github.com/traefik/traefik/v2/pkg/proxy/httputil"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/net/http/httpguts"
@@ -97,7 +98,6 @@ func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool,
 	}, nil
 }
 
-// FIXME auto gzip like in httputil reverse proxy?
 func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if req.Body != nil {
 		defer req.Body.Close()
@@ -171,51 +171,54 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// FIXME handle context done
-	for {
-		retryable, err := p.roundTrip(rw, req, outReq, reqUpType)
-		if err == nil {
-			return
-		}
-
-		if !retryable && !isReplayable(req) {
-			proxyhttputil.ErrorHandler(rw, req, err)
-			return
-		}
-
-		// rewind body
+	err := p.roundTrip(rw, req, outReq, reqUpType)
+	if err != nil {
+		proxyhttputil.ErrorHandler(rw, req, err)
 	}
 }
 
-// FIXME close/release
-func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outReq *fasthttp.Request, reqUpType string) (bool, error) {
+// About compression:
+// we don't want to ask for compress version automatically because
+// - it will cost ( in Traefik )
+// - most clients already ask for compression (passthrough)
+//
+// About 100 Continue:
+// ReverseProxy should just send 100 Continue to the client ( like Redirect )
+func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outReq *fasthttp.Request, reqUpType string) error {
 	trace := httptrace.ContextClientTrace(req.Context())
+	var co net.Conn
 
-	co, err := p.connPool.AcquireConn()
-	if err != nil {
-		return false, fmt.Errorf("acquire conn: %w", err)
+	for {
+		select {
+		case <-req.Context().Done():
+			return req.Context().Err()
+		default:
+
+		}
+
+		var err error
+		co, err = p.connPool.AcquireConn()
+		if err != nil {
+			return fmt.Errorf("acquire conn: %w", err)
+		}
+
+		cwc := &writeCounterWriter{Conn: co}
+		err = p.writeRequest(cwc, outReq)
+		if cwc.written && trace != nil && trace.WroteRequest != nil {
+			trace.WroteRequest(httptrace.WroteRequestInfo{})
+		}
+		if err == nil {
+			break
+		}
+
+		co.Close()
+
+		log.FromContext(req.Context()).Debugf("Error while writing request: %v", err)
+
+		if cwc.written && !isReplayable(req) {
+			return err
+		}
 	}
-
-	bw := p.writerPool.Get()
-	if bw == nil {
-		bw = bufio.NewWriterSize(co, 64*1024)
-	}
-
-	bw.Reset(co)
-
-	if err = outReq.Write(bw); err != nil {
-		return true, err
-	}
-	if trace != nil && trace.WroteRequest != nil {
-		trace.WroteRequest(httptrace.WroteRequestInfo{})
-	}
-
-	err = bw.Flush()
-	if err != nil {
-		return true, err
-	}
-
-	p.writerPool.Put(bw)
 
 	br := p.readerPool.Get()
 	if br == nil {
@@ -224,13 +227,22 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 	br.Reset(co)
 
-	// -> Non retryable
-
 	res := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(res)
 
-	if err = res.Header.Read(br); err != nil {
-		return false, err
+	// FIXME fixPragmaNoCache
+	// RFC 7234, section 5.4: Should treat
+	//
+	//	Pragma: no-cache
+	//
+	// like
+	//
+	//	Cache-Control: no-cache
+
+	// FIXME TransferEncoding should overwrite contentLength see transfer.readTransfer
+	if err := res.Header.Read(br); err != nil {
+		co.Close()
+		return err
 	}
 
 	announcedTrailers := res.Header.Peek("Trailer")
@@ -239,7 +251,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 	// Deal with 101 Switching Protocols responses: (WebSocket, h2c, etc)
 	if res.StatusCode() == http.StatusSwitchingProtocols {
 		handleUpgradeResponse(rw, req, reqUpType, res, buffConn{Conn: co, Reader: br})
-		return false, err
+		return nil
 	}
 
 	removeConnectionHeadersFastHTTP(&res.Header)
@@ -266,7 +278,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 		_, err := io.CopyBuffer(&WriteFlusher{rw}, cbr, b.([]byte))
 		if err != nil {
 			co.Close()
-			return false, err
+			return err
 		}
 
 		res.Header.Reset()
@@ -274,7 +286,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 		err = res.Header.ReadTrailer(br)
 		if err != nil {
 			co.Close()
-			return false, err
+			return err
 		}
 
 		res.Header.VisitAll(func(key, value []byte) {
@@ -300,7 +312,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 		if err != nil {
 			if err != nil {
 				co.Close()
-				return false, err
+				return err
 			}
 		}
 
@@ -312,12 +324,12 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 	p.readerPool.Put(br)
 	p.connPool.ReleaseConn(co)
 
-	return false, err
+	return nil
 }
 
 // isReplayable returns whether the request is replayable.
 func isReplayable(req *http.Request) bool {
-	if req.Body == nil || req.Body == http.NoBody || req.GetBody != nil {
+	if req.Body == nil || req.Body == http.NoBody {
 		switch req.Method {
 		case "GET", "HEAD", "OPTIONS", "TRACE":
 			return true
@@ -367,4 +379,38 @@ func removeConnectionHeadersFastHTTP(h *fasthttp.ResponseHeader) {
 			h.DelBytes(sf)
 		}
 	}
+}
+
+func (p *ReverseProxy) writeRequest(co net.Conn, outReq *fasthttp.Request) error {
+	bw := p.writerPool.Get()
+	if bw == nil {
+		bw = bufio.NewWriterSize(co, 64*1024)
+	}
+
+	bw.Reset(co)
+
+	if err := outReq.Write(bw); err != nil {
+		return err
+	}
+
+	err := bw.Flush()
+	if err != nil {
+		return err
+	}
+
+	p.writerPool.Put(bw)
+	return nil
+}
+
+type writeCounterWriter struct {
+	net.Conn
+	written bool
+}
+
+func (w *writeCounterWriter) Write(p []byte) (int, error) {
+	n, err := w.Conn.Write(p)
+	if n > 0 {
+		w.written = true
+	}
+	return n, err
 }
