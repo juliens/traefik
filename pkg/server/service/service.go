@@ -35,10 +35,6 @@ import (
 
 // FIXME handle closed conn from pool
 
-// FIXME handle proxy env
-
-// FIXME test to compare stdlib / fasthttp
-
 // FIXME Bench final
 
 // FIXME Make sure that the UI is working properly for passhostheader/flushinterval/new transport struct.
