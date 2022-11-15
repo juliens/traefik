@@ -128,7 +128,7 @@ func Test_EscapedPath(t *testing.T) {
 func buildFastHTTPProxy(t *testing.T, u *url.URL, cfg *dynamic.HTTPClientConfig) http.Handler {
 	t.Helper()
 
-	f, err := fasthttp.NewReverseProxy(u, nil, cfg.PassHostHeader, fasthttp.NewConnPool(200, 0, func() (net.Conn, error) {
+	f, err := fasthttp.NewReverseProxy(u, nil, cfg.PassHostHeader, 0, fasthttp.NewConnPool(200, 0, func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
 	}))
 	require.NoError(t, err)

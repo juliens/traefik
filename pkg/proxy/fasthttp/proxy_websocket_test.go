@@ -353,7 +353,7 @@ func TestWebSocketRequestWithHeadersInResponseWriter(t *testing.T) {
 
 	u := parseURI(t, srv.URL)
 
-	f, err := NewReverseProxy(u, nil, true, NewConnPool(1, 0, func() (net.Conn, error) {
+	f, err := NewReverseProxy(u, nil, true, 0, NewConnPool(1, 0, func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
 	}))
 	require.NoError(t, err)
@@ -425,7 +425,7 @@ func TestWebSocketUpgradeFailed(t *testing.T) {
 	defer srv.Close()
 
 	u := parseURI(t, srv.URL)
-	f, err := NewReverseProxy(u, nil, true, NewConnPool(1, 0, func() (net.Conn, error) {
+	f, err := NewReverseProxy(u, nil, true, 0, NewConnPool(1, 0, func() (net.Conn, error) {
 		return net.Dial("tcp", u.Host)
 	}))
 	require.NoError(t, err)
@@ -655,7 +655,7 @@ func createProxyWithForwarder(t *testing.T, uri string, pool *ConnPool) *httptes
 	t.Helper()
 
 	u := parseURI(t, uri)
-	proxy, err := NewReverseProxy(u, nil, true, pool)
+	proxy, err := NewReverseProxy(u, nil, true, 0, pool)
 	require.NoError(t, err)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

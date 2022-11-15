@@ -136,8 +136,7 @@
 					{
 						"url": "http://10.42.0.7:80"
 					}
-				],
-				"passHostHeader": true,
+				]
 			},
 			"status": "enabled",
 			"usedBy": [
@@ -157,8 +156,7 @@
 					{
 						"url": "http://10.42.0.7:80"
 					}
-				],
-				"passHostHeader": true,
+				]
 			},
 			"status": "enabled",
 			"usedBy": [
@@ -179,7 +177,6 @@
 						"url": "http://10.42.0.7:80"
 					}
 				],
-				"passHostHeader": true,
 				"serversTransport": "default-mytransport@kubernetescrd"
 			},
 			"status": "enabled",
@@ -200,8 +197,7 @@
 					{
 						"url": "http://10.42.0.7:80"
 					}
-				],
-				"passHostHeader": true,
+				]
 			},
 			"status": "enabled",
 			"serverStatus": {

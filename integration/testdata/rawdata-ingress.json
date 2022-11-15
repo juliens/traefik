@@ -120,8 +120,7 @@
 					{
 						"url": "XXXX"
 					}
-				],
-				"passHostHeader": true,
+				]
 			},
 			"status": "enabled",
 			"usedBy": [
@@ -142,8 +141,7 @@
 					{
 						"url": "http://10.42.0.8:80"
 					}
-				],
-				"passHostHeader": true,
+				]
 			},
 			"status": "enabled",
 			"usedBy": [

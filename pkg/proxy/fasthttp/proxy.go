@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/traefik/traefik/v2/pkg/log"
 	proxyhttputil "github.com/traefik/traefik/v2/pkg/proxy/httputil"
@@ -75,10 +77,12 @@ type ReverseProxy struct {
 
 	director  func(req *http.Request)
 	proxyAuth string
+
+	responseHeaderTimeout time.Duration
 }
 
 // NewReverseProxy creates a new ReverseProxy.
-func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool, connPool *ConnPool) (*ReverseProxy, error) {
+func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool, responseHeaderTimeout time.Duration, connPool *ConnPool) (*ReverseProxy, error) {
 	var proxyAuth string
 	if proxyURL != nil && proxyURL.User != nil && proxyURL.Scheme != "socks5" && targetURL.Scheme == "http" {
 		username := proxyURL.User.Username()
@@ -87,9 +91,10 @@ func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool,
 	}
 
 	return &ReverseProxy{
-		director:  proxyhttputil.DirectorBuilder(targetURL, passHostHeader),
-		proxyAuth: proxyAuth,
-		connPool:  connPool,
+		director:              proxyhttputil.DirectorBuilder(targetURL, passHostHeader),
+		proxyAuth:             proxyAuth,
+		connPool:              connPool,
+		responseHeaderTimeout: responseHeaderTimeout,
 		bufferPool: sync.Pool{
 			New: func() any {
 				return make([]byte, 32*1024)
@@ -99,6 +104,9 @@ func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool,
 }
 
 func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// This will clone Header and URL in order to keep originals for middlewares
+	req = req.Clone(req.Context())
+
 	if req.Body != nil {
 		defer req.Body.Close()
 	}
@@ -240,9 +248,36 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 	//	Cache-Control: no-cache
 
 	// FIXME TransferEncoding should overwrite contentLength see transfer.readTransfer
-	if err := res.Header.Read(br); err != nil {
+
+	var responseHeaderTimeoutCh <-chan time.Time
+	if p.responseHeaderTimeout > 0 {
+		timer := time.NewTimer(p.responseHeaderTimeout)
+		defer timer.Stop()
+		responseHeaderTimeoutCh = timer.C
+	}
+
+	errChan := make(chan error, 1)
+	go func() {
+		res.Header.SetNoDefaultContentType(true)
+
+		if err := res.Header.Read(br); err != nil {
+			errChan <- err
+		}
+		errChan <- nil
+	}()
+
+	select {
+	case err := <-errChan:
+		if err != nil {
+			co.Close()
+			return err
+		}
+	case <-responseHeaderTimeoutCh:
 		co.Close()
-		return err
+		return timeoutError{errors.New("timeout awaiting response headers")}
+	case <-req.Context().Done():
+		co.Close()
+		return req.Context().Err()
 	}
 
 	announcedTrailers := res.Header.Peek("Trailer")
@@ -413,4 +448,16 @@ func (w *writeCounterWriter) Write(p []byte) (int, error) {
 		w.written = true
 	}
 	return n, err
+}
+
+type timeoutError struct {
+	error
+}
+
+func (t timeoutError) Timeout() bool {
+	return true
+}
+
+func (t timeoutError) Temporary() bool {
+	return false
 }

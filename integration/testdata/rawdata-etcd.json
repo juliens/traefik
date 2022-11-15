@@ -178,8 +178,7 @@
           {
             "url": "http://10.0.1.1:8889"
           }
-        ],
-        "passHostHeader": true,
+        ]
       },
       "status": "enabled",
       "usedBy": [
@@ -200,8 +199,7 @@
           {
             "url": "http://10.0.1.2:8889"
           }
-        ],
-        "passHostHeader": true,
+        ]
       },
       "status": "enabled"
     },
@@ -214,8 +212,7 @@
           {
             "url": "http://10.0.1.3:8889"
           }
-        ],
-        "passHostHeader": true,
+        ]
       },
       "status": "enabled"
     }

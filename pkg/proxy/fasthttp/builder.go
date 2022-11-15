@@ -54,8 +54,12 @@ func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsC
 		return nil, err
 	}
 
+	var responseHeaderTimeout time.Duration
+	if cfg.ForwardingTimeouts != nil {
+		responseHeaderTimeout = time.Duration(cfg.ForwardingTimeouts.ResponseHeaderTimeout)
+	}
 	pool := r.getPool(cfgName, cfg, tlsConfig, targetURL, proxyURL)
-	return NewReverseProxy(targetURL, proxyURL, cfg.PassHostHeader, pool)
+	return NewReverseProxy(targetURL, proxyURL, cfg.PassHostHeader, responseHeaderTimeout, pool)
 }
 
 func (r *ProxyBuilder) getPool(cfgName string, config *dynamic.HTTPClientConfig, tlsConfig *tls.Config, targetURL *url.URL, proxyURL *url.URL) *ConnPool {

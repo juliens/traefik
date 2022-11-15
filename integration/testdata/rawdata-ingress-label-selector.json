@@ -87,8 +87,7 @@
 					{
 						"url": "http://10.42.0.7:80"
 					}
-				],
-				"passHostHeader": true,
+				]
 			},
 			"status": "enabled",
 			"usedBy": [
