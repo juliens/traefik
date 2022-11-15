@@ -99,8 +99,6 @@ func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool,
 
 // FIXME auto gzip like in httputil reverse proxy?
 func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	trace := httptrace.ContextClientTrace(req.Context())
-
 	if req.Body != nil {
 		defer req.Body.Close()
 	}
@@ -173,10 +171,29 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	// FIXME handle context done
+	for {
+		retryable, err := p.roundTrip(rw, req, outReq, reqUpType)
+		if err == nil {
+			return
+		}
+
+		if !retryable && !isReplayable(req) {
+			proxyhttputil.ErrorHandler(rw, req, err)
+			return
+		}
+
+		// rewind body
+	}
+}
+
+// FIXME close/release
+func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outReq *fasthttp.Request, reqUpType string) (bool, error) {
+	trace := httptrace.ContextClientTrace(req.Context())
+
 	co, err := p.connPool.AcquireConn()
 	if err != nil {
-		proxyhttputil.ErrorHandler(rw, req, fmt.Errorf("acquire conn: %w", err))
-		return
+		return false, fmt.Errorf("acquire conn: %w", err)
 	}
 
 	bw := p.writerPool.Get()
@@ -184,18 +201,20 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		bw = bufio.NewWriterSize(co, 64*1024)
 	}
 
-	// FIXME retry on broken idle connection
 	bw.Reset(co)
 
 	if err = outReq.Write(bw); err != nil {
-		proxyhttputil.ErrorHandler(rw, req, err)
-		return
+		return true, err
 	}
 	if trace != nil && trace.WroteRequest != nil {
 		trace.WroteRequest(httptrace.WroteRequestInfo{})
 	}
 
-	bw.Flush()
+	err = bw.Flush()
+	if err != nil {
+		return true, err
+	}
+
 	p.writerPool.Put(bw)
 
 	br := p.readerPool.Get()
@@ -205,12 +224,13 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	br.Reset(co)
 
+	// -> Non retryable
+
 	res := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(res)
 
 	if err = res.Header.Read(br); err != nil {
-		co.Close()
-		return
+		return false, err
 	}
 
 	announcedTrailers := res.Header.Peek("Trailer")
@@ -219,7 +239,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Deal with 101 Switching Protocols responses: (WebSocket, h2c, etc)
 	if res.StatusCode() == http.StatusSwitchingProtocols {
 		handleUpgradeResponse(rw, req, reqUpType, res, buffConn{Conn: co, Reader: br})
-		return
+		return false, err
 	}
 
 	removeConnectionHeadersFastHTTP(&res.Header)
@@ -246,7 +266,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		_, err := io.CopyBuffer(&WriteFlusher{rw}, cbr, b.([]byte))
 		if err != nil {
 			co.Close()
-			return
+			return false, err
 		}
 
 		res.Header.Reset()
@@ -254,7 +274,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		err = res.Header.ReadTrailer(br)
 		if err != nil {
 			co.Close()
-			return
+			return false, err
 		}
 
 		res.Header.VisitAll(func(key, value []byte) {
@@ -280,7 +300,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			if err != nil {
 				co.Close()
-				return
+				return false, err
 			}
 		}
 
@@ -291,6 +311,28 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	p.readerPool.Put(br)
 	p.connPool.ReleaseConn(co)
+
+	return false, err
+}
+
+// isReplayable returns whether the request is replayable.
+func isReplayable(req *http.Request) bool {
+	if req.Body == nil || req.Body == http.NoBody || req.GetBody != nil {
+		switch req.Method {
+		case "GET", "HEAD", "OPTIONS", "TRACE":
+			return true
+		}
+		// The Idempotency-Key, while non-standard, is widely used to
+		// mean a POST or other request is idempotent. See
+		// https://golang.org/issue/19943#issuecomment-421092421
+		if _, ok := req.Header["Idempotency-Key"]; ok {
+			return true
+		}
+		if _, ok := req.Header["X-Idempotency-Key"]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 // isPrint returns whether s is ASCII and printable according to
