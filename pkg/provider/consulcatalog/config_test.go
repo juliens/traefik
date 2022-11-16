@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/tls"
 )
@@ -384,6 +386,17 @@ func Test_buildConfiguration(t *testing.T) {
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"tls-ns-dc1-dev-Test": {
+							HTTP: &dynamic.HTTPClientConfig{
+								PassHostHeader:      true,
+								MaxIdleConnsPerHost: 200,
+								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
+									DialTimeout:           ptypes.Duration(30 * time.Second),
+									ResponseHeaderTimeout: 0,
+									IdleConnTimeout:       ptypes.Duration(90 * time.Second),
+									ReadIdleTimeout:       0,
+									PingTimeout:           ptypes.Duration(15 * time.Second),
+								},
+							},
 							TLS: &dynamic.TLSClientConfig{
 								ServerName:         "ns-dc1-dev/Test",
 								InsecureSkipVerify: true,
@@ -472,6 +485,17 @@ func Test_buildConfiguration(t *testing.T) {
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"tls-ns-dc1-dev-Test": {
+							HTTP: &dynamic.HTTPClientConfig{
+								PassHostHeader:      true,
+								MaxIdleConnsPerHost: 200,
+								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
+									DialTimeout:           ptypes.Duration(30 * time.Second),
+									ResponseHeaderTimeout: 0,
+									IdleConnTimeout:       ptypes.Duration(90 * time.Second),
+									ReadIdleTimeout:       0,
+									PingTimeout:           ptypes.Duration(15 * time.Second),
+								},
+							},
 							TLS: &dynamic.TLSClientConfig{
 								ServerName:         "ns-dc1-dev/Test",
 								InsecureSkipVerify: true,
@@ -2669,6 +2693,17 @@ func Test_buildConfiguration(t *testing.T) {
 					},
 					ServersTransports: map[string]*dynamic.ServersTransport{
 						"tls-ns-dc1-Test": {
+							HTTP: &dynamic.HTTPClientConfig{
+								PassHostHeader:      true,
+								MaxIdleConnsPerHost: 200,
+								ForwardingTimeouts: &dynamic.ForwardingTimeouts{
+									DialTimeout:           ptypes.Duration(30 * time.Second),
+									ResponseHeaderTimeout: 0,
+									IdleConnTimeout:       ptypes.Duration(90 * time.Second),
+									ReadIdleTimeout:       0,
+									PingTimeout:           ptypes.Duration(15 * time.Second),
+								},
+							},
 							TLS: &dynamic.TLSClientConfig{
 								ServerName:         "ns-dc1-Test",
 								InsecureSkipVerify: true,
