@@ -238,17 +238,6 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 	res := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(res)
 
-	// FIXME fixPragmaNoCache
-	// RFC 7234, section 5.4: Should treat
-	//
-	//	Pragma: no-cache
-	//
-	// like
-	//
-	//	Cache-Control: no-cache
-
-	// FIXME TransferEncoding should overwrite contentLength see transfer.readTransfer
-
 	var responseHeaderTimeoutCh <-chan time.Time
 	if p.responseHeaderTimeout > 0 {
 		timer := time.NewTimer(p.responseHeaderTimeout)
@@ -279,6 +268,8 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 		co.Close()
 		return req.Context().Err()
 	}
+
+	fixPragmaCacheControl(&res.Header)
 
 	announcedTrailers := res.Header.Peek("Trailer")
 	announcedTrailersKey := strings.Split(string(announcedTrailers), ",")
@@ -460,4 +451,19 @@ func (t timeoutError) Timeout() bool {
 
 func (t timeoutError) Temporary() bool {
 	return false
+}
+
+// RFC 7234, section 5.4: Should treat
+//
+//	Pragma: no-cache
+//
+// like
+//
+//	Cache-Control: no-cache
+func fixPragmaCacheControl(header *fasthttp.ResponseHeader) {
+	if pragma := header.Peek("Pragma"); bytes.Equal(pragma, []byte("no-cache")) {
+		if len(header.Peek("Cache-Control")) == 0 {
+			header.Set("Cache-Control", "no-cache")
+		}
+	}
 }
