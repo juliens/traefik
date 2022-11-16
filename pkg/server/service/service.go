@@ -29,11 +29,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/tls/client"
 )
 
-// FIXME clean fasthttp proxy
-
 // FIXME Bench final
-
-// FIXME integration tests
 
 // FIXME handle closed conn from pool TEST ?
 

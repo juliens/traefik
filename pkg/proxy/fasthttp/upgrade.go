@@ -29,16 +29,6 @@ func (c switchProtocolCopier) copyToBackend(errc chan<- error) {
 	errc <- err
 }
 
-type WriteFlusher struct {
-	w io.Writer
-}
-
-func (w *WriteFlusher) Write(b []byte) (int, error) {
-	n, err := w.w.Write(b)
-	w.w.(http.Flusher).Flush()
-	return n, err
-}
-
 func handleUpgradeResponse(rw http.ResponseWriter, req *http.Request, reqUpType string, res *fasthttp.Response, backConn net.Conn) {
 	defer backConn.Close()
 

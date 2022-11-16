@@ -23,6 +23,10 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
+const bufferSize = 32 * 1024
+
+const bufioSize = 64 * 1024
+
 var hopHeaders = []string{
 	"Connection",
 	"Proxy-Connection", // non-standard but still sent by libcurl and rejected by e.g. google
@@ -37,16 +41,11 @@ var hopHeaders = []string{
 
 type pool[T any] struct {
 	pool sync.Pool
-	New  func() T
 }
 
 func (p *pool[T]) Get() T {
 	if tmp := p.pool.Get(); tmp != nil {
 		return tmp.(T)
-	}
-
-	if p.New != nil {
-		return p.New()
 	}
 
 	var res T
@@ -66,11 +65,49 @@ func (b buffConn) Read(p []byte) (int, error) {
 	return b.Reader.Read(p)
 }
 
+type writeDetector struct {
+	net.Conn
+
+	written bool
+}
+
+func (w *writeDetector) Write(p []byte) (int, error) {
+	n, err := w.Conn.Write(p)
+	if n > 0 {
+		w.written = true
+	}
+	return n, err
+}
+
+type writeFlusher struct {
+	io.Writer
+}
+
+func (w *writeFlusher) Write(b []byte) (int, error) {
+	n, err := w.Writer.Write(b)
+	if f, ok := w.Writer.(http.Flusher); ok {
+		f.Flush()
+	}
+	return n, err
+}
+
+type timeoutError struct {
+	error
+}
+
+func (t timeoutError) Timeout() bool {
+	return true
+}
+
+func (t timeoutError) Temporary() bool {
+	return false
+}
+
 // ReverseProxy is the FastHTTP reverse proxy implementation.
 type ReverseProxy struct {
 	connPool *ConnPool
 
-	bufferPool      sync.Pool
+	bufferPool      pool[[]byte]
 	readerPool      pool[*bufio.Reader]
 	writerPool      pool[*bufio.Writer]
 	limitReaderPool pool[*io.LimitedReader]
@@ -95,18 +132,13 @@ func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool,
 		proxyAuth:             proxyAuth,
 		connPool:              connPool,
 		responseHeaderTimeout: responseHeaderTimeout,
-		bufferPool: sync.Pool{
-			New: func() any {
-				return make([]byte, 32*1024)
-			},
-		},
 	}, nil
 }
 
 func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// This will clone Header and URL in order to keep originals for middlewares
+	// Cloning the request also clones the Header and URL to avoid mutating
+	// caller (i.e. middlewares) ones.
 	req = req.Clone(req.Context())
-
 	if req.Body != nil {
 		defer req.Body.Close()
 	}
@@ -130,6 +162,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	outReq := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(outReq)
 
+	// This is not required as the headers are already normalized by net/http.
 	outReq.Header.DisableNormalizing()
 
 	if p.proxyAuth != "" {
@@ -140,7 +173,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		outReq.Header.Set("Te", "trailers")
 	}
 
-	// FIXME remove
+	// TODO: removes after the beta, this allows to identity that the stack used to forward requests is the FastHTTP one.
 	outReq.Header.Set("FastHTTP", "enabled")
 
 	if reqUpType != "" {
@@ -170,7 +203,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		// X-Forwarded-For information as a comma+space
 		// separated list and fold multiple headers into one.
 		prior, ok := req.Header["X-Forwarded-For"]
-		omit := ok && prior == nil // Issue 38079: nil now means don't populate the header
+		omit := ok && prior == nil // Go Issue 38079: nil now means don't populate the header
 		if len(prior) > 0 {
 			clientIP = strings.Join(prior, ", ") + ", " + clientIP
 		}
@@ -179,29 +212,27 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	err := p.roundTrip(rw, req, outReq, reqUpType)
-	if err != nil {
+	if err := p.roundTrip(rw, req, outReq, reqUpType); err != nil {
 		proxyhttputil.ErrorHandler(rw, req, err)
 	}
 }
 
-// About compression:
-// we don't want to ask for compress version automatically because
-// - it will cost ( in Traefik )
-// - most clients already ask for compression (passthrough)
-//
-// About 100 Continue:
-// ReverseProxy should just send 100 Continue to the client ( like Redirect )
+// Note that unlike the net/http RoundTrip:
+//   - we are not supporting "100 Continue" response to forward them as-is to the client.
+//   - we are not asking for compressed response automatically. That is because this will add an extra cost when the
+//     client is asking for an uncompressed response, as we will have to un-compress it, and nowadays most clients are
+//     already asking for compressed response (allowing "passthrough" compression).
 func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outReq *fasthttp.Request, reqUpType string) error {
-	trace := httptrace.ContextClientTrace(req.Context())
-	var co net.Conn
+	ctx := req.Context()
+	trace := httptrace.ContextClientTrace(ctx)
 
+	var co net.Conn
 	for {
 		select {
-		case <-req.Context().Done():
-			return req.Context().Err()
-		default:
+		case <-ctx.Done():
+			return ctx.Err()
 
+		default:
 		}
 
 		var err error
@@ -210,63 +241,66 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 			return fmt.Errorf("acquire conn: %w", err)
 		}
 
-		cwc := &writeCounterWriter{Conn: co}
-		err = p.writeRequest(cwc, outReq)
-		if cwc.written && trace != nil && trace.WroteRequest != nil {
+		wd := &writeDetector{Conn: co}
+
+		err = p.writeRequest(wd, outReq)
+		if wd.written && trace != nil && trace.WroteRequest != nil {
+			// WroteRequest hook is used by the tracing middleware to detect if the request has been written.
 			trace.WroteRequest(httptrace.WroteRequestInfo{})
 		}
 		if err == nil {
 			break
 		}
 
+		log.FromContext(ctx).Debugf("Error while writing request: %s", err)
+
 		co.Close()
 
-		log.FromContext(req.Context()).Debugf("Error while writing request: %v", err)
-
-		if cwc.written && !isReplayable(req) {
+		if wd.written && !isReplayable(req) {
 			return err
 		}
 	}
 
 	br := p.readerPool.Get()
 	if br == nil {
-		br = bufio.NewReaderSize(co, 64*1024)
+		br = bufio.NewReaderSize(co, bufioSize)
 	}
+	defer p.readerPool.Put(br)
 
 	br.Reset(co)
 
 	res := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(res)
 
-	var responseHeaderTimeoutCh <-chan time.Time
+	res.Header.SetNoDefaultContentType(true)
+
+	var responseHeaderTimer <-chan time.Time
 	if p.responseHeaderTimeout > 0 {
 		timer := time.NewTimer(p.responseHeaderTimeout)
 		defer timer.Stop()
-		responseHeaderTimeoutCh = timer.C
+		responseHeaderTimer = timer.C
 	}
 
-	errChan := make(chan error, 1)
+	errCh := make(chan error, 1)
 	go func() {
-		res.Header.SetNoDefaultContentType(true)
-
 		if err := res.Header.Read(br); err != nil {
-			errChan <- err
+			errCh <- err
 		}
-		errChan <- nil
+		close(errCh)
 	}()
 
 	select {
-	case err := <-errChan:
+	case <-ctx.Done():
+		co.Close()
+		return ctx.Err()
+	case err := <-errCh:
 		if err != nil {
 			co.Close()
 			return err
 		}
-	case <-responseHeaderTimeoutCh:
+	case <-responseHeaderTimer:
 		co.Close()
 		return timeoutError{errors.New("timeout awaiting response headers")}
-	case <-req.Context().Done():
-		co.Close()
-		return req.Context().Err()
 	}
 
 	fixPragmaCacheControl(&res.Header)
@@ -276,6 +310,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 	// Deal with 101 Switching Protocols responses: (WebSocket, h2c, etc)
 	if res.StatusCode() == http.StatusSwitchingProtocols {
+		// As the connection has been hijacked, it cannot be added back to the pool.
 		handleUpgradeResponse(rw, req, reqUpType, res, buffConn{Conn: co, Reader: br})
 		return nil
 	}
@@ -296,21 +331,24 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 	rw.WriteHeader(res.StatusCode())
 
+	// Chunked response, Content-Length is set to -1 by FastHTTP when "Transfer-Encoding: chunked" header is received.
 	if res.Header.ContentLength() == -1 {
-		// READ CHUNK BODY
 		cbr := httputil.NewChunkedReader(br)
 
 		b := p.bufferPool.Get()
-		_, err := io.CopyBuffer(&WriteFlusher{rw}, cbr, b.([]byte))
-		if err != nil {
+		if b == nil {
+			b = make([]byte, bufferSize)
+		}
+		defer p.bufferPool.Put(b)
+
+		if _, err := io.CopyBuffer(&writeFlusher{rw}, cbr, b); err != nil {
 			co.Close()
 			return err
 		}
 
 		res.Header.Reset()
 		res.Header.SetNoDefaultContentType(true)
-		err = res.Header.ReadTrailer(br)
-		if err != nil {
+		if err := res.Header.ReadTrailer(br); err != nil {
 			co.Close()
 			return err
 		}
@@ -324,40 +362,52 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 			}
 			rw.Header().Add(http.TrailerPrefix+string(key), string(value))
 		})
-		p.bufferPool.Put(b)
 	} else {
 		brl := p.limitReaderPool.Get()
 		if brl == nil {
 			brl = &io.LimitedReader{}
 		}
+		defer p.limitReaderPool.Put(brl)
+
 		brl.R = br
 		brl.N = int64(res.Header.ContentLength())
 
 		b := p.bufferPool.Get()
-		_, err := io.CopyBuffer(rw, brl, b.([]byte))
-		if err != nil {
-			if err != nil {
-				co.Close()
-				return err
-			}
+		if b == nil {
+			b = make([]byte, bufferSize)
 		}
+		defer p.bufferPool.Put(b)
 
-		p.bufferPool.Put(b)
-
-		p.limitReaderPool.Put(brl)
+		if _, err := io.CopyBuffer(rw, brl, b); err != nil {
+			co.Close()
+			return err
+		}
 	}
 
-	p.readerPool.Put(br)
 	p.connPool.ReleaseConn(co)
-
 	return nil
+}
+
+func (p *ReverseProxy) writeRequest(co net.Conn, outReq *fasthttp.Request) error {
+	bw := p.writerPool.Get()
+	if bw == nil {
+		bw = bufio.NewWriterSize(co, bufioSize)
+	}
+	defer p.writerPool.Put(bw)
+
+	bw.Reset(co)
+
+	if err := outReq.Write(bw); err != nil {
+		return err
+	}
+	return bw.Flush()
 }
 
 // isReplayable returns whether the request is replayable.
 func isReplayable(req *http.Request) bool {
 	if req.Body == nil || req.Body == http.NoBody {
 		switch req.Method {
-		case "GET", "HEAD", "OPTIONS", "TRACE":
+		case http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodTrace:
 			return true
 		}
 		// The Idempotency-Key, while non-standard, is widely used to
@@ -407,59 +457,7 @@ func removeConnectionHeadersFastHTTP(h *fasthttp.ResponseHeader) {
 	}
 }
 
-func (p *ReverseProxy) writeRequest(co net.Conn, outReq *fasthttp.Request) error {
-	bw := p.writerPool.Get()
-	if bw == nil {
-		bw = bufio.NewWriterSize(co, 64*1024)
-	}
-
-	bw.Reset(co)
-
-	if err := outReq.Write(bw); err != nil {
-		return err
-	}
-
-	err := bw.Flush()
-	if err != nil {
-		return err
-	}
-
-	p.writerPool.Put(bw)
-	return nil
-}
-
-type writeCounterWriter struct {
-	net.Conn
-	written bool
-}
-
-func (w *writeCounterWriter) Write(p []byte) (int, error) {
-	n, err := w.Conn.Write(p)
-	if n > 0 {
-		w.written = true
-	}
-	return n, err
-}
-
-type timeoutError struct {
-	error
-}
-
-func (t timeoutError) Timeout() bool {
-	return true
-}
-
-func (t timeoutError) Temporary() bool {
-	return false
-}
-
-// RFC 7234, section 5.4: Should treat
-//
-//	Pragma: no-cache
-//
-// like
-//
-//	Cache-Control: no-cache
+// RFC 7234, section 5.4: Should treat Pragma: no-cache like Cache-Control: no-cache
 func fixPragmaCacheControl(header *fasthttp.ResponseHeader) {
 	if pragma := header.Peek("Pragma"); bytes.Equal(pragma, []byte("no-cache")) {
 		if len(header.Peek("Cache-Control")) == 0 {
