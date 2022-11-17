@@ -67,10 +67,41 @@ func (r *ProxyBuilder) Build(cfgName string, cfg *dynamic.HTTPClientConfig, tlsC
 	}
 
 	return &httputil.ReverseProxy{
-		Director:     DirectorBuilder(targetURL, cfg.PassHostHeader),
 		Transport:    roundTripper,
 		BufferPool:   r.bufferPool,
 		ErrorHandler: ErrorHandler,
+		Director: func(outReq *http.Request) {
+			outReq.URL.Scheme = targetURL.Scheme
+			outReq.URL.Host = targetURL.Host
+
+			u := outReq.URL
+			if outReq.RequestURI != "" {
+				parsedURL, err := url.ParseRequestURI(outReq.RequestURI)
+				if err == nil {
+					u = parsedURL
+				}
+			}
+
+			outReq.URL.Path = u.Path
+			outReq.URL.RawPath = u.RawPath
+			outReq.URL.RawQuery = strings.ReplaceAll(u.RawQuery, ";", "&")
+			outReq.RequestURI = "" // Outgoing request should not have RequestURI
+
+			outReq.Proto = "HTTP/1.1"
+			outReq.ProtoMajor = 1
+			outReq.ProtoMinor = 1
+
+			// Do not pass client Host header unless PassHostHeader is set.
+			if !cfg.PassHostHeader {
+				outReq.Host = outReq.URL.Host
+			}
+
+			if _, ok := outReq.Header["User-Agent"]; !ok {
+				outReq.Header.Set("User-Agent", "")
+			}
+
+			cleanWebSocketHeaders(outReq)
+		},
 	}, nil
 }
 
@@ -110,42 +141,6 @@ func createRoundTripper(cfg *dynamic.HTTPClientConfig, tlsConfig *tls.Config) (h
 	}
 
 	return newSmartRoundTripper(transport, cfg.ForwardingTimeouts)
-}
-
-// DirectorBuilder returns a director modifying the incoming request before forwarding it to the backend.
-func DirectorBuilder(targetURL *url.URL, passHostHeader bool) func(req *http.Request) {
-	return func(outReq *http.Request) {
-		outReq.URL.Scheme = targetURL.Scheme
-		outReq.URL.Host = targetURL.Host
-
-		u := outReq.URL
-		if outReq.RequestURI != "" {
-			parsedURL, err := url.ParseRequestURI(outReq.RequestURI)
-			if err == nil {
-				u = parsedURL
-			}
-		}
-
-		outReq.URL.Path = u.Path
-		outReq.URL.RawPath = u.RawPath
-		outReq.URL.RawQuery = strings.ReplaceAll(u.RawQuery, ";", "&")
-		outReq.RequestURI = "" // Outgoing request should not have RequestURI
-
-		outReq.Proto = "HTTP/1.1"
-		outReq.ProtoMajor = 1
-		outReq.ProtoMinor = 1
-
-		if _, ok := outReq.Header["User-Agent"]; !ok {
-			outReq.Header.Set("User-Agent", "")
-		}
-
-		// Do not pass client Host header unless PassHostHeader is set.
-		if !passHostHeader {
-			outReq.Host = outReq.URL.Host
-		}
-
-		cleanWebSocketHeaders(outReq)
-	}
 }
 
 // cleanWebSocketHeaders Even if the websocket RFC says that headers should be case-insensitive,

@@ -93,7 +93,7 @@ func upgradeType(h http.Header) string {
 	return h.Get("Upgrade")
 }
 
-func upgradeTypeFastHTTP(h *fasthttp.ResponseHeader) string {
+func upgradeTypeFastHTTP(h fasthttpHeader) string {
 	if !bytes.Contains(h.Peek("Connection"), []byte("Upgrade")) {
 		return ""
 	}

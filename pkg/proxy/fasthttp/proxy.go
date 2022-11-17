@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/http/httputil"
-	"net/textproto"
 	"net/url"
 	"strings"
 	"sync"
@@ -113,9 +112,10 @@ type ReverseProxy struct {
 	writerPool      pool[*bufio.Writer]
 	limitReaderPool pool[*io.LimitedReader]
 
-	director  func(req *http.Request)
 	proxyAuth string
 
+	targetURL             *url.URL
+	passHostHeader        bool
 	responseHeaderTimeout time.Duration
 }
 
@@ -129,7 +129,8 @@ func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool,
 	}
 
 	return &ReverseProxy{
-		director:              proxyhttputil.DirectorBuilder(targetURL, passHostHeader),
+		passHostHeader:        passHostHeader,
+		targetURL:             targetURL,
 		proxyAuth:             proxyAuth,
 		connPool:              connPool,
 		responseHeaderTimeout: responseHeaderTimeout,
@@ -137,31 +138,24 @@ func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool,
 }
 
 func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// Cloning the request also clones the Header and URL to avoid mutating
-	// caller (i.e. middlewares) ones.
-	req = req.Clone(req.Context())
 	if req.Body != nil {
 		defer req.Body.Close()
 	}
 
-	p.director(req)
-
-	announcedTrailer := httpguts.HeaderValuesContainsToken(req.Header["Te"], "trailers")
-
-	reqUpType := upgradeType(req.Header)
-	if !isPrint(reqUpType) {
-		proxyhttputil.ErrorHandler(rw, req, fmt.Errorf("client tried to switch to invalid protocol %q", reqUpType))
-		return
-	}
-
-	removeConnectionHeaders(req.Header)
-
-	for _, header := range hopHeaders {
-		delete(req.Header, header)
-	}
-
 	outReq := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(outReq)
+
+	for k, v := range req.Header {
+		for _, s := range v {
+			outReq.Header.Add(k, s)
+		}
+	}
+
+	removeConnectionHeaders(&outReq.Header)
+
+	for _, header := range hopHeaders {
+		outReq.Header.Del(header)
+	}
 
 	// This is not required as the headers are already normalized by net/http.
 	outReq.Header.DisableNormalizing()
@@ -170,30 +164,51 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		outReq.Header.Set("Proxy-Authorization", p.proxyAuth)
 	}
 
-	if announcedTrailer {
+	if httpguts.HeaderValuesContainsToken(req.Header["Te"], "trailers") {
 		outReq.Header.Set("Te", "trailers")
 	}
 
 	// TODO: removes after the beta, this allows to identity that the stack used to forward requests is the FastHTTP one.
 	outReq.Header.Set("FastHTTP", "enabled")
 
+	reqUpType := upgradeType(req.Header)
+	if !isPrint(reqUpType) {
+		proxyhttputil.ErrorHandler(rw, req, fmt.Errorf("client tried to switch to invalid protocol %q", reqUpType))
+		return
+	}
 	if reqUpType != "" {
 		outReq.Header.Set("Connection", "Upgrade")
 		outReq.Header.Set("Upgrade", reqUpType)
-	}
-
-	outReq.SetHost(req.URL.Host)
-
-	outReq.UseHostHeader = true
-	outReq.Header.SetHost(req.Host)
-
-	outReq.SetRequestURI(req.URL.RequestURI())
-
-	for k, v := range req.Header {
-		for _, s := range v {
-			outReq.Header.Add(k, s)
+		if reqUpType == "websocket" {
+			cleanWebSocketHeaders(&outReq.Header)
 		}
 	}
+
+	u2 := new(url.URL)
+	*u2 = *req.URL
+	u2.Scheme = p.targetURL.Scheme
+	u2.Host = p.targetURL.Host
+
+	u := req.URL
+	if req.RequestURI != "" {
+		parsedURL, err := url.ParseRequestURI(req.RequestURI)
+		if err == nil {
+			u = parsedURL
+		}
+	}
+
+	u2.Path = u.Path
+	u2.RawPath = u.RawPath
+	u2.RawQuery = strings.ReplaceAll(u.RawQuery, ";", "&")
+
+	outReq.SetHost(u2.Host)
+	outReq.Header.SetHost(u2.Host)
+
+	if p.passHostHeader {
+		outReq.Header.SetHost(req.Host)
+	}
+
+	outReq.SetRequestURI(u2.RequestURI())
 
 	outReq.SetBodyStream(req.Body, int(req.ContentLength))
 
@@ -311,7 +326,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 		return nil
 	}
 
-	removeConnectionHeadersFastHTTP(&res.Header)
+	removeConnectionHeaders(&res.Header)
 
 	for _, header := range hopHeaders {
 		res.Header.Del(header)
@@ -430,21 +445,17 @@ func isPrint(s string) bool {
 	return true
 }
 
-// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
-// See RFC 7230, section 6.1.
-func removeConnectionHeaders(h http.Header) {
-	for _, f := range h["Connection"] {
-		for _, sf := range strings.Split(f, ",") {
-			if sf = textproto.TrimString(sf); sf != "" {
-				h.Del(sf)
-			}
-		}
-	}
+type fasthttpHeader interface {
+	Peek(string) []byte
+	Set(string, string)
+	SetBytesV(string, []byte)
+	DelBytes([]byte)
+	Del(string)
 }
 
 // removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
 // See RFC 7230, section 6.1.
-func removeConnectionHeadersFastHTTP(h *fasthttp.ResponseHeader) {
+func removeConnectionHeaders(h fasthttpHeader) {
 	f := h.Peek(fasthttp.HeaderConnection)
 	for _, sf := range bytes.Split(f, []byte{','}) {
 		if sf = bytes.TrimSpace(sf); len(sf) > 0 {
@@ -454,10 +465,31 @@ func removeConnectionHeadersFastHTTP(h *fasthttp.ResponseHeader) {
 }
 
 // RFC 7234, section 5.4: Should treat Pragma: no-cache like Cache-Control: no-cache
-func fixPragmaCacheControl(header *fasthttp.ResponseHeader) {
+func fixPragmaCacheControl(header fasthttpHeader) {
 	if pragma := header.Peek("Pragma"); bytes.Equal(pragma, []byte("no-cache")) {
 		if len(header.Peek("Cache-Control")) == 0 {
 			header.Set("Cache-Control", "no-cache")
 		}
 	}
+}
+
+// cleanWebSocketHeaders Even if the websocket RFC says that headers should be case-insensitive,
+// some servers need Sec-WebSocket-Key, Sec-WebSocket-Extensions, Sec-WebSocket-Accept,
+// Sec-WebSocket-Protocol and Sec-WebSocket-Version to be case-sensitive.
+// https://tools.ietf.org/html/rfc6455#page-20
+func cleanWebSocketHeaders(headers fasthttpHeader) {
+	headers.SetBytesV("Sec-WebSocket-Key", headers.Peek("Sec-Websocket-Key"))
+	headers.Del("Sec-Websocket-Key")
+
+	headers.SetBytesV("Sec-WebSocket-Extensions", headers.Peek("Sec-Websocket-Extensions"))
+	headers.Del("Sec-Websocket-Extensions")
+
+	headers.SetBytesV("Sec-WebSocket-Accept", headers.Peek("Sec-Websocket-Accept"))
+	headers.Del("Sec-Websocket-Accept")
+
+	headers.SetBytesV("Sec-WebSocket-Protocol", headers.Peek("Sec-Websocket-Protocol"))
+	headers.Del("Sec-Websocket-Protocol")
+
+	headers.SetBytesV("Sec-WebSocket-Version", headers.Peek("Sec-Websocket-Version"))
+	headers.DelBytes([]byte("Sec-Websocket-Version"))
 }
