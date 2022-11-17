@@ -287,8 +287,10 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 	res.Header.SetNoDefaultContentType(true)
 	if err := res.Header.Read(br); err != nil {
-		if p.responseHeaderTimeout > 0 && errTimeout.Load() != nil {
-			return errTimeout.Load()
+		if p.responseHeaderTimeout > 0 {
+			if errT := errTimeout.Load(); errT != nil {
+				return errT
+			}
 		}
 		co.Close()
 		return err
