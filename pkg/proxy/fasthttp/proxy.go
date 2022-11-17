@@ -273,13 +273,6 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 	res.Header.SetNoDefaultContentType(true)
 
-	var responseHeaderTimer <-chan time.Time
-	if p.responseHeaderTimeout > 0 {
-		timer := time.NewTimer(p.responseHeaderTimeout)
-		defer timer.Stop()
-		responseHeaderTimer = timer.C
-	}
-
 	var timer *time.Timer
 	if p.responseHeaderTimeout > 0 {
 		timer = time.AfterFunc(p.responseHeaderTimeout, func() {
