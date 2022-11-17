@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/traefik/traefik/v2/pkg/log"
@@ -274,33 +275,28 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 	res.Header.SetNoDefaultContentType(true)
 
-	var responseHeaderTimer <-chan time.Time
+	var timer *time.Timer
+	errTimeout := atomic.Pointer[timeoutError]{}
 	if p.responseHeaderTimeout > 0 {
-		timer := time.NewTimer(p.responseHeaderTimeout)
-		defer timer.Stop()
-		responseHeaderTimer = timer.C
+		timer = time.AfterFunc(p.responseHeaderTimeout, func() {
+			errTimeout.Store(&timeoutError{errors.New("timeout awaiting response headers")})
+			co.Close()
+		})
+
 	}
 
-	errCh := make(chan error, 1)
-	go func() {
-		if err := res.Header.Read(br); err != nil {
-			errCh <- err
+	res.Header.SetNoDefaultContentType(true)
+	if err := res.Header.Read(br); err != nil {
+		if p.responseHeaderTimeout > 0 {
+			if errT := errTimeout.Load(); errT != nil {
+				return errT
+			}
 		}
-		close(errCh)
-	}()
-
-	select {
-	case <-ctx.Done():
 		co.Close()
-		return ctx.Err()
-	case err := <-errCh:
-		if err != nil {
-			co.Close()
-			return err
-		}
-	case <-responseHeaderTimer:
-		co.Close()
-		return timeoutError{errors.New("timeout awaiting response headers")}
+		return err
+	}
+	if timer != nil {
+		timer.Stop()
 	}
 
 	fixPragmaCacheControl(&res.Header)
