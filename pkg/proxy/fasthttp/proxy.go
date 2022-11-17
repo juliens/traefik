@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/traefik/traefik/v2/pkg/log"
@@ -274,8 +276,10 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 	res.Header.SetNoDefaultContentType(true)
 
 	var timer *time.Timer
+	errTimeout := atomic.Pointer[timeoutError]{}
 	if p.responseHeaderTimeout > 0 {
 		timer = time.AfterFunc(p.responseHeaderTimeout, func() {
+			errTimeout.Store(&timeoutError{errors.New("timeout awaiting response headers")})
 			co.Close()
 		})
 
@@ -283,6 +287,9 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 	res.Header.SetNoDefaultContentType(true)
 	if err := res.Header.Read(br); err != nil {
+		if p.responseHeaderTimeout > 0 && errTimeout.Load() != nil {
+			return errTimeout.Load()
+		}
 		co.Close()
 		return err
 	}
