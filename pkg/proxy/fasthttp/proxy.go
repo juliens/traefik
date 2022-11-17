@@ -137,7 +137,7 @@ func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool,
 func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Cloning the request also clones the Header and URL to avoid mutating
 	// caller (i.e. middlewares) ones.
-	req = req.Clone(req.Context())
+	// req = req.Clone(req.Context())
 	if req.Body != nil {
 		defer req.Body.Close()
 	}
