@@ -72,6 +72,6 @@ func (c *connectCert) serversTransport(item itemData) *dynamic.ServersTransport 
 		},
 		PeerCertURI: spiffeIDService.URI().String(),
 	}
-	
+
 	return st
 }

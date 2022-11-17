@@ -23,9 +23,10 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
-const bufferSize = 32 * 1024
-
-const bufioSize = 64 * 1024
+const (
+	bufferSize = 32 * 1024
+	bufioSize  = 64 * 1024
+)
 
 var hopHeaders = []string{
 	"Connection",
@@ -122,7 +123,7 @@ type ReverseProxy struct {
 // NewReverseProxy creates a new ReverseProxy.
 func NewReverseProxy(targetURL *url.URL, proxyURL *url.URL, passHostHeader bool, responseHeaderTimeout time.Duration, connPool *ConnPool) (*ReverseProxy, error) {
 	var proxyAuth string
-	if proxyURL != nil && proxyURL.User != nil && proxyURL.Scheme != "socks5" && targetURL.Scheme == "http" {
+	if proxyURL != nil && proxyURL.User != nil && proxyURL.Scheme != schemeSocks5 && targetURL.Scheme == schemeHTTP {
 		username := proxyURL.User.Username()
 		password, _ := proxyURL.User.Password()
 		proxyAuth = "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
@@ -297,7 +298,6 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 			errTimeout.Store(&timeoutError{errors.New("timeout awaiting response headers")})
 			co.Close()
 		})
-
 	}
 
 	res.Header.SetNoDefaultContentType(true)
@@ -464,7 +464,7 @@ func removeConnectionHeaders(h fasthttpHeader) {
 	}
 }
 
-// RFC 7234, section 5.4: Should treat Pragma: no-cache like Cache-Control: no-cache
+// RFC 7234, section 5.4: Should treat Pragma: no-cache like Cache-Control: no-cache.
 func fixPragmaCacheControl(header fasthttpHeader) {
 	if pragma := header.Peek("Pragma"); bytes.Equal(pragma, []byte("no-cache")) {
 		if len(header.Peek("Cache-Control")) == 0 {

@@ -154,8 +154,8 @@ func TestProxyFromEnvironment(t *testing.T) {
 				connHj, _, err := hj.Hijack()
 				require.NoError(t, err)
 
-				go io.Copy(connHj, conn)
-				io.Copy(conn, connHj)
+				go func() { _, _ = io.Copy(connHj, conn) }()
+				_, _ = io.Copy(conn, connHj)
 			})
 
 			var proxyURL string
@@ -292,7 +292,7 @@ func newBackendServer(t *testing.T, isTLS bool, handler http.Handler) (string, *
 	backendURL := fmt.Sprintf("%s://%s:%s", scheme, domain, port)
 
 	srv := &http.Server{Handler: handler}
-	go srv.Serve(ln)
+	go func() { _ = srv.Serve(ln) }()
 
 	t.Cleanup(func() { _ = srv.Close() })
 

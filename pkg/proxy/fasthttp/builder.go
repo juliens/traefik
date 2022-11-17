@@ -17,6 +17,12 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+const (
+	schemeHTTP   = "http"
+	schemeHTTPS  = "https"
+	schemeSocks5 = "socks5"
+)
+
 type dialer interface {
 	Dial(network, addr string) (c net.Conn, err error)
 }
@@ -109,7 +115,7 @@ func getDialFn(targetURL *url.URL, proxyURL *url.URL, tlsConfig *tls.Config, con
 	proxyAddr := addrFromURL(proxyURL)
 
 	switch {
-	case proxyURL.Scheme == "socks5":
+	case proxyURL.Scheme == schemeSocks5:
 		var auth *proxy.Auth
 		if u := proxyURL.User; u != nil {
 			auth = &proxy.Auth{User: u.Username()}
@@ -124,7 +130,7 @@ func getDialFn(targetURL *url.URL, proxyURL *url.URL, tlsConfig *tls.Config, con
 				return nil, err
 			}
 
-			if targetURL.Scheme == "https" {
+			if targetURL.Scheme == schemeHTTPS {
 				c := &tls.Config{}
 				if tlsConfig != nil {
 					c = tlsConfig.Clone()
@@ -138,10 +144,10 @@ func getDialFn(targetURL *url.URL, proxyURL *url.URL, tlsConfig *tls.Config, con
 			return co, nil
 		}
 
-	case targetURL.Scheme == "http":
+	case targetURL.Scheme == schemeHTTP:
 		// Nothing to do the Proxy-Authorization header will be added by the ReverseProxy.
 
-	case targetURL.Scheme == "https":
+	case targetURL.Scheme == schemeHTTPS:
 		hdr := make(http.Header)
 		fmt.Println(proxyURL.User)
 		if u := proxyURL.User; u != nil {
@@ -210,7 +216,7 @@ func getDialFn(targetURL *url.URL, proxyURL *url.URL, tlsConfig *tls.Config, con
 				return nil, errors.New(text)
 			}
 
-			if targetURL.Scheme == "https" {
+			if targetURL.Scheme == schemeHTTPS {
 				c := &tls.Config{}
 				if tlsConfig != nil {
 					c = tlsConfig.Clone()
@@ -240,7 +246,7 @@ func getDialer(scheme string, tlsConfig *tls.Config, cfg *dynamic.HTTPClientConf
 		dialer.Timeout = time.Duration(cfg.ForwardingTimeouts.DialTimeout)
 	}
 
-	if scheme == "https" && tlsConfig != nil {
+	if scheme == schemeHTTPS && tlsConfig != nil {
 		return dialerFunc(func(network, addr string) (c net.Conn, err error) {
 			return tls.DialWithDialer(dialer, network, addr, tlsConfig)
 		})
@@ -252,10 +258,10 @@ func addrFromURL(u *url.URL) string {
 	addr := u.Host
 
 	if u.Port() == "" {
-		if u.Scheme == "http" {
+		if u.Scheme == schemeHTTP {
 			return addr + ":80"
 		}
-		if u.Scheme == "https" {
+		if u.Scheme == schemeHTTPS {
 			return addr + ":443"
 		}
 	}
