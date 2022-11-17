@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -281,26 +280,21 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 		responseHeaderTimer = timer.C
 	}
 
-	errCh := make(chan error, 1)
-	go func() {
-		if err := res.Header.Read(br); err != nil {
-			errCh <- err
-		}
-		close(errCh)
-	}()
-
-	select {
-	case <-ctx.Done():
-		co.Close()
-		return ctx.Err()
-	case err := <-errCh:
-		if err != nil {
+	var timer *time.Timer
+	if p.responseHeaderTimeout > 0 {
+		timer = time.AfterFunc(p.responseHeaderTimeout, func() {
 			co.Close()
-			return err
-		}
-	case <-responseHeaderTimer:
+		})
+
+	}
+
+	res.Header.SetNoDefaultContentType(true)
+	if err := res.Header.Read(br); err != nil {
 		co.Close()
-		return timeoutError{errors.New("timeout awaiting response headers")}
+		return err
+	}
+	if timer != nil {
+		timer.Stop()
 	}
 
 	fixPragmaCacheControl(&res.Header)
