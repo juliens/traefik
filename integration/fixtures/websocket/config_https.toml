@@ -18,7 +18,7 @@
 ## dynamic configuration ##
 
 [http.serversTransports.default.tls]
-  insecureSkipVerify=true
+  insecureSkipVerify = true
 
 [http.routers]
   [http.routers.router1]
