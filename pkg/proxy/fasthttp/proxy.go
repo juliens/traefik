@@ -146,7 +146,13 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	outReq := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(outReq)
 
+	// This is not required as the headers are already normalized by net/http.
+	outReq.Header.DisableNormalizing()
+
 	for k, v := range req.Header {
+		if isHopHeader(k) {
+			continue
+		}
 		for _, s := range v {
 			outReq.Header.Add(k, s)
 		}
@@ -157,9 +163,6 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	for _, header := range hopHeaders {
 		outReq.Header.Del(header)
 	}
-
-	// This is not required as the headers are already normalized by net/http.
-	outReq.Header.DisableNormalizing()
 
 	if p.proxyAuth != "" {
 		outReq.Header.Set("Proxy-Authorization", p.proxyAuth)
@@ -497,4 +500,25 @@ func cleanWebSocketHeaders(headers fasthttpHeader) {
 
 	headers.SetBytesV("Sec-WebSocket-Version", headers.Peek("Sec-Websocket-Version"))
 	headers.DelBytes([]byte("Sec-Websocket-Version"))
+}
+
+func caseInsensitiveCompare(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if a[i]|0x20 != b[i]|0x20 {
+			return false
+		}
+	}
+	return true
+}
+
+func isHopHeader(k string) bool {
+	for _, header := range hopHeaders {
+		if caseInsensitiveCompare([]byte(k), []byte(header)) {
+			return true
+		}
+	}
+	return false
 }
