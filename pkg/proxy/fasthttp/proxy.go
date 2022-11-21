@@ -148,7 +148,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// This is not required as the headers are already normalized by net/http.
 	outReq.Header.DisableNormalizing()
-
+	connH := req.Header.Get(fasthttp.HeaderConnection)
 	for k, v := range req.Header {
 		if isHopHeader(k) {
 			continue
@@ -158,11 +158,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	removeConnectionHeaders(&outReq.Header)
-
-	for _, header := range hopHeaders {
-		outReq.Header.Del(header)
-	}
+	removeRefHeaders([]byte(connH), &outReq.Header)
 
 	if p.proxyAuth != "" {
 		outReq.Header.Set("Proxy-Authorization", p.proxyAuth)
@@ -461,15 +457,19 @@ type fasthttpHeader interface {
 	Del(string)
 }
 
-// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
-// See RFC 7230, section 6.1.
-func removeConnectionHeaders(h fasthttpHeader) {
-	f := h.Peek(fasthttp.HeaderConnection)
+func removeRefHeaders(f []byte, h fasthttpHeader) {
 	for _, sf := range bytes.Split(f, []byte{','}) {
 		if sf = bytes.TrimSpace(sf); len(sf) > 0 {
 			h.DelBytes(sf)
 		}
 	}
+}
+
+// removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
+// See RFC 7230, section 6.1.
+func removeConnectionHeaders(h fasthttpHeader) {
+	f := h.Peek(fasthttp.HeaderConnection)
+	removeRefHeaders(f, h)
 }
 
 // RFC 7234, section 5.4: Should treat Pragma: no-cache like Cache-Control: no-cache.
