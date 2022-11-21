@@ -40,7 +40,7 @@ func NewConnPool(maxIdleConn int, idleConnTimeout time.Duration, dialer func() (
 }
 
 // AcquireConn returns an idle net.Conn from the pool.
-func (c *ConnPool) AcquireConn() (net.Conn, error) {
+func (c *ConnPool) AcquireConn() (*conn, error) {
 	for {
 		co, err := c.acquireConn()
 		if err != nil {
@@ -48,7 +48,7 @@ func (c *ConnPool) AcquireConn() (net.Conn, error) {
 		}
 
 		if !co.isExpired() {
-			return co.Conn, nil
+			return co, nil
 		}
 
 		// As the acquired conn is expired we can close it
@@ -62,12 +62,14 @@ func (c *ConnPool) AcquireConn() (net.Conn, error) {
 }
 
 // ReleaseConn releases the given net.Conn to the pool.
-func (c *ConnPool) ReleaseConn(co net.Conn) {
-	c.releaseConn(&conn{
-		Conn:        co,
-		idleAt:      time.Now(),
-		idleTimeout: c.idleConnTimeout,
-	})
+func (c *ConnPool) ReleaseConn(co *conn) {
+	co.idleAt = time.Now()
+	c.releaseConn(co)
+	// c.releaseConn(&conn{
+	// 	Conn:        co,
+	// 	idleAt:      time.Now(),
+	// 	idleTimeout: c.idleConnTimeout,
+	// })
 }
 
 // cleanIdleConns is a routine cleaning the expired connections at a regular basis.
@@ -137,5 +139,9 @@ func (c *ConnPool) askForNewConn(errCh chan<- error) {
 		return
 	}
 
-	c.ReleaseConn(co)
+	c.releaseConn(&conn{
+		Conn:        co,
+		idleAt:      time.Now(),
+		idleTimeout: c.idleConnTimeout,
+	})
 }

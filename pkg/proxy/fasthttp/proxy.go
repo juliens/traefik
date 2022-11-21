@@ -243,7 +243,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 	ctx := req.Context()
 	trace := httptrace.ContextClientTrace(ctx)
 
-	var co net.Conn
+	var co *conn
 	for {
 		select {
 		case <-ctx.Done():
@@ -317,7 +317,6 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 	fixPragmaCacheControl(&res.Header)
 
 	announcedTrailers := res.Header.Peek("Trailer")
-	announcedTrailersKey := strings.Split(string(announcedTrailers), ",")
 
 	// Deal with 101 Switching Protocols responses: (WebSocket, h2c, etc)
 	if res.StatusCode() == http.StatusSwitchingProtocols {
@@ -364,15 +363,21 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 			return err
 		}
 
-		res.Header.VisitAll(func(key, value []byte) {
-			for _, s := range announcedTrailersKey {
-				if strings.EqualFold(s, strings.TrimSpace(string(key))) {
-					rw.Header().Add(string(key), string(value))
-					return
-				}
+		if res.Header.Len() > 0 {
+			var announcedTrailersKey []string
+			if len(announcedTrailers) > 0 {
+				announcedTrailersKey = strings.Split(string(announcedTrailers), ",")
 			}
-			rw.Header().Add(http.TrailerPrefix+string(key), string(value))
-		})
+			res.Header.VisitAll(func(key, value []byte) {
+				for _, s := range announcedTrailersKey {
+					if strings.EqualFold(s, strings.TrimSpace(string(key))) {
+						rw.Header().Add(string(key), string(value))
+						return
+					}
+				}
+				rw.Header().Add(http.TrailerPrefix+string(key), string(value))
+			})
+		}
 	} else {
 		brl := p.limitReaderPool.Get()
 		if brl == nil {
