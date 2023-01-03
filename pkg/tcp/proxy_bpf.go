@@ -85,6 +85,8 @@ func (p *ProxyBPF) ServeTCP(conn WriteCloser) {
 		return
 	}
 
+	log.Debug().
+		Msg("dial backend done")
 	// maybe not needed, but just in case
 	defer connBackend.Close()
 
@@ -94,17 +96,23 @@ func (p *ProxyBPF) ServeTCP(conn WriteCloser) {
 		log.Error().Err(err).Msg("Error while reading first bytes of the connection")
 		return
 	}
+	log.Debug().
+		Msg("first read done")
 	_, err = connBackend.Write(b[:n])
 	if err != nil {
 		log.Error().Err(err).Msg("Error while writing first bytes in the backend connection")
 		return
 	}
+	log.Debug().
+		Msg("first write done")
 
 	key, err := getKey(connBackend)
 	if err != nil {
 		log.Error().Err(err).Msg("Error while calculating backend key")
 		return
 	}
+	log.Debug().
+		Msg("getKey backend done")
 
 	sconn, ok := conn.(syscall.Conn)
 	if !ok {
@@ -124,6 +132,8 @@ func (p *ProxyBPF) ServeTCP(conn WriteCloser) {
 			return
 		}
 	})
+	log.Debug().
+		Msg("hash update 1 done")
 
 	u, err := getKey(conn)
 	if err != nil {
@@ -150,11 +160,15 @@ func (p *ProxyBPF) ServeTCP(conn WriteCloser) {
 		}
 	})
 
-	p.hashmap.Delete(u)
-	p.hashmap.Delete(key)
+	log.Debug().
+		Msg("hash update 2 done")
 
 	// This will not read anything, but it will block until conn is closed
 	conn.Read(b)
+
+	p.hashmap.Delete(u)
+	p.hashmap.Delete(key)
+
 }
 
 func (p *ProxyBPF) dialBackend() (WriteCloser, error) {
