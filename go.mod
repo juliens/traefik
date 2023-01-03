@@ -10,6 +10,7 @@ require (
 	github.com/andybalholm/brotli v1.0.4
 	github.com/aws/aws-sdk-go v1.44.47
 	github.com/cenkalti/backoff/v4 v4.2.0
+	github.com/cilium/ebpf v0.9.3
 	github.com/compose-spec/compose-go v1.0.3
 	github.com/containous/alice v0.0.0-20181107144136-d83ebdd94cbd
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf

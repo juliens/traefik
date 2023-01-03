@@ -402,7 +402,7 @@ func (m *Manager) buildTCPHandler(ctx context.Context, router *runtime.TCPRouter
 		return nil, errors.New("the service is missing on the router")
 	}
 
-	sHandler, err := m.serviceManager.BuildTCP(ctx, router.Service)
+	sHandler, err := m.serviceManager.BuildTCP(ctx, router.Service, router.TLS != nil && router.TLS.Passthrough)
 	if err != nil {
 		return nil, err
 	}

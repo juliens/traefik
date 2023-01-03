@@ -349,6 +349,10 @@ func (c *writeCloserWrapper) CloseWrite() error {
 	return c.writeCloser.CloseWrite()
 }
 
+func (c *writeCloserWrapper) SyscallConn() (syscall.RawConn, error) {
+	return c.SyscallConn()
+}
+
 // writeCloser returns the given connection, augmented with the WriteCloser
 // implementation, if any was found within the underlying conn.
 func writeCloser(conn net.Conn) (tcp.WriteCloser, error) {

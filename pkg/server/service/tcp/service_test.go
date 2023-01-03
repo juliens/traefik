@@ -255,7 +255,7 @@ func TestManager_BuildTCP(t *testing.T) {
 				ctx = provider.AddInContext(ctx, "foobar@"+test.providerName)
 			}
 
-			handler, err := manager.BuildTCP(ctx, test.serviceName)
+			handler, err := manager.BuildTCP(ctx, test.serviceName, false)
 
 			if test.expectedError != "" {
 				assert.EqualError(t, err, test.expectedError)

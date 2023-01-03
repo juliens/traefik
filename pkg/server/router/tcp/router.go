@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"syscall"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -307,6 +309,14 @@ type Conn struct {
 	// It can be type asserted against *net.TCPConn or other types as needed.
 	// It should not be read from directly unless Peeked is nil.
 	tcp.WriteCloser
+}
+
+func (c *Conn) SyscallConn() (syscall.RawConn, error) {
+	sconn, ok := c.WriteCloser.(syscall.Conn)
+	if !ok {
+		return nil, fmt.Errorf("%T is not a syscall.Conn", c.WriteCloser)
+	}
+	return sconn.SyscallConn()
 }
 
 // Read reads bytes from the connection (using the buffer prior to actually reading).

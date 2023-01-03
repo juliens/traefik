@@ -32,7 +32,7 @@ func NewManager(conf *runtime.Configuration, dialerManager *tcp.DialerManager) *
 }
 
 // BuildTCP Creates a tcp.Handler for a service configuration.
-func (m *Manager) BuildTCP(rootCtx context.Context, serviceName string) (tcp.Handler, error) {
+func (m *Manager) BuildTCP(rootCtx context.Context, serviceName string, ebpf bool) (tcp.Handler, error) {
 	serviceQualifiedName := provider.GetQualifiedName(rootCtx, serviceName)
 
 	logger := log.Ctx(rootCtx).With().Str(logs.ServiceName, serviceQualifiedName).Logger()
@@ -72,10 +72,25 @@ func (m *Manager) BuildTCP(rootCtx context.Context, serviceName string) (tcp.Han
 				return nil, err
 			}
 
-			handler, err := tcp.NewProxy(server.Address, conf.LoadBalancer.ProxyProtocol, dialer)
-			if err != nil {
-				srvLogger.Error().Err(err).Msg("Failed to create server")
-				continue
+			log.Debug().Msg("Add Server")
+
+			var handler tcp.Handler
+			if ebpf {
+				log.Debug().Msg("Add eBPF Server")
+				handler, err = tcp.NewProxyBPF(rootCtx, server.Address, conf.LoadBalancer.ProxyProtocol, dialer)
+				if err != nil {
+					srvLogger.Error().Err(err).Msg("Failed to create server")
+					continue
+				}
+
+			} else {
+				log.Debug().Msg("Add normal Server")
+
+				handler, err = tcp.NewProxy(server.Address, conf.LoadBalancer.ProxyProtocol, dialer)
+				if err != nil {
+					srvLogger.Error().Err(err).Msg("Failed to create server")
+					continue
+				}
 			}
 
 			loadBalancer.AddServer(handler)
@@ -88,7 +103,7 @@ func (m *Manager) BuildTCP(rootCtx context.Context, serviceName string) (tcp.Han
 		loadBalancer := tcp.NewWRRLoadBalancer()
 
 		for _, service := range shuffle(conf.Weighted.Services, m.rand) {
-			handler, err := m.BuildTCP(ctx, service.Name)
+			handler, err := m.BuildTCP(ctx, service.Name, ebpf)
 			if err != nil {
 				logger.Error().Err(err).Msg("Failed to build TCP handler")
 				return nil, err
