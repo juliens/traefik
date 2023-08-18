@@ -60,7 +60,7 @@ func TestTLSCertificateContent(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := &Provider{}
-	configuration, err := provider.loadFileConfig(context.Background(), fileConfig.Name(), true)
+	configuration, err := provider.loadFileConfig(context.Background(), fileConfig.Name())
 	require.NoError(t, err)
 
 	require.Equal(t, "CONTENT", configuration.TLS.Certificates[0].Certificate.CertFile.String())
@@ -345,4 +345,21 @@ func createTempFile(srcPath, tempDir string) (*os.File, error) {
 
 	_, err = io.Copy(file, src)
 	return file, err
+}
+
+func TestEmptyFileRetry(t *testing.T) {
+	file, err := os.CreateTemp(os.TempDir(), "temp")
+	require.NoError(t, err)
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		_, err := file.Write([]byte("test"))
+		require.NoError(t, err)
+	}()
+
+	content, err := readFile(file.Name())
+	require.NoError(t, err)
+
+	require.NotEmpty(t, content)
+
 }

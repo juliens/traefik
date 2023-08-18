@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/traefik/paerser/file"
@@ -86,7 +87,7 @@ func (p *Provider) BuildConfiguration() (*dynamic.Configuration, error) {
 	}
 
 	if len(p.Filename) > 0 {
-		return p.loadFileConfig(ctx, p.Filename, true)
+		return p.loadFileConfig(ctx, p.Filename)
 	}
 
 	return nil, errors.New("error using file configuration provider, neither filename or directory defined")
@@ -157,14 +158,8 @@ func sendConfigToChannel(configurationChan chan<- dynamic.Message, configuration
 	}
 }
 
-func (p *Provider) loadFileConfig(ctx context.Context, filename string, parseTemplate bool) (*dynamic.Configuration, error) {
-	var err error
-	var configuration *dynamic.Configuration
-	if parseTemplate {
-		configuration, err = p.CreateConfiguration(ctx, filename, template.FuncMap{}, false)
-	} else {
-		configuration, err = p.DecodeConfiguration(filename)
-	}
+func (p *Provider) loadFileConfig(ctx context.Context, filename string) (*dynamic.Configuration, error) {
+	configuration, err := p.CreateConfiguration(ctx, filename, template.FuncMap{}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +329,7 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 		}
 
 		var c *dynamic.Configuration
-		c, err = p.loadFileConfig(ctx, filepath.Join(directory, item.Name()), true)
+		c, err = p.loadFileConfig(ctx, filepath.Join(directory, item.Name()))
 		if err != nil {
 			return configuration, fmt.Errorf("%s: %w", filepath.Join(directory, item.Name()), err)
 		}
@@ -467,7 +462,7 @@ func (p *Provider) CreateConfiguration(ctx context.Context, filename string, fun
 		defaultFuncMap[funcID] = funcElement
 	}
 
-	tmpl := template.New(p.Filename).Funcs(defaultFuncMap)
+	tmpl := template.New("configuration").Funcs(defaultFuncMap)
 
 	_, err = tmpl.Parse(tmplContent)
 	if err != nil {
@@ -487,20 +482,10 @@ func (p *Provider) CreateConfiguration(ctx context.Context, filename string, fun
 		logger.Debugf("Rendering results: %s", renderedTemplate)
 	}
 
-	return p.decodeConfiguration(filename, renderedTemplate)
+	return decodeConfiguration(filename, renderedTemplate)
 }
 
-// DecodeConfiguration Decodes a *types.Configuration from a content.
-func (p *Provider) DecodeConfiguration(filename string) (*dynamic.Configuration, error) {
-	content, err := readFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("error reading configuration file: %s - %w", filename, err)
-	}
-
-	return p.decodeConfiguration(filename, content)
-}
-
-func (p *Provider) decodeConfiguration(filePath, content string) (*dynamic.Configuration, error) {
+func decodeConfiguration(filePath, content string) (*dynamic.Configuration, error) {
 	configuration := &dynamic.Configuration{
 		HTTP: &dynamic.HTTPConfiguration{
 			Routers:           make(map[string]*dynamic.Router),
@@ -537,7 +522,30 @@ func readFile(filename string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
+		if len(buf) > 0 {
+			return string(buf), nil
+		}
+
+		stat, err := os.Stat(filename)
+		if err != nil {
+			return "", err
+		}
+
+		if stat.ModTime().Before(time.Now().Add(-time.Minute)) {
+			return "", nil
+		}
+
+		// Retry after 200ms
+		time.Sleep(200 * time.Millisecond)
+
+		buf, err = os.ReadFile(filename)
+		if err != nil {
+			return "", err
+		}
+
 		return string(buf), nil
+
 	}
 	return "", fmt.Errorf("invalid filename: %s", filename)
 }
