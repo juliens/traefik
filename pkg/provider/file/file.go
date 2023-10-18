@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -26,10 +27,11 @@ var _ provider.Provider = (*Provider)(nil)
 
 // Provider holds configurations of the provider.
 type Provider struct {
-	Directory                 string `description:"Load dynamic configuration from one or more .yml or .toml files in a directory." json:"directory,omitempty" toml:"directory,omitempty" yaml:"directory,omitempty" export:"true"`
-	Watch                     bool   `description:"Watch provider." json:"watch,omitempty" toml:"watch,omitempty" yaml:"watch,omitempty" export:"true"`
-	Filename                  string `description:"Load dynamic configuration from a file." json:"filename,omitempty" toml:"filename,omitempty" yaml:"filename,omitempty" export:"true"`
-	DebugLogGeneratedTemplate bool   `description:"Enable debug logging of generated configuration template." json:"debugLogGeneratedTemplate,omitempty" toml:"debugLogGeneratedTemplate,omitempty" yaml:"debugLogGeneratedTemplate,omitempty" export:"true"`
+	Directory                 string   `description:"Load dynamic configuration from one or more .yml or .toml files in a directory." json:"directory,omitempty" toml:"directory,omitempty" yaml:"directory,omitempty" export:"true"`
+	Watch                     bool     `description:"Watch provider." json:"watch,omitempty" toml:"watch,omitempty" yaml:"watch,omitempty" export:"true"`
+	Filename                  string   `description:"Load dynamic configuration from a file." json:"filename,omitempty" toml:"filename,omitempty" yaml:"filename,omitempty" export:"true"`
+	MandatoryFiles            []string `description:"File that have to exists and contains data." json:"mandatoryFiles,omitempty" toml:"mandatoryFiles,omitempty" yaml:"mandatoryFiles,omitempty"  export:"true"`
+	DebugLogGeneratedTemplate bool     `description:"Enable debug logging of generated configuration template." json:"debugLogGeneratedTemplate,omitempty" toml:"debugLogGeneratedTemplate,omitempty" yaml:"debugLogGeneratedTemplate,omitempty" export:"true"`
 }
 
 // SetDefaults sets the default values.
@@ -82,7 +84,18 @@ func (p *Provider) BuildConfiguration() (*dynamic.Configuration, error) {
 	ctx := log.With(context.Background(), log.Str(log.ProviderName, providerName))
 
 	if len(p.Directory) > 0 {
-		return p.loadFileConfigFromDirectory(ctx, p.Directory, nil)
+		configuration, files, err := p.loadFileConfigFromDirectory(ctx, p.Directory, nil)
+		if err != nil {
+			return configuration, err
+		}
+		for _, mandatoryFile := range p.MandatoryFiles {
+			if !slices.ContainsFunc(files, func(s string) bool {
+				return strings.EqualFold(s, mandatoryFile)
+			}) {
+				return nil, fmt.Errorf("mandatory file does not exists: %s", mandatoryFile)
+			}
+		}
+		return configuration, err
 	}
 
 	if len(p.Filename) > 0 {
@@ -283,10 +296,11 @@ func flattenCertificates(ctx context.Context, tlsConfig *dynamic.TLSConfiguratio
 	return certs
 }
 
-func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory string, configuration *dynamic.Configuration) (*dynamic.Configuration, error) {
+func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory string, configuration *dynamic.Configuration) (*dynamic.Configuration, []string, error) {
+	var files []string
 	fileList, err := os.ReadDir(directory)
 	if err != nil {
-		return configuration, fmt.Errorf("unable to read directory %s: %w", directory, err)
+		return configuration, nil, fmt.Errorf("unable to read directory %s: %w", directory, err)
 	}
 
 	if configuration == nil {
@@ -319,10 +333,12 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 		logger := log.FromContext(log.With(ctx, log.Str("filename", item.Name())))
 
 		if item.IsDir() {
-			configuration, err = p.loadFileConfigFromDirectory(ctx, filepath.Join(directory, item.Name()), configuration)
+			var filesInDir []string
+			configuration, filesInDir, err = p.loadFileConfigFromDirectory(ctx, filepath.Join(directory, item.Name()), configuration)
 			if err != nil {
-				return configuration, fmt.Errorf("unable to load content configuration from subdirectory %s: %w", item, err)
+				return configuration, nil, fmt.Errorf("unable to load content configuration from subdirectory %s: %w", item, err)
 			}
+			files = append(files, filesInDir...)
 			continue
 		}
 
@@ -333,10 +349,12 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 			continue
 		}
 
+		files = append(files, filepath.Join(directory, item.Name()))
+
 		var c *dynamic.Configuration
 		c, err = p.loadFileConfig(ctx, filepath.Join(directory, item.Name()), true)
 		if err != nil {
-			return configuration, fmt.Errorf("%s: %w", filepath.Join(directory, item.Name()), err)
+			return configuration, nil, fmt.Errorf("%s: %w", filepath.Join(directory, item.Name()), err)
 		}
 
 		for name, conf := range c.HTTP.Routers {
@@ -450,12 +468,12 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 		configuration.TLS.Certificates = append(configuration.TLS.Certificates, conf)
 	}
 
-	return configuration, nil
+	return configuration, files, nil
 }
 
 // CreateConfiguration creates a provider configuration from content using templating.
 func (p *Provider) CreateConfiguration(ctx context.Context, filename string, funcMap template.FuncMap, templateObjects interface{}) (*dynamic.Configuration, error) {
-	tmplContent, err := readFile(filename)
+	tmplContent, err := p.readFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("error reading configuration file: %s - %w", filename, err)
 	}
@@ -492,7 +510,7 @@ func (p *Provider) CreateConfiguration(ctx context.Context, filename string, fun
 
 // DecodeConfiguration Decodes a *types.Configuration from a content.
 func (p *Provider) DecodeConfiguration(filename string) (*dynamic.Configuration, error) {
-	content, err := readFile(filename)
+	content, err := p.readFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("error reading configuration file: %s - %w", filename, err)
 	}
@@ -531,12 +549,18 @@ func (p *Provider) decodeConfiguration(filePath, content string) (*dynamic.Confi
 	return configuration, nil
 }
 
-func readFile(filename string) (string, error) {
+func (p *Provider) readFile(filename string) (string, error) {
 	if len(filename) > 0 {
 		buf, err := os.ReadFile(filename)
 		if err != nil {
 			return "", err
 		}
+		if len(buf) == 0 && slices.ContainsFunc(p.MandatoryFiles, func(s string) bool {
+			return strings.EqualFold(s, filename)
+		}) {
+			return "", fmt.Errorf("empty mandatory file: %s", filename)
+		}
+
 		return string(buf), nil
 	}
 	return "", fmt.Errorf("invalid filename: %s", filename)

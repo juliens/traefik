@@ -346,3 +346,45 @@ func createTempFile(srcPath, tempDir string) (*os.File, error) {
 	_, err = io.Copy(file, src)
 	return file, err
 }
+
+func TestMandatoryFiles(t *testing.T) {
+	tempDir := t.TempDir()
+
+	provider := &Provider{}
+	provider.Watch = true
+	provider.Directory = tempDir
+	provider.MandatoryFiles = []string{
+		filepath.Join(tempDir, "file.yml"),
+		filepath.Join(tempDir, "subPath", "file.yml"),
+	}
+
+	err := os.WriteFile(filepath.Join(tempDir, "file.yml"), []byte("#not empty"), 0777)
+	require.NoError(t, err)
+
+	err = os.Mkdir(filepath.Join(tempDir, "subPath"), 0777)
+	require.NoError(t, err)
+
+	err = os.WriteFile(filepath.Join(tempDir, "subPath", "file.yml"), []byte("#not empty"), 0777)
+	require.NoError(t, err)
+
+	_, err = provider.BuildConfiguration()
+	require.NoError(t, err)
+
+	err = os.WriteFile(filepath.Join(tempDir, "file.yml"), []byte(""), 0777)
+	require.NoError(t, err)
+
+	_, err = provider.BuildConfiguration()
+	require.Error(t, err)
+
+	err = os.WriteFile(filepath.Join(tempDir, "file.yml"), []byte("#not empty"), 0777)
+	require.NoError(t, err)
+
+	_, err = provider.BuildConfiguration()
+	require.NoError(t, err)
+
+	err = os.Remove(filepath.Join(tempDir, "file.yml"))
+	require.NoError(t, err)
+
+	_, err = provider.BuildConfiguration()
+	require.Error(t, err)
+}
