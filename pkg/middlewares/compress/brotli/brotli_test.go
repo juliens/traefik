@@ -168,9 +168,10 @@ func Test_MultipleWriteHeader(t *testing.T) {
 func Test_FlushBeforeWrite(t *testing.T) {
 	srv := httptest.NewServer(mustNewWrapper(t, Config{MinSize: 1024})(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
-		rw.(http.Flusher).Flush()
+		err := http.NewResponseController(rw).Flush()
+		require.NoError(t, err)
 
-		_, err := rw.Write(bigTestBody)
+		_, err = rw.Write(bigTestBody)
 		require.NoError(t, err)
 	})))
 	defer srv.Close()
@@ -200,7 +201,8 @@ func Test_FlushAfterWrite(t *testing.T) {
 		_, err := rw.Write(bigTestBody[0:1])
 		require.NoError(t, err)
 
-		rw.(http.Flusher).Flush()
+		err = http.NewResponseController(rw).Flush()
+		require.NoError(t, err)
 		for _, b := range bigTestBody[1:] {
 			_, err := rw.Write([]byte{b})
 			require.NoError(t, err)
@@ -233,7 +235,8 @@ func Test_FlushAfterWriteNil(t *testing.T) {
 		_, err := rw.Write(nil)
 		require.NoError(t, err)
 
-		rw.(http.Flusher).Flush()
+		err = http.NewResponseController(rw).Flush()
+		require.NoError(t, err)
 	})))
 	defer srv.Close()
 
@@ -261,7 +264,8 @@ func Test_FlushAfterAllWrites(t *testing.T) {
 			_, err := rw.Write(bigTestBody[i : i+1])
 			require.NoError(t, err)
 		}
-		rw.(http.Flusher).Flush()
+		err := http.NewResponseController(rw).Flush()
+		require.NoError(t, err)
 	})))
 	defer srv.Close()
 
@@ -581,7 +585,8 @@ func Test_FlushExcludedContentTypes(t *testing.T) {
 					require.NoError(t, err)
 
 					// Flush between each write
-					rw.(http.Flusher).Flush()
+					err = http.NewResponseController(rw).Flush()
+					require.NoError(t, err)
 					tb = tb[toWrite:]
 				}
 			}))
@@ -700,7 +705,8 @@ func Test_FlushIncludedContentTypes(t *testing.T) {
 					require.NoError(t, err)
 
 					// Flush between each write
-					rw.(http.Flusher).Flush()
+					err = http.NewResponseController(rw).Flush()
+					require.NoError(t, err)
 					tb = tb[toWrite:]
 				}
 			}))

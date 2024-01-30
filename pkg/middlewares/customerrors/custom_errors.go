@@ -1,10 +1,8 @@
 package customerrors
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -16,12 +14,6 @@ import (
 	"github.com/traefik/traefik/v3/pkg/types"
 	"github.com/vulcand/oxy/v2/utils"
 	"go.opentelemetry.io/otel/trace"
-)
-
-// Compile time validation that the response recorder implements http interfaces correctly.
-var (
-	_ middlewares.Stateful = &codeModifier{}
-	_ middlewares.Stateful = &codeCatcher{}
 )
 
 const typeName = "CustomError"
@@ -217,14 +209,6 @@ func (cc *codeCatcher) WriteHeader(code int) {
 	cc.headersSent = true
 }
 
-// Hijack hijacks the connection.
-func (cc *codeCatcher) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	if hj, ok := cc.responseWriter.(http.Hijacker); ok {
-		return hj.Hijack()
-	}
-	return nil, nil, fmt.Errorf("%T is not a http.Hijacker", cc.responseWriter)
-}
-
 // Flush sends any buffered data to the client.
 func (cc *codeCatcher) Flush() {
 	// If WriteHeader was already called from the caller, this is a NOOP.
@@ -240,9 +224,11 @@ func (cc *codeCatcher) Flush() {
 		return
 	}
 
-	if flusher, ok := cc.responseWriter.(http.Flusher); ok {
-		flusher.Flush()
-	}
+	_ = http.NewResponseController(cc.responseWriter).Flush()
+}
+
+func (cc *codeCatcher) Unwrap() http.ResponseWriter {
+	return cc.responseWriter
 }
 
 // codeModifier forwards a response back to the client,
@@ -315,20 +301,6 @@ func (r *codeModifier) WriteHeader(code int) {
 	r.headerSent = true
 }
 
-// Hijack hijacks the connection.
-func (r *codeModifier) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	hijacker, ok := r.responseWriter.(http.Hijacker)
-	if !ok {
-		return nil, nil, fmt.Errorf("%T is not a http.Hijacker", r.responseWriter)
-	}
-	return hijacker.Hijack()
-}
-
-// Flush sends any buffered data to the client.
-func (r *codeModifier) Flush() {
-	r.WriteHeader(r.code)
-
-	if flusher, ok := r.responseWriter.(http.Flusher); ok {
-		flusher.Flush()
-	}
+func (r *codeModifier) Unwrap() http.ResponseWriter {
+	return r.responseWriter
 }

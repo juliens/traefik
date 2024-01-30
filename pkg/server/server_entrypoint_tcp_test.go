@@ -22,7 +22,7 @@ import (
 func TestShutdownHijacked(t *testing.T) {
 	router := &tcprouter.Router{}
 	router.SetHTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		conn, _, err := rw.(http.Hijacker).Hijack()
+		conn, _, err := http.NewResponseController(rw).Hijack()
 		require.NoError(t, err)
 
 		resp := http.Response{StatusCode: http.StatusOK}

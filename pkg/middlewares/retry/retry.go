@@ -1,12 +1,10 @@
 package retry
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"math"
-	"net"
 	"net/http"
 	"net/http/httptrace"
 	"time"
@@ -19,9 +17,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
 )
-
-// Compile time validation that the response writer implements http interfaces correctly.
-var _ middlewares.Stateful = &responseWriter{}
 
 const typeName = "Retry"
 
@@ -242,16 +237,6 @@ func (r *responseWriter) WriteHeader(code int) {
 	r.written = true
 }
 
-func (r *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	hijacker, ok := r.responseWriter.(http.Hijacker)
-	if !ok {
-		return nil, nil, fmt.Errorf("%T is not a http.Hijacker", r.responseWriter)
-	}
-	return hijacker.Hijack()
-}
-
-func (r *responseWriter) Flush() {
-	if flusher, ok := r.responseWriter.(http.Flusher); ok {
-		flusher.Flush()
-	}
+func (r *responseWriter) Unwrap() http.ResponseWriter {
+	return r.responseWriter
 }

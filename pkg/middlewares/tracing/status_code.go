@@ -1,8 +1,6 @@
 package tracing
 
 import (
-	"bufio"
-	"net"
 	"net/http"
 )
 
@@ -27,14 +25,6 @@ func (s *statusCodeRecorder) Status() int {
 	return s.status
 }
 
-// Hijack hijacks the connection.
-func (s *statusCodeRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return s.ResponseWriter.(http.Hijacker).Hijack()
-}
-
-// Flush sends any buffered data to the client.
-func (s *statusCodeRecorder) Flush() {
-	if flusher, ok := s.ResponseWriter.(http.Flusher); ok {
-		flusher.Flush()
-	}
+func (s *statusCodeRecorder) Unwrap() http.ResponseWriter {
+	return s.ResponseWriter
 }

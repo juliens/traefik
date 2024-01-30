@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/safe"
 )
 
@@ -97,10 +98,7 @@ func TestHijack(t *testing.T) {
 
 	var mirrorRequest bool
 	err := mirror.AddMirror(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		hijacker, ok := rw.(http.Hijacker)
-		assert.True(t, ok)
-
-		_, _, err := hijacker.Hijack()
+		_, _, err := http.NewResponseController(rw).Hijack()
 		assert.Error(t, err)
 		mirrorRequest = true
 	}), 100)
@@ -121,10 +119,8 @@ func TestFlush(t *testing.T) {
 
 	var mirrorRequest bool
 	err := mirror.AddMirror(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		hijacker, ok := rw.(http.Flusher)
-		assert.True(t, ok)
-
-		hijacker.Flush()
+		err := http.NewResponseController(rw).Flush()
+		require.NoError(t, err)
 
 		mirrorRequest = true
 	}), 100)

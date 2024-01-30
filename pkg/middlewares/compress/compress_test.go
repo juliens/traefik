@@ -445,8 +445,11 @@ func TestShouldWriteHeaderWhenFlush(t *testing.T) {
 		rw.Header().Add(contentEncodingHeader, gzipValue)
 		rw.Header().Add(varyHeader, acceptEncodingHeader)
 		rw.WriteHeader(http.StatusUnauthorized)
-		rw.(http.Flusher).Flush()
-		_, err := rw.Write([]byte("short"))
+		err := http.NewResponseController(rw).Flush()
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+		_, err = rw.Write([]byte("short"))
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}

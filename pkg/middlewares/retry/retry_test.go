@@ -228,7 +228,10 @@ func TestRetryWithFlush(t *testing.T) {
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
-		rw.(http.Flusher).Flush()
+		err = http.NewResponseController(rw).Flush()
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
 		_, err = rw.Write([]byte("DATA"))
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
