@@ -17,6 +17,7 @@ rules:
   - apiGroups:
       - extensions
       - networking.k8s.io
+      - traefik.containo.us
     resources:
       - ingresses
       - ingressclasses
@@ -27,6 +28,7 @@ rules:
   - apiGroups:
       - extensions
       - networking.k8s.io
+      - traefik.containo.us
     resources:
       - ingresses/status
     verbs:

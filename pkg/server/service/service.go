@@ -27,6 +27,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/server/cookie"
 	"github.com/traefik/traefik/v3/pkg/server/middleware"
 	"github.com/traefik/traefik/v3/pkg/server/provider"
+	"github.com/traefik/traefik/v3/pkg/server/service/loadbalancer"
 	"github.com/traefik/traefik/v3/pkg/server/service/loadbalancer/failover"
 	"github.com/traefik/traefik/v3/pkg/server/service/loadbalancer/mirror"
 	"github.com/traefik/traefik/v3/pkg/server/service/loadbalancer/wrr"
@@ -39,6 +40,16 @@ type RoundTripperGetter interface {
 	Get(name string) (http.RoundTripper, error)
 }
 
+type healthchecker interface {
+	Launch(ctx context.Context)
+}
+
+type healthcheckerFn func(ctx context.Context)
+
+func (h healthcheckerFn) Launch(ctx context.Context) {
+	h(ctx)
+}
+
 // Manager The service manager.
 type Manager struct {
 	routinePool         *safe.Pool
@@ -48,7 +59,7 @@ type Manager struct {
 
 	services       map[string]http.Handler
 	configs        map[string]*runtime.ServiceInfo
-	healthCheckers map[string]*healthcheck.ServiceHealthChecker
+	healthCheckers map[string]healthchecker
 	rand           *rand.Rand // For the initial shuffling of load-balancers.
 }
 
@@ -61,7 +72,7 @@ func NewManager(configs map[string]*runtime.ServiceInfo, observabilityMgr *middl
 		roundTripperManager: roundTripperManager,
 		services:            make(map[string]http.Handler),
 		configs:             configs,
-		healthCheckers:      make(map[string]*healthcheck.ServiceHealthChecker),
+		healthCheckers:      make(map[string]healthchecker),
 		rand:                rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
@@ -283,7 +294,18 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 		return nil, err
 	}
 
-	lb := wrr.New(service.Sticky, service.HealthCheck != nil)
+	if len(service.Servers) == 0 {
+		empty := &loadbalancer.Empty{}
+		m.healthCheckers[serviceName] = healthcheckerFn(func(ctx context.Context) {
+			log.Ctx(ctx).Debug().Msg("Healthcheck fail because of empty services")
+			empty.PropagateDownStatus()
+
+		})
+
+		return empty, nil
+	}
+
+	lb := wrr.New(service.Sticky, service.HealthCheck != nil || len(service.Servers) == 0)
 	healthCheckTargets := make(map[string]*url.URL)
 
 	for _, server := range shuffle(service.Servers, m.rand) {

@@ -118,6 +118,7 @@ func (p *Provider) newK8sClient(ctx context.Context) (*clientWrapper, error) {
 
 // Init the provider.
 func (p *Provider) Init() error {
+	p.AllowEmptyServices = true
 	return nil
 }
 

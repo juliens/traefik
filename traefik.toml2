@@ -1,0 +1,39 @@
+[global]
+  checkNewVersion = false
+  sendAnonymousUsage = false
+[entryPoints]
+  [entryPoints.web]
+    address = ":80"
+[log]
+level="DEBUG"
+
+[serversTransport]
+  maxIdleConnsPerHost = -1
+
+[accessLog]
+  filePath = "/tmp/access.log"
+  format = "json"
+
+  [accessLog.fields]
+    defaultMode = "keep"
+
+    [accessLog.fields.headers]
+      defaultMode = "keep"
+
+[providers.file]
+filename="/home/juliens/dev/go/src/github.com/traefik/traefik/traefik.toml"
+[http.routers.test]
+rule="Host(`kerberos.localhost`)"
+service="test"
+
+[http.services.test.loadbalancer]
+[[http.services.test.loadbalancer.servers]]
+url="http://192.168.1.124"
+
+[http.routers.test2]
+rule="Host(`nkerberos.localhost`)"
+service="nkerberos"
+
+[http.services.nkerberos.loadbalancer]
+[[http.services.nkerberos.loadbalancer.servers]]
+url="http://172.17.0.2"

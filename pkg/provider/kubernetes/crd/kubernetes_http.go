@@ -213,6 +213,8 @@ func (c configBuilder) buildTraefikService(ctx context.Context, tService *traefi
 		return c.buildServicesLB(ctx, tService.Namespace, tService.Spec, id, conf)
 	} else if tService.Spec.Mirroring != nil {
 		return c.buildMirroring(ctx, tService, id, conf)
+	} else if tService.Spec.Failover != nil {
+		return c.buildFailover(ctx, tService, id, conf)
 	}
 
 	return errors.New("unspecified service type")
@@ -479,6 +481,34 @@ func (c configBuilder) nameAndService(ctx context.Context, parentNamespace strin
 	default:
 		return "", nil, fmt.Errorf("unsupported service kind %s", service.Kind)
 	}
+}
+
+func (c configBuilder) buildFailover(ctx context.Context, service *traefikv1alpha1.TraefikService, id string, conf map[string]*dynamic.Service) error {
+	fullNameMain, k8sService, err := c.nameAndService(ctx, service.Namespace, service.Spec.Failover.LoadBalancerSpec)
+	if err != nil {
+		return err
+	}
+
+	if k8sService != nil {
+		conf[fullNameMain] = k8sService
+	}
+
+	fallbackName, k8sService, err := c.nameAndService(ctx, service.Namespace, service.Spec.Failover.Fallback)
+	if err != nil {
+		return err
+	}
+
+	if k8sService != nil {
+		conf[fallbackName] = k8sService
+	}
+
+	conf[id] = &dynamic.Service{
+		Failover: &dynamic.Failover{
+			Service:  fullNameMain,
+			Fallback: fallbackName,
+		},
+	}
+	return nil
 }
 
 func splitSvcNameProvider(name string) (string, string) {

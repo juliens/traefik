@@ -44,95 +44,42 @@ spec:
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: whoamitcp
+  name: invalid
   namespace: default
   labels:
     app: traefiklabs
-    name: whoamitcp
+    name: invalid
 
 spec:
   replicas: 2
   selector:
     matchLabels:
       app: traefiklabs
-      task: whoamitcp
+      task: invalid
   template:
     metadata:
       labels:
         app: traefiklabs
-        task: whoamitcp
+        task: invalid
     spec:
       containers:
-        - name: whoamitcp
-          image: traefik/whoamitcp
+        - name: invalid
+          image: traefik/invalid
           ports:
-            - containerPort: 8080
+            - containerPort: 80
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: whoamitcp
+  name: invalid
   namespace: default
 
 spec:
   ports:
-    - name: footcp
-      port: 8080
+    - name: http
+      port: 80
   selector:
     app: traefiklabs
-    task: whoamitcp
+    task: invalid
 
----
-kind: Deployment
-apiVersion: apps/v1
-metadata:
-  name: whoamiudp
-  namespace: default
-  labels:
-    app: traefiklabs
-    name: whoamiudp
-
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: traefiklabs
-      task: whoamiudp
-  template:
-    metadata:
-      labels:
-        app: traefiklabs
-        task: whoamiudp
-    spec:
-      containers:
-        - name: whoamiudp
-          image: traefik/whoamiudp:latest
-          ports:
-            - containerPort: 8090
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: whoamiudp
-  namespace: default
-
-spec:
-  ports:
-    - protocol: UDP
-      name: fooudp
-      port: 8090
-  selector:
-    app: traefiklabs
-    task: whoamiudp
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: externalname-svc
-  namespace: default
-spec:
-  externalName: domain.com
-  type: ExternalName

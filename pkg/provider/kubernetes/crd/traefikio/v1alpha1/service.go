@@ -44,6 +44,18 @@ type TraefikServiceSpec struct {
 	Weighted *WeightedRoundRobin `json:"weighted,omitempty"`
 	// Mirroring defines the Mirroring service configuration.
 	Mirroring *Mirroring `json:"mirroring,omitempty"`
+
+	Failover *Failover `json:"failover,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// Failover holds the failover service configuration.
+// More info: https://doc.traefik.io/traefik/v3.0/routing/services/#failover-service
+type Failover struct {
+	LoadBalancerSpec `json:",inline"`
+
+	Fallback LoadBalancerSpec `json:"fallback,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
