@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/http-wasm/http-wasm-host-go/handler"
@@ -135,6 +136,10 @@ func (b *wasmMiddlewareBuilder) buildMiddleware(ctx context.Context, next http.H
 	if err != nil {
 		return nil, nil, fmt.Errorf("creating middleware: %w", err)
 	}
+
+	runtime.SetFinalizer(mw, func(mw wasm.Middleware) {
+		_ = mw.Close(context.Background())
+	})
 
 	return mw.NewHandler(ctx, next), applyCtx, nil
 }
