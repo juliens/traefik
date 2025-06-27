@@ -1,0 +1,46 @@
+[global]
+  checkNewVersion = false
+  sendAnonymousUsage = false
+
+[log]
+  level = "DEBUG"
+
+[serversTransport]
+  rootCAs = [ """{{ .CertContent }}""" ]
+
+[api]
+  dashboard = true
+  insecure = true
+
+[entryPoints]
+  [entryPoints.web]
+    address = ":8000"
+  [entryPoints.websecure]
+    address = ":4443"
+
+[providers]
+  [providers.file]
+    filename = "{{ .SelfFilename }}"
+
+[http]
+  [http.middlewares]
+    [http.middlewares.grpcweb.grpcWeb]
+      allowOrigins = ["*"]
+
+  [http.routers]
+    [http.routers.router1]
+      Service = "service1"
+      middlewares = ["grpcweb"]
+      Rule = "Host(`127.0.0.1`)"
+      [http.routers.router1.tls]
+
+  [http.services]
+    [http.services.service1]
+      [http.services.service1.loadBalancer]
+        [[http.services.service1.loadBalancer.servers]]
+          url = "https://127.0.0.1:{{ .GRPCServerPort }}"
+
+[tls.stores]
+  [tls.stores.default.defaultCertificate]
+    certFile = """{{ .CertContent }}"""
+    keyFile  = """{{ .KeyContent }}"""
