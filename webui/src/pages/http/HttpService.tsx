@@ -14,6 +14,7 @@ import {
   LayoutTwoCols,
   ProviderName,
 } from 'components/resources/DetailSections'
+import MetadataPanel from 'components/resources/MetadataPanel'
 import { ResourceStatus } from 'components/resources/ResourceStatus'
 import { UsedByRoutersSection, UsedByRoutersSkeleton } from 'components/resources/UsedByRoutersSection'
 import Tooltip from 'components/Tooltip'
@@ -257,6 +258,7 @@ export const ServicePanels = ({ data, protocol = '' }: DetailProps) => {
           </Box>
         </DetailSection>
       )}
+      <MetadataPanel metadata={data.loadBalancer?.metadata} />
     </SpacedColumns>
   )
 }

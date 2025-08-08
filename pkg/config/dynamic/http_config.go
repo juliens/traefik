@@ -73,6 +73,7 @@ type Router struct {
 	TLS           *RouterTLSConfig           `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
 	Observability *RouterObservabilityConfig `json:"observability,omitempty" toml:"observability,omitempty" yaml:"observability,omitempty" export:"true"`
 	DefaultRule   bool                       `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
+	Metadata      map[string]any             `json:"metadata,omitempty" toml:"metadata,omitempty" yaml:"metadata,omitempty" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -248,6 +249,7 @@ type ServersLoadBalancer struct {
 	PassHostHeader     *bool               `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
 	ResponseForwarding *ResponseForwarding `json:"responseForwarding,omitempty" toml:"responseForwarding,omitempty" yaml:"responseForwarding,omitempty" export:"true"`
 	ServersTransport   string              `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
+	Metadata           map[string]any      `json:"metadata,omitempty" toml:"metadata,omitempty" yaml:"metadata,omitempty" export:"true"`
 }
 
 // Mergeable tells if the given service is mergeable.

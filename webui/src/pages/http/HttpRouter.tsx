@@ -4,6 +4,7 @@ import { FiGlobe, FiLayers, FiLogIn, FiZap } from 'react-icons/fi'
 import { useParams } from 'react-router-dom'
 
 import { CardListSection, DetailSectionSkeleton } from 'components/resources/DetailSections'
+import MetadataPanel from 'components/resources/MetadataPanel'
 import MiddlewarePanel from 'components/resources/MiddlewarePanel'
 import RouterPanel from 'components/resources/RouterPanel'
 import TlsPanel from 'components/resources/TlsPanel'
@@ -93,6 +94,7 @@ const RouterDetail = ({ data }: DetailProps) => (
     <RouterPanel data={data} />
     <TlsPanel data={data} />
     <MiddlewarePanel data={data} />
+    <MetadataPanel metadata={data.metadata} />
   </SpacedColumns>
 )
 

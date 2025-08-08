@@ -29,6 +29,7 @@ type RouterIng struct {
 	RuleSyntax    string                             `json:"ruleSyntax,omitempty"`
 	TLS           *dynamic.RouterTLSConfig           `json:"tls,omitempty" label:"allowEmpty"`
 	Observability *dynamic.RouterObservabilityConfig `json:"observability,omitempty" label:"allowEmpty"`
+	Metadata      map[string]any                     `json:"metadata,omitempty" toml:"metadata,omitempty" yaml:"metadata,omitempty" export:"true"`
 }
 
 // SetDefaults sets the default values.
@@ -49,6 +50,7 @@ type ServiceIng struct {
 	Sticky           *dynamic.Sticky `json:"sticky,omitempty" label:"allowEmpty"`
 	NativeLB         *bool           `json:"nativeLB,omitempty"`
 	NodePortLB       bool            `json:"nodePortLB,omitempty"`
+	Metadata         map[string]any  `json:"metadata,omitempty" toml:"metadata,omitempty" yaml:"metadata,omitempty" export:"true"`
 }
 
 // SetDefaults sets the default values.

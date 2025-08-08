@@ -46,6 +46,7 @@ type Router = {
   error?: string[]
   entryPoints?: string[]
   message?: string
+  metadata?: Record<string, any>
 }
 
 type TlsDomain = {
@@ -94,6 +95,7 @@ export type ServiceDetailType = {
         [header: string]: string
       }
     }
+    metadata?: Record<string, any>
   }
   weighted?: {
     services?: {
@@ -147,6 +149,7 @@ export const useResourceDetail = (name: string, resource: string, protocol = 'ht
         hasValidMiddlewares: hasMiddlewares,
         entryPointsData: entryPoints,
         using: routeDetail.using,
+        metadata: routeDetail.metadata,
       },
       error: firstError,
     } as ResourceDetailType

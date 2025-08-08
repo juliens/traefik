@@ -258,6 +258,9 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 			continue
 		}
 
+		rtConfig.Router.Metadata["kubernetes/ingress.namespace"] = ingress.Namespace
+		rtConfig.Router.Metadata["kubernetes/ingress.name"] = ingress.Name
+
 		err = getCertificates(ctxIngress, ingress, client, certConfigs)
 		if err != nil {
 			logger.Error().Err(err).Msg("Error configuring TLS")
@@ -293,6 +296,7 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 				RuleSyntax: "default",
 				Priority:   math.MinInt32,
 				Service:    "default-backend",
+				Metadata:   rtConfig.Router.Metadata,
 			}
 
 			if rtConfig != nil && rtConfig.Router != nil {
@@ -546,6 +550,11 @@ func (p *Provider) loadService(client Client, namespace string, backend netv1.In
 	nativeLB := p.NativeLBByDefault
 
 	if svcConfig != nil && svcConfig.Service != nil {
+		svcConfig.Service.Metadata["service.name"] = service.ObjectMeta.Name
+		svcConfig.Service.Metadata["service.namespace"] = service.ObjectMeta.Namespace
+
+		svc.LoadBalancer.Metadata = svcConfig.Service.Metadata
+
 		svc.LoadBalancer.Sticky = svcConfig.Service.Sticky
 
 		if svcConfig.Service.PassHostHeader != nil {
@@ -679,6 +688,7 @@ func (p *Provider) loadRouter(rule netv1.IngressRule, pa netv1.HTTPIngressPath, 
 		rt.Middlewares = rtConfig.Router.Middlewares
 		rt.TLS = rtConfig.Router.TLS
 		rt.Observability = rtConfig.Router.Observability
+		rt.Metadata = rtConfig.Router.Metadata
 	}
 
 	var rules []string
