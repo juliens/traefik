@@ -8,6 +8,10 @@ WORKDIR /src
 ENV CGO_ENABLED=1
 RUN go build -o /traefik ./cmd/traefik
 
+RUN rm -rf /src
+
+WORKDIR /
+
 EXPOSE 80
 VOLUME ["/tmp"]
 

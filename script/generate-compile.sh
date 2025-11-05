@@ -116,6 +116,10 @@ type plugin struct {
 	Version string
 }
 
+func init() {
+  LoadPlugins()
+}
+
 func LoadPlugins() {
 EOF_MIDDLE
 
@@ -141,7 +145,6 @@ cat >> "$OUTPUT_FILE" << 'EOF_FOOTER'
 var pluginMap = map[string]plugin{}
 
 func NewPlugin(ctx context.Context, name string, config string, next http.Handler) (http.Handler, error) {
-  LoadPlugins()
 	c := reflect.ValueOf(pluginMap[name].Create).Call([]reflect.Value{})[0].Interface()
 
 	err := json.Unmarshal([]byte(config), &c)

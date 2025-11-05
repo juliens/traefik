@@ -368,16 +368,27 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 		}
 	}
 
-	if config.PluginSo != nil {
+	if config.PluginSo != nil && !reflect.ValueOf(b.pluginBuilder).IsNil() { // Using "reflect" because "b.pluginBuilder" is an interface.
 		if middleware != nil {
 			return nil, badConf
 		}
-		cfg, err := json.Marshal(config.PluginSo.Config)
+		if plugins.NewPluginFn == nil {
+			return nil, errors.New("dynamic library plugins not initialized")
+		}
+
+		pluginType, rawPluginConfig, err := findPluginConfig(config.PluginSo)
+		if err != nil {
+			return nil, fmt.Errorf("plugin: %w", err)
+		}
+
+		pluginName := b.pluginBuilder.GetPluginName(pluginType)
+		cfg, err := json.Marshal(rawPluginConfig)
 		if err != nil {
 			return nil, err
 		}
+
 		middleware = func(next http.Handler) (http.Handler, error) {
-			return plugins.NewPlugin(ctx, config.PluginSo.Filename, config.PluginSo.PluginName, middlewareName, string(cfg), next)
+			return plugins.NewPluginFn(ctx, pluginName, middlewareName, string(cfg), next)
 		}
 	}
 

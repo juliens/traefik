@@ -44,19 +44,13 @@ type Middleware struct {
 	GrpcWeb           *GrpcWeb           `json:"grpcWeb,omitempty" toml:"grpcWeb,omitempty" yaml:"grpcWeb,omitempty" export:"true"`
 
 	Plugin   map[string]PluginConf `json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty" export:"true"`
-	PluginSo *PluginSOConfig       `json:"pluginso,omitempty" toml:"pluginso,omitempty" yaml:"pluginso,omitempty" export:"true"`
+	PluginSo map[string]PluginConf `json:"pluginso,omitempty" toml:"pluginso,omitempty" yaml:"pluginso,omitempty" export:"true"`
 
 	// Gateway API filter middlewares.
 	RequestHeaderModifier  *HeaderModifier  `json:"requestHeaderModifier,omitempty" toml:"-" yaml:"-" label:"-" file:"-" kv:"-" export:"true"`
 	ResponseHeaderModifier *HeaderModifier  `json:"responseHeaderModifier,omitempty" toml:"-" yaml:"-" label:"-" file:"-" kv:"-" export:"true"`
 	RequestRedirect        *RequestRedirect `json:"requestRedirect,omitempty" toml:"-" yaml:"-" label:"-" file:"-" kv:"-" export:"true"`
 	URLRewrite             *URLRewrite      `json:"URLRewrite,omitempty" toml:"-" yaml:"-" label:"-" file:"-" kv:"-" export:"true"`
-}
-
-type PluginSOConfig struct {
-	Filename   string     `json:"filename" toml:"filename" yaml:"filename" export:"true"`
-	Config     PluginConf `json:"config" toml:"config" yaml:"config" export:"true"`
-	PluginName string     `json:"pluginName" toml:"pluginName" yaml:"pluginName" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true

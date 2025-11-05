@@ -14,6 +14,7 @@ const typeName = "Plugin"
 // PluginsBuilder the plugin's builder interface.
 type PluginsBuilder interface {
 	Build(pName string, config map[string]interface{}, middlewareName string) (plugins.Constructor, error)
+	GetPluginName(pName string) string
 }
 
 func findPluginConfig(rawConfig map[string]dynamic.PluginConf) (string, map[string]interface{}, error) {

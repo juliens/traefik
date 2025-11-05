@@ -1,0 +1,72 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"reflect"
+
+{{ range . }}
+    {{ .Hash }} "{{ .Import }}"
+{{end}}
+)
+
+type plugin struct {
+	Create any
+	New    any
+	Version string
+}
+
+func init() {
+  LoadPlugins()
+}
+
+func LoadPlugins() {
+{{ range . }}
+	pluginMap["{{ .Name }}"] = plugin{
+		Create: {{ .Hash }}.CreateConfig,
+		New:    {{ .Hash }}.New,
+		Version: "{{ .Version }}",
+	}
+{{end}}
+}
+
+var pluginMap = map[string]plugin{}
+
+func NewPlugin(ctx context.Context, name string, config string, next http.Handler) (http.Handler, error) {
+	c := reflect.ValueOf(pluginMap[name].Create).Call([]reflect.Value{})[0].Interface()
+
+	err := json.Unmarshal([]byte(config), &c)
+	if err != nil {
+		return nil, err
+	}
+
+	results := reflect.ValueOf(pluginMap[name].New).Call([]reflect.Value{
+		reflect.ValueOf(ctx),
+		reflect.ValueOf(next),
+		reflect.ValueOf(c),
+		reflect.ValueOf("name"),
+	})
+
+	var h http.Handler
+	if !results[0].IsNil() {
+		h = results[0].Interface().(http.Handler)
+	}
+	if !results[1].IsNil() {
+		err := results[1].Interface().(error)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return h, nil
+}
+
+func Plugins() []string {
+	var plugins []string
+	for name, plugin := range pluginMap {
+		plugins = append(plugins, name+"@"+plugin.Version)
+	}
+
+	return plugins
+}

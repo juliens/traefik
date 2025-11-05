@@ -25,6 +25,7 @@ type middlewareBuilder interface {
 type Builder struct {
 	providerBuilders   map[string]providerBuilder
 	middlewareBuilders map[string]middlewareBuilder
+	middlewares        map[string]string
 }
 
 // NewBuilder creates a new Builder.
@@ -34,8 +35,10 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 	pb := &Builder{
 		middlewareBuilders: map[string]middlewareBuilder{},
 		providerBuilders:   map[string]providerBuilder{},
+		middlewares:        map[string]string{},
 	}
 
+	var pluginsToBuild []string
 	for pName, desc := range plugins {
 		manifest, err := manager.ReadManifest(desc.ModuleName)
 		if err != nil {
@@ -58,7 +61,9 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 			}
 
 			pb.middlewareBuilders[pName] = middleware
+			pluginsToBuild = append(pluginsToBuild, manifest.Import+"@"+desc.Version)
 
+			pb.middlewares[pName] = desc.ModuleName
 		case typeProvider:
 			pBuilder, err := newProviderBuilder(logCtx, manifest, manager.GoPath(), desc.Settings)
 			if err != nil {
@@ -71,6 +76,19 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 			return nil, fmt.Errorf("unknow plugin type: %s", manifest.Type)
 		}
 	}
+
+	log.Debug().Msgf("Build plugins: %v", pluginsToBuild)
+	filename, err := build(pluginsToBuild)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to build plugins")
+	} else {
+		err := loadPlugins(filename)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to load plugins")
+		}
+	}
+
+	log.Debug().Msgf("Built plugins: %v", pluginsToBuild)
 
 	for pName, desc := range localPlugins {
 		manifest, err := ReadManifest(localGoPath, desc.ModuleName)
@@ -107,6 +125,10 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 		}
 	}
 	return pb, nil
+}
+
+func (b Builder) GetPluginName(pName string) string {
+	return b.middlewares[pName]
 }
 
 // Build builds a middleware plugin.

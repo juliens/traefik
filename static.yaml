@@ -1,0 +1,12 @@
+providers:
+  file:
+    filename: ./dynamic.yaml
+api:
+  insecure: true
+#log:
+#  level: DEBUG
+experimental:
+  plugins:
+    htransformation:
+      modulename: github.com/tomMoulard/htransformation
+      version: v0.3.3
