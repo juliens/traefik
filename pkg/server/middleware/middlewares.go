@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -37,6 +38,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/middlewares/retry"
 	"github.com/traefik/traefik/v3/pkg/middlewares/stripprefix"
 	"github.com/traefik/traefik/v3/pkg/middlewares/stripprefixregex"
+	"github.com/traefik/traefik/v3/pkg/plugins"
 	"github.com/traefik/traefik/v3/pkg/server/provider"
 )
 
@@ -363,6 +365,19 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 		}
 		middleware = func(next http.Handler) (http.Handler, error) {
 			return stripprefixregex.New(ctx, next, *config.StripPrefixRegex, middlewareName)
+		}
+	}
+
+	if config.PluginSo != nil {
+		if middleware != nil {
+			return nil, badConf
+		}
+		cfg, err := json.Marshal(config.PluginSo.Config)
+		if err != nil {
+			return nil, err
+		}
+		middleware = func(next http.Handler) (http.Handler, error) {
+			return plugins.NewPlugin(ctx, config.PluginSo.Filename, config.PluginSo.PluginName, middlewareName, string(cfg), next)
 		}
 	}
 

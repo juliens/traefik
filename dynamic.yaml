@@ -1,0 +1,26 @@
+http:
+  routers:
+    test:
+      rule: PathPrefix("/")
+      service: test
+      middlewares: modifyHeader
+
+  services:
+    test:
+      loadBalancer:
+        servers:
+          - url: http://192.168.215.2
+
+  middlewares:
+
+
+    modifyHeader:
+      pluginso:
+        filename: /traefiksrc/dist/plugins.so
+        pluginName: github.com/tomMoulard/htransformation
+        config:
+          rules:
+          - Name: "X-Test"
+            Value: "X-New"
+            Header: "X-Test"
+            Type: "Rename"
