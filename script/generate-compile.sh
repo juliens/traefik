@@ -113,19 +113,23 @@ cat >> "$OUTPUT_FILE" << 'EOF_MIDDLE'
 type plugin struct {
 	Create any
 	New    any
+	Version string
 }
 
 func LoadPlugins() {
 EOF_MIDDLE
 
 # Add plugin registrations
-for import_path in "${IMPORTS[@]}"; do
+for i in "${!IMPORTS[@]}"; do
+    import_path="${IMPORTS[$i]}"
+    version="${VERSIONS[$i]}"
     # Calculate SHA256 hash of the import path for the alias
     alias_name=$(echo -n "$import_path" | shasum -a 256 | cut -d' ' -f1)
     cat >> "$OUTPUT_FILE" << EOF
 	pluginMap["$import_path"] = plugin{
 		Create: p${alias_name}.CreateConfig,
 		New:    p${alias_name}.New,
+		Version: "${version}",
 	}
 
 EOF
@@ -165,6 +169,16 @@ func NewPlugin(ctx context.Context, name string, config string, next http.Handle
 
 	return h, nil
 }
+
+func Plugins() []string {
+	var plugins []string
+	for name, plugin := range pluginMap {
+		plugins = append(plugins, name+"@"+plugin.Version)
+	}
+
+	return plugins
+}
+
 EOF_FOOTER
 
 if [ "$USE_CONFIG_FILE" = true ]; then
