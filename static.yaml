@@ -1,0 +1,27 @@
+#hub:
+#  token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2h1Yi50cmFlZmlrLmlvIiwic3ViIjoiNjY0ZGU3YmRkYmJiODUyYTAyNmE2NzYyLTg1ZTk2ZTkzLTUxOTUtNGJlYy1iNDVkLTJjYWVjY2ZkZDU1ZCIsImF1ZCI6WyJ0cmFlZmlrLWh1Yi1nYXRld2F5Il0sIm5iZiI6MTc2Mjc3ODkwMiwiaWF0IjoxNzYyNzc4OTAyLCJqdGkiOiJjNWU5ODZiYy0zNjYwLTQzOTgtOTk3Ny0zZWExMGZmYzY5MTMiLCJ0b2tlbiI6ImRiZjBjMTE1LTA4ZjctNDhmYi1iMGUzLTYyODFjMjkxYmZiMSIsImNsdXN0ZXJJZCI6Ijg1ZTk2ZTkzLTUxOTUtNGJlYy1iNDVkLTJjYWVjY2ZkZDU1ZCIsIndvcmtzcGFjZUlkIjoiNjY0ZGU3YmRkYmJiODUyYTAyNmE2NzYyIiwib2ZmbGluZSI6ZmFsc2UsImV4cGlyYXRpb25EYXRlIjoiMjA4Ni0wMi0yN1QwMDowMDowMFoiLCJwbGF0Zm9ybVVybCI6Imh0dHBzOi8vYXBpLnRyYWVmaWsuaW8vYWdlbnQifQ.oPNWC4SEPSaYpXNpKxqoaNOhOwA-95089XP-ad2d9eX3BZOQ2fKC1hVrfjFo15hQ_K8mFnUO2rTCdqn726GtSv-sGo1Pxc8NHaldT656zl9diLUNJcI8U6E3gRult40DAUnUhFCEcAFWSc1otg9ql3JogBeYdL8LeVGk_6XPW-DYmqcdBiFRulDQkJ2ZPDOau1EeuSqBXd8dF74lY0C7QZ-XIaEoZZrAIYJEpMhkqpNCVjZy3wh-rHDrDdXpPiO1gPTpt9TeQT5D9Z1NaUV3WNuxVk_qxgHCSK7B17CUfA8Dtk6tygxzr42fWtkwPB8vjdPsQ_dIr89kK3t2ZvFOQHzuXvsaooFMaS2mL0_R8hP-MIw4TFXzrUiZsSXI16Lk4KEIKreLmQ_Vb-IZfWvpDI7sjpTBnYsAZaJo2AftMSXvvN9-haNin2PMH4vOIH68LTpW5-UmE2o9NnHsIUW5Tqc3UXZ0JbbTzFLWYdT7qs5Y8RdMQt-PbUVr3xtX21HWqVQ01F9B7Gb7LYo69qXCy_Oxdc-S_DXbwiJYMnzg04QByJ9szeTJEcId7B_y_h1q55D5Mr8Q3MS6cQTtZkePCM_uRYcUtdSVRWfZ4_j_Xh25KIEGwap39N77ULpGa6LpfaBq2fDARXVZftbfrMJjBquHnwV8Nk5--ALtk2b_6lg
+entrypoints:
+  web:
+    address: ":8090"
+  websecure:
+    address: ":8443"
+    http:
+      tls: {}
+
+  traefik:
+    address: ":8091"
+providers:
+  file:
+    filename: ./dynamic.yaml
+api:
+  insecure: true
+log:
+  level: DEBUG
+#experimental:
+#  plugins:
+#    htransformation:
+#      modulename: github.com/tomMoulard/htransformation
+#      version: v0.3.3
+#    sablier:
+#      moduleName: github.com/sablierapp/sablier-traefik-plugin
+#      version: v1.0.1

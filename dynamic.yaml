@@ -1,0 +1,15 @@
+http:
+  routers:
+    whoami:
+      rule: "Host(`whoami.localhost`)"
+
+    whoami-default:
+      rule: "PathPrefix(`/`)"
+      service: whoami
+      parentRefs: [ "websecure-whoami@file" ]
+
+  services:
+    whoami:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.215.2:80"

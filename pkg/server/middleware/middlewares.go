@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -37,6 +38,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/middlewares/retry"
 	"github.com/traefik/traefik/v3/pkg/middlewares/stripprefix"
 	"github.com/traefik/traefik/v3/pkg/middlewares/stripprefixregex"
+	"github.com/traefik/traefik/v3/pkg/plugins"
 	"github.com/traefik/traefik/v3/pkg/server/provider"
 )
 
@@ -363,6 +365,30 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 		}
 		middleware = func(next http.Handler) (http.Handler, error) {
 			return stripprefixregex.New(ctx, next, *config.StripPrefixRegex, middlewareName)
+		}
+	}
+
+	if config.PluginSo != nil && !reflect.ValueOf(b.pluginBuilder).IsNil() { // Using "reflect" because "b.pluginBuilder" is an interface.
+		if middleware != nil {
+			return nil, badConf
+		}
+		if plugins.NewPluginFn == nil {
+			return nil, errors.New("dynamic library plugins not initialized")
+		}
+
+		pluginType, rawPluginConfig, err := findPluginConfig(config.PluginSo)
+		if err != nil {
+			return nil, fmt.Errorf("plugin: %w", err)
+		}
+
+		pluginName := b.pluginBuilder.GetPluginName(pluginType)
+		cfg, err := json.Marshal(rawPluginConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		middleware = func(next http.Handler) (http.Handler, error) {
+			return plugins.NewPluginFn(ctx, pluginName, middlewareName, string(cfg), next)
 		}
 	}
 

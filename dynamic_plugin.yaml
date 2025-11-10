@@ -1,0 +1,36 @@
+http:
+  routers:
+    test:
+      rule: PathPrefix("/ya")
+      service: test
+      middlewares: modifyHeaderYa
+
+    test2:
+      rule: PathPrefix("/so")
+      service: test
+      middlewares: modifyHeader
+
+  services:
+    test:
+      loadBalancer:
+        servers:
+          - url: http://192.168.215.2
+
+  middlewares:
+    modifyHeader:
+      pluginso:
+        htransformation:
+          rules:
+          - Name: "X-Test"
+            Value: "X-New"
+            Header: "X-Test"
+            Type: "Set"
+
+    modifyHeaderYa:
+      plugin:
+        htransformation:
+          rules:
+            - Name: "X-Test"
+              Value: "X-Ney"
+              Header: "X-Test"
+              Type: "Set"

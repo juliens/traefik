@@ -1,0 +1,129 @@
+failed to run go get: go: github.com/kvncrw/denyip@v2.0.0: invalid version: module contains a go.mod file, so module path must match major version ("github.com/kvncrw/denyip/v2")
+failed to run go get: go: github.com/hhftechnology/tailscale-access@v2.0.0: invalid version: module contains a go.mod file, so module path must match major version ("github.com/hhftechnology/tailscale-access/v2")
+failed to run go get: go: github.com/paladium/traefikkeycloak@v1.11: no matching versions for query "v1.11"
+	fatal: repository 'https://github.com/alexdelprete/traefik-oidc-relying-party/' not found
+failed to run go get: go: github.com/PingThingsIO/traefik-jwt-headers@v0.0.1 requires github.com/PingThingsIO/traefik-jwt-headers@v0.0.1: parsing go.mod:
+	module declares its path as: github.com/PingThingsIO/traefik-jwt-headers-plugin
+	        but was required as: github.com/PingThingsIO/traefik-jwt-headers
+failed to run go get: go: github.com/momayyez/authztraefikgateway@v2.0.2: invalid version: module contains a go.mod file, so module path must match major version ("github.com/momayyez/authztraefikgateway/v2")
+failed to run go get: go: downloading github.com/xbingW/traefik-safeline v1.2.2
+go: github.com/xbingW/traefik-safeline@v1.2.2: verifying module: checksum mismatch
+	downloaded: h1:7vykIugIIg1Zu5DmeMzg4RJu34PkILG6grjpDzy2dsI=
+	sum.golang.org: h1:rShiQ+QqhzIYCZeJKJSn4qEZluZKDy5eIHR68J8EZNs=
+
+SECURITY ERROR
+This download does NOT match the one reported by the checksum server.
+The bits may have been replaced on the origin server, or an attacker may
+have intercepted the download attempt.
+
+For more information, see 'go help module-auth'.
+	fatal: repository 'https://github.com/ditkrg/traefik-response-header-forward-plugin/' not found
+failed to run go get: go: downloading github.com/yoeluk/aws-sink v0.2.0
+go: github.com/yoeluk/aws-sink@v0.2.0: verifying module: checksum mismatch
+	downloaded: h1:QrbmBSmhlbfclCZQfvXS7ecVBOJ9vXVfmcDKtN5EJMY=
+	sum.golang.org: h1:DfX8H8GIwMCB3atHb9ZxJu2L06blY5sHd3EY+vwQhKw=
+
+SECURITY ERROR
+This download does NOT match the one reported by the checksum server.
+The bits may have been replaced on the origin server, or an attacker may
+have intercepted the download attempt.
+
+For more information, see 'go help module-auth'.
+	fatal: repository 'https://github.com/jasinxie/TritonRateLimiter/' not found
+	fatal: repository 'https://github.com/jlfxt/traefik-plugin/' not found
+	fatal: repository 'https://github.com/dev-toolbox/traefik-plugin-parameters/' not found
+failed to run go get: go: github.com/Medad-ai/medad-jwt-middleware@v1.0: no matching versions for query "v1.0"
+failed to run go get: go: downloading github.com/s00rk/firebase-verify-token v1.0.1
+go: github.com/s00rk/firebase-verify-token@v1.0.1: verifying module: checksum mismatch
+	downloaded: h1:h+eJGM8wg8kKfpLjTQs0rDZSrlGSp9+lY6X507noXks=
+	sum.golang.org: h1:eslI80rQb/J3Xwm54j9M4PZuxAuMFy6XotCt8veQbrw=
+
+SECURITY ERROR
+This download does NOT match the one reported by the checksum server.
+The bits may have been replaced on the origin server, or an attacker may
+have intercepted the download attempt.
+
+For more information, see 'go help module-auth'.
+failed to run go get: go: downloading github.com/innolabsdev/traefik-payload-router v1.0.0
+go: github.com/innolabsdev/traefik-payload-router@v1.0.0: verifying module: checksum mismatch
+	downloaded: h1:j64RQz7/R+qN08llMnKszzN4d5bHERam7ZrFoxHbTCo=
+	sum.golang.org: h1:oqdet7wtwwq09hO6H82/7zfZamj1emo1AL//o6fVlRo=
+
+SECURITY ERROR
+This download does NOT match the one reported by the checksum server.
+The bits may have been replaced on the origin server, or an attacker may
+have intercepted the download attempt.
+
+For more information, see 'go help module-auth'.
+	fatal: repository 'https://github.com/R-Hichem-ansys/forwardauth-with-variables/' not found
+failed to run go get: go: github.com/jonathaanhs/traefik-forward-auth-body@v2.0.4: invalid version: module contains a go.mod file, so module path must match major version ("github.com/jonathaanhs/traefik-forward-auth-body/v2")
+	fatal: repository 'https://github.com/K8Trust/plugindemo/' not found
+	fatal: repository 'https://github.com/yerTools/traefik_cache/' not found
+	fatal: repository 'https://github.com/kenhutaiwan/geoblock/' not found
+	fatal: repository 'https://github.com/Mikeliu11/querytoheader/' not found
+failed to run go get: go: github.com/ArtemUgrimov/ResponseTimeBalancer@v2.0.2: invalid version: module contains a go.mod file, so module path must match major version ("github.com/ArtemUgrimov/ResponseTimeBalancer/v2")
+	fatal: repository 'https://github.com/phonogramio/traefik-request-sequencer-plugin/' not found
+	fatal: repository 'https://github.com/pselliotc/RequestTimerTraefikPlugin/' not found
+	fatal: repository 'https://github.com/Workiz/nehora-test/' not found
+failed to run go get: go: downloading github.com/opaas-cloud/traefik-plugin-project-cookie v1.1.5
+go: github.com/opaas-cloud/traefik-plugin-project-cookie@v1.1.5: verifying module: checksum mismatch
+	downloaded: h1:Wnqfr7cxL0RCBOGTQOGCL54hptFHkX40Jp9CeaTNfcs=
+	sum.golang.org: h1:RtpxTut9ENlExVkCD9G4711dJsdw5frc8aNBvI4g48g=
+
+SECURITY ERROR
+This download does NOT match the one reported by the checksum server.
+The bits may have been replaced on the origin server, or an attacker may
+have intercepted the download attempt.
+
+For more information, see 'go help module-auth'.
+	fatal: repository 'https://github.com/kav789/traefik-headers/' not found
+	fatal: repository 'https://github.com/kav789/traefik-ratelimit/' not found
+	fatal: repository 'https://github.com/Workiz/traefikPlugin/' not found
+	fatal: repository 'https://github.com/lemontree23/dynamic-routing/' not found
+	fatal: repository 'https://github.com/alexfomin1/sign4auth/' not found
+	fatal: repository 'https://github.com/Miromani4/traefik-plugin-waeb2/' not found
+failed to run go get: go: github.com/Saman-jafari/correlation-traefik@v0.4.0: invalid version: unknown revision v0.4.0
+	fatal: repository 'https://github.com/mohamed-abdelrhman/inglogss/' not found
+	fatal: repository 'https://github.com/mohamed-abdelrhman/inglogs/' not found
+	fatal: repository 'https://github.com/LU0HA0NAN/we-token-parser/' not found
+failed to run go get: go: downloading github.com/nasim-samimi/adm v0.0.2
+go: github.com/nasim-samimi/adm@v0.0.2: verifying module: checksum mismatch
+	downloaded: h1:ydueLa4+tOrW+3I2scrjDzbu3OeUCndxyoOelThELNQ=
+	sum.golang.org: h1:eEZx+tWz63k05bvgbJZtOf/lPxKKGfJZLLJVgxBNtFY=
+
+SECURITY ERROR
+This download does NOT match the one reported by the checksum server.
+The bits may have been replaced on the origin server, or an attacker may
+have intercepted the download attempt.
+
+For more information, see 'go help module-auth'.
+failed to run go get: go: github.com/saman-jafari/correlation-traefik@v0.4.1: invalid version: unknown revision v0.4.1
+	fatal: repository 'https://github.com/mohamed-abdelrhman/logger2/' not found
+	fatal: repository 'https://github.com/mohamed-abdelrhman/logger/' not found
+	fatal: repository 'https://github.com/ditkrg/traefik-users-blocker-plugin/' not found
+	fatal: repository 'https://github.com/mohamed-abdelrhman/traefikloggerdemoo/' not found
+	fatal: repository 'https://github.com/tomn321/UAGuard/' not found
+failed to run go get: go: downloading github.com/niki-timofe/traefikretryplugin v0.0.1-alpha.8
+go: github.com/niki-timofe/traefikretryplugin@v0.0.1-alpha.8: verifying module: checksum mismatch
+	downloaded: h1:pK75/QEqpMP6SuTAGf0K/e/IeBXr9olKYJfsU0Zx66k=
+	sum.golang.org: h1:glgvDqEUS+Ec1TQX8J0M5BxzSkmB99mJhE53dOclTc8=
+
+SECURITY ERROR
+This download does NOT match the one reported by the checksum server.
+The bits may have been replaced on the origin server, or an attacker may
+have intercepted the download attempt.
+
+For more information, see 'go help module-auth'.
+failed to run go get: go: github.com/tmpim/tmpauth-traefik@v0.3: no matching versions for query "v0.3"
+failed to run go get: go: github.com/Morozzzko/traefik-csp-middleware@v2.3.4: invalid version: module contains a go.mod file, so module path must match major version ("github.com/Morozzzko/traefik-csp-middleware/v2")
+	fatal: repository 'https://github.com/osayd-mozn/basic_auth_for_prodigy/' not found
+failed to run go get: go: github.com/behnambm/gors@1.0.0: invalid version: unknown revision 1.0.0
+	fatal: repository 'https://github.com/fr3h4g/traefik_jwt_check/' not found
+failed to run go get: go: github.com/gister9000/Traefik-abUser-Agent@v0.4: no matching versions for query "v0.4"
+	fatal: repository 'https://github.com/fr3h4g/traefik-jwt-check/' not found
+	fatal: repository 'https://github.com/CorentinMAG/geoip/' not found
+	fatal: repository 'https://github.com/0xDagal/charon-passto/' not found
+	fatal: repository 'https://github.com/trinnylondon/redirector/' not found
+failed to run go get: go: github.com/LeslieRan/pluginDemo@v0.3: no matching versions for query "v0.3"
+failed to run go get: go: github.com/ftrihard/service1@v1.0: no matching versions for query "v1.0"
+failed to run go get: go: github.com/bay1ts/SiriusGeo@v2.5.0: invalid version: module contains a go.mod file, so module path must match major version ("github.com/bay1ts/SiriusGeo/v2")

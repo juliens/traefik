@@ -199,3 +199,8 @@ fmt:
 help: Makefile
 	@echo " Choose a command run in traefik:"
 	@sed -n 's/^#?//p' $< | column -t -s ':' |  sort | sed -e 's/^/ /'
+
+cgo-build:
+	cp ./go.mod ./pkg/plugins/traefik_go.mod
+	cp ./go.sum ./pkg/plugins/traefik_go.sum
+	docker build -t traefik/traefik --platform=linux/arm64 --file cgo.Dockerfile .

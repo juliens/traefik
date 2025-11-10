@@ -1,0 +1,1 @@
+github.com/sablierapp/sablier/plugins/traefik@v1.10.1
