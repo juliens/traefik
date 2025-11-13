@@ -163,6 +163,8 @@ func BuildSO(plugins []string) (string, error) {
 func buildSOBulk(plugins []string) (string, error) {
 	build := initDir()
 
+	log.Debug().Str("directory", build).Msgf("Building plugins")
+
 	pluginsData, err := getPluginsData(plugins)
 	if err != nil {
 		return "", err

@@ -258,7 +258,23 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 			break
 		}
 
-		p, err := pluginBuilder.BuildProvider(name, conf)
+		p, err := pluginBuilder.BuildProvider(name, conf, false)
+		if err != nil {
+			return nil, fmt.Errorf("plugin: failed to build provider: %w", err)
+		}
+
+		err = providerAggregator.AddProvider(p)
+		if err != nil {
+			return nil, fmt.Errorf("plugin: failed to add provider: %w", err)
+		}
+	}
+
+	for name, conf := range staticConfiguration.Providers.PluginSo {
+		if pluginBuilder == nil {
+			break
+		}
+
+		p, err := pluginBuilder.BuildProvider(name, conf, true)
 		if err != nil {
 			return nil, fmt.Errorf("plugin: failed to build provider: %w", err)
 		}

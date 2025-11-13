@@ -251,7 +251,8 @@ type Providers struct {
 	Redis                  *redis.Provider                `description:"Enables Redis provider." json:"redis,omitempty" toml:"redis,omitempty" yaml:"redis,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
 	HTTP                   *http.Provider                 `description:"Enables HTTP provider." json:"http,omitempty" toml:"http,omitempty" yaml:"http,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
 
-	Plugin map[string]PluginConf `description:"Plugins configuration." json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty"`
+	Plugin   map[string]PluginConf `description:"Plugins configuration." json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty"`
+	PluginSo map[string]PluginConf `description:"Plugins configuration." json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty"`
 }
 
 // SetEffectiveConfiguration adds missing configuration parameters derived from existing ones.

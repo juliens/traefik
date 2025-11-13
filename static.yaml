@@ -13,15 +13,22 @@ entrypoints:
 providers:
   file:
     filename: ./dynamic.yaml
+  plugin:
+    example:
+      pollInterval: 2s
 api:
   insecure: true
 log:
   level: DEBUG
-#experimental:
-#  plugins:
-#    htransformation:
-#      modulename: github.com/tomMoulard/htransformation
-#      version: v0.3.3
+experimental:
+  plugins:
+    htransformation:
+      modulename: github.com/tomMoulard/htransformation
+      version: v0.3.3
+    example:
+      moduleName: github.com/traefik/pluginproviderdemo
+      version: v0.1.0
+
 #    sablier:
 #      moduleName: github.com/sablierapp/sablier-traefik-plugin
 #      version: v1.0.1

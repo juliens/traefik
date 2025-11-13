@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 	"reflect"
@@ -53,7 +54,20 @@ func ppSymbols() map[string]map[string]reflect.Value {
 }
 
 // BuildProvider builds a plugin's provider.
-func (b Builder) BuildProvider(pName string, config map[string]interface{}) (provider.Provider, error) {
+func (b Builder) BuildProvider(pName string, config map[string]interface{}, withDL bool) (provider.Provider, error) {
+	if withDL {
+		if NewPluginProviderFn == nil {
+			return nil, errors.New("NewPluginProviderFn is nil")
+		}
+
+		cfg, err := json.Marshal(config)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewPluginProviderFn(context.Background(), pName, string(cfg))
+	}
+
 	if b.providerBuilders == nil {
 		return nil, fmt.Errorf("no plugin definition in the static configuration: %s", pName)
 	}

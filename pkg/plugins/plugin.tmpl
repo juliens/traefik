@@ -30,9 +30,39 @@ func LoadPlugins() {
 	}
 {{end}}
 }
+type PP interface {
+	Init() error
+	Provide(cfgChan chan<- json.Marshaler) error
+	Stop() error
+}
 
 var pluginMap = map[string]plugin{}
+func NewProviderPlugin(ctx context.Context, name, config string) (PP, error) {
+    c := reflect.ValueOf(pluginMap[name].Create).Call([]reflect.Value{})[0].Interface()
 
+	err := json.Unmarshal([]byte(config), &c)
+	if err != nil {
+		return nil, err
+	}
+
+	results := reflect.ValueOf(pluginMap[name].New).Call([]reflect.Value{
+		reflect.ValueOf(ctx),
+		reflect.ValueOf(c),
+		reflect.ValueOf("name"),
+	})
+    var pp PP
+	if !results[0].IsNil() {
+		pp = results[0].Interface().(PP)
+	}
+	if !results[1].IsNil() {
+		err := results[1].Interface().(error)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+    return pp, nil
+}
 func NewPlugin(ctx context.Context, name string, config string, next http.Handler) (http.Handler, error) {
 	c := reflect.ValueOf(pluginMap[name].Create).Call([]reflect.Value{})[0].Interface()
 

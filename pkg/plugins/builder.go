@@ -71,6 +71,7 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 			}
 
 			pb.providerBuilders[pName] = pBuilder
+			pluginsToBuild = append(pluginsToBuild, manifest.Import+"@"+desc.Version)
 
 		default:
 			return nil, fmt.Errorf("unknow plugin type: %s", manifest.Type)
