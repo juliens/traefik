@@ -1,0 +1,344 @@
+[
+  {
+    "moduleName": "github.com/kvncrw/denyip",
+    "version": "v2.0.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/kvncrw/denyip@v2.0.0: invalid version: module contains a go.mod file, so module path must match major version (\"github.com/kvncrw/denyip/v2\")\n"
+  },
+  {
+    "moduleName": "github.com/hhftechnology/tailscale-access",
+    "version": "v2.0.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/hhftechnology/tailscale-access@v2.0.0: invalid version: module contains a go.mod file, so module path must match major version (\"github.com/hhftechnology/tailscale-access/v2\")\n"
+  },
+  {
+    "moduleName": "github.com/paladium/traefikkeycloak",
+    "version": "v1.11",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/paladium/traefikkeycloak@v1.11: no matching versions for query \"v1.11\"\n"
+  },
+  {
+    "moduleName": "github.com/alexdelprete/traefik-oidc-relying-party",
+    "version": "v1.0.0-alpha.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/alexdelprete/traefik-oidc-relying-party@v1.0.0-alpha.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/f557f0a8cb723f05fcf2548d4ed17c2920cdd069d90c068607515975c5f42f45: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/alexdelprete/traefik-oidc-relying-party/' not found\n"
+  },
+  {
+    "moduleName": "github.com/PingThingsIO/traefik-jwt-headers",
+    "version": "v0.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/PingThingsIO/traefik-jwt-headers@v0.0.1 requires github.com/PingThingsIO/traefik-jwt-headers@v0.0.1: parsing go.mod:\n\tmodule declares its path as: github.com/PingThingsIO/traefik-jwt-headers-plugin\n\t        but was required as: github.com/PingThingsIO/traefik-jwt-headers\n"
+  },
+  {
+    "moduleName": "github.com/momayyez/authztraefikgateway",
+    "version": "v2.0.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/momayyez/authztraefikgateway@v2.0.2: invalid version: module contains a go.mod file, so module path must match major version (\"github.com/momayyez/authztraefikgateway/v2\")\n"
+  },
+  {
+    "moduleName": "github.com/xbingW/traefik-safeline",
+    "version": "v1.2.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: downloading github.com/xbingW/traefik-safeline v1.2.2\ngo: github.com/xbingW/traefik-safeline@v1.2.2: verifying module: checksum mismatch\n\tdownloaded: h1:7vykIugIIg1Zu5DmeMzg4RJu34PkILG6grjpDzy2dsI=\n\tsum.golang.org: h1:rShiQ+QqhzIYCZeJKJSn4qEZluZKDy5eIHR68J8EZNs=\n\nSECURITY ERROR\nThis download does NOT match the one reported by the checksum server.\nThe bits may have been replaced on the origin server, or an attacker may\nhave intercepted the download attempt.\n\nFor more information, see 'go help module-auth'.\n"
+  },
+  {
+    "moduleName": "github.com/ditkrg/traefik-response-header-forward-plugin",
+    "version": "v0.1.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/ditkrg/traefik-response-header-forward-plugin@v0.1.0: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/1f4717fb798639652fb4509d0deedca0c3fda170da6cc0a93a47863f4a78c991: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/ditkrg/traefik-response-header-forward-plugin/' not found\n"
+  },
+  {
+    "moduleName": "github.com/yoeluk/aws-sink",
+    "version": "v0.2.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: downloading github.com/yoeluk/aws-sink v0.2.0\ngo: github.com/yoeluk/aws-sink@v0.2.0: verifying module: checksum mismatch\n\tdownloaded: h1:QrbmBSmhlbfclCZQfvXS7ecVBOJ9vXVfmcDKtN5EJMY=\n\tsum.golang.org: h1:DfX8H8GIwMCB3atHb9ZxJu2L06blY5sHd3EY+vwQhKw=\n\nSECURITY ERROR\nThis download does NOT match the one reported by the checksum server.\nThe bits may have been replaced on the origin server, or an attacker may\nhave intercepted the download attempt.\n\nFor more information, see 'go help module-auth'.\n"
+  },
+  {
+    "moduleName": "github.com/jasinxie/TritonRateLimiter",
+    "version": "v2.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/jasinxie/TritonRateLimiter/v2@v2.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/c51e215f1cf6fb56ec164772e868ff4ee7cadc6b9342e6cd03144a348ea82dda: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/jasinxie/TritonRateLimiter/' not found\n"
+  },
+  {
+    "moduleName": "github.com/jlfxt/traefik-plugin",
+    "version": "v0.1.3",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/jlfxt/traefik-plugin@v0.1.3: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/2805cc4ed5c9ab3f9196622a2ced2012bd103df8477d0de0e1e587ff81184e65: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/jlfxt/traefik-plugin/' not found\n"
+  },
+  {
+    "moduleName": "github.com/dev-toolbox/traefik-plugin-parameters",
+    "version": "v0.0.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/dev-toolbox/traefik-plugin-parameters@v0.0.2: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/616fe8ff3ab302d76f3aa49bf4c97db6df72e73bb55eda9b0f4629b985a16d34: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/dev-toolbox/traefik-plugin-parameters/' not found\n"
+  },
+  {
+    "moduleName": "github.com/Medad-ai/medad-jwt-middleware",
+    "version": "v1.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/Medad-ai/medad-jwt-middleware@v1.0: no matching versions for query \"v1.0\"\n"
+  },
+  {
+    "moduleName": "github.com/s00rk/firebase-verify-token",
+    "version": "v1.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: downloading github.com/s00rk/firebase-verify-token v1.0.1\ngo: github.com/s00rk/firebase-verify-token@v1.0.1: verifying module: checksum mismatch\n\tdownloaded: h1:h+eJGM8wg8kKfpLjTQs0rDZSrlGSp9+lY6X507noXks=\n\tsum.golang.org: h1:eslI80rQb/J3Xwm54j9M4PZuxAuMFy6XotCt8veQbrw=\n\nSECURITY ERROR\nThis download does NOT match the one reported by the checksum server.\nThe bits may have been replaced on the origin server, or an attacker may\nhave intercepted the download attempt.\n\nFor more information, see 'go help module-auth'.\n"
+  },
+  {
+    "moduleName": "github.com/innolabsdev/traefik-payload-router",
+    "version": "v1.0.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: downloading github.com/innolabsdev/traefik-payload-router v1.0.0\ngo: github.com/innolabsdev/traefik-payload-router@v1.0.0: verifying module: checksum mismatch\n\tdownloaded: h1:j64RQz7/R+qN08llMnKszzN4d5bHERam7ZrFoxHbTCo=\n\tsum.golang.org: h1:oqdet7wtwwq09hO6H82/7zfZamj1emo1AL//o6fVlRo=\n\nSECURITY ERROR\nThis download does NOT match the one reported by the checksum server.\nThe bits may have been replaced on the origin server, or an attacker may\nhave intercepted the download attempt.\n\nFor more information, see 'go help module-auth'.\n"
+  },
+  {
+    "moduleName": "github.com/R-Hichem-ansys/forwardauth-with-variables",
+    "version": "v0.1.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/R-Hichem-ansys/forwardauth-with-variables@v0.1.2: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/0b705f93a738a08513ae01ad00cf8dbe0c4516b05cbf7c3b84ad7c38fd6dca71: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/R-Hichem-ansys/forwardauth-with-variables/' not found\n"
+  },
+  {
+    "moduleName": "github.com/jonathaanhs/traefik-forward-auth-body",
+    "version": "v2.0.4",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/jonathaanhs/traefik-forward-auth-body@v2.0.4: invalid version: module contains a go.mod file, so module path must match major version (\"github.com/jonathaanhs/traefik-forward-auth-body/v2\")\n"
+  },
+  {
+    "moduleName": "github.com/K8Trust/plugindemo",
+    "version": "v1.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/K8Trust/plugindemo@v1.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/c59a774f29800cb17a480bfe702b339b0293e9fc4cea027ba32ace5021c00a57: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/K8Trust/plugindemo/' not found\n"
+  },
+  {
+    "moduleName": "github.com/yerTools/traefik_cache",
+    "version": "v0.0.13",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/yerTools/traefik_cache@v0.0.13: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/fb1c822c5a8f3223b6cc1013cc77d2ef55938b9109faa52405a826b096879611: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/yerTools/traefik_cache/' not found\n"
+  },
+  {
+    "moduleName": "github.com/kenhutaiwan/geoblock",
+    "version": "v0.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/kenhutaiwan/geoblock@v0.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/1ae5fd755e722f378d9c1f551ef1919c31b9dd5d8ef12fe995c2019cd9c91a27: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/kenhutaiwan/geoblock/' not found\n"
+  },
+  {
+    "moduleName": "github.com/Mikeliu11/querytoheader",
+    "version": "v0.1.3",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/Mikeliu11/querytoheader@v0.1.3: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/f58cb846cb70aa6320637f8d74ecf231e59d55289e1961b80cf36c3484307926: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/Mikeliu11/querytoheader/' not found\n"
+  },
+  {
+    "moduleName": "github.com/ArtemUgrimov/ResponseTimeBalancer",
+    "version": "v2.0.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/ArtemUgrimov/ResponseTimeBalancer@v2.0.2: invalid version: module contains a go.mod file, so module path must match major version (\"github.com/ArtemUgrimov/ResponseTimeBalancer/v2\")\n"
+  },
+  {
+    "moduleName": "github.com/phonogramio/traefik-request-sequencer-plugin",
+    "version": "v0.1.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/phonogramio/traefik-request-sequencer-plugin@v0.1.0: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/56976ace48292dddcbc62dbf512c57f2499dfcd6fc0642e9e565a870d2bca384: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/phonogramio/traefik-request-sequencer-plugin/' not found\n"
+  },
+  {
+    "moduleName": "github.com/pselliotc/RequestTimerTraefikPlugin",
+    "version": "v0.2.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/pselliotc/RequestTimerTraefikPlugin@v0.2.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/578333e9435521335c72ab44126e4406c05a393c22046147296049179d8bed21: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/pselliotc/RequestTimerTraefikPlugin/' not found\n"
+  },
+  {
+    "moduleName": "github.com/Workiz/nehora-test",
+    "version": "v4.0.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/Workiz/nehora-test/v4@v4.0.0: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/c43a330bdfaa44fa36c733bb255edb52e4ed14fed20553a8789450f91b6cfc84: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/Workiz/nehora-test/' not found\n"
+  },
+  {
+    "moduleName": "github.com/opaas-cloud/traefik-plugin-project-cookie",
+    "version": "v1.1.5",
+    "error": "exit status 1",
+    "GoGetOutput": "go: downloading github.com/opaas-cloud/traefik-plugin-project-cookie v1.1.5\ngo: github.com/opaas-cloud/traefik-plugin-project-cookie@v1.1.5: verifying module: checksum mismatch\n\tdownloaded: h1:Wnqfr7cxL0RCBOGTQOGCL54hptFHkX40Jp9CeaTNfcs=\n\tsum.golang.org: h1:RtpxTut9ENlExVkCD9G4711dJsdw5frc8aNBvI4g48g=\n\nSECURITY ERROR\nThis download does NOT match the one reported by the checksum server.\nThe bits may have been replaced on the origin server, or an attacker may\nhave intercepted the download attempt.\n\nFor more information, see 'go help module-auth'.\n"
+  },
+  {
+    "moduleName": "github.com/kav789/traefik-headers",
+    "version": "v0.0.5",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/kav789/traefik-headers@v0.0.5: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/e583e27f7086c1356e93c8e5d0f156aca7b6f227eef793ccb53fbab6ca6837c5: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/kav789/traefik-headers/' not found\n"
+  },
+  {
+    "moduleName": "github.com/kav789/traefik-ratelimit",
+    "version": "v0.0.13",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/kav789/traefik-ratelimit@v0.0.13: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/25089522b2029c0306ec4daf86164538a88d785981c4c13a56e9b22475a48588: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/kav789/traefik-ratelimit/' not found\n"
+  },
+  {
+    "moduleName": "github.com/Workiz/traefikPlugin",
+    "version": "v4.0.3",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/Workiz/traefikPlugin/v4@v4.0.3: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/b38bce8f144c71abf09fcf696a9de9da9abca3cfaf9b4d9ced6bae55d21fc9cf: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/Workiz/traefikPlugin/' not found\n"
+  },
+  {
+    "moduleName": "github.com/lemontree23/dynamic-routing",
+    "version": "v0.1.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/lemontree23/dynamic-routing@v0.1.0: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/5ec65c39dfb04525995a0c2abe6e79da45b2109a4ecb71b3e0c36f45d6e51f5e: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/lemontree23/dynamic-routing/' not found\n"
+  },
+  {
+    "moduleName": "github.com/alexfomin1/sign4auth",
+    "version": "v0.1.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/alexfomin1/sign4auth@v0.1.0: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/8c9039be25280bc76371cc6b95d8b136729c1031ef8906d944f7bc07c387cbd6: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/alexfomin1/sign4auth/' not found\n"
+  },
+  {
+    "moduleName": "github.com/Miromani4/traefik-plugin-waeb2",
+    "version": "v1.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/Miromani4/traefik-plugin-waeb2@v1.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/9bbc1d22e6ba0e9c72826390c368d5538ef54d4dae76df190e55525dbfe68d20: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/Miromani4/traefik-plugin-waeb2/' not found\n"
+  },
+  {
+    "moduleName": "github.com/Saman-jafari/correlation-traefik",
+    "version": "v0.4.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/Saman-jafari/correlation-traefik@v0.4.0: invalid version: unknown revision v0.4.0\n"
+  },
+  {
+    "moduleName": "github.com/mohamed-abdelrhman/inglogss",
+    "version": "v.0.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/mohamed-abdelrhman/inglogss@v.0.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/6a382819a76f661f5d40426a3b0472bbb4d43204a9e1c7f56ec1797145396029: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/mohamed-abdelrhman/inglogss/' not found\n"
+  },
+  {
+    "moduleName": "github.com/mohamed-abdelrhman/inglogs",
+    "version": "v0.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/mohamed-abdelrhman/inglogs@v0.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/2f6770fd8ffe504f087042df38b96712823da05e919202098d5224e1f96c6317: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/mohamed-abdelrhman/inglogs/' not found\n"
+  },
+  {
+    "moduleName": "github.com/LU0HA0NAN/we-token-parser",
+    "version": "v0.1.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/LU0HA0NAN/we-token-parser@v0.1.2: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/2c9613d5aa7427ed3fd55ecbeb642269309cb3d1d579b546b47338ed5a405d63: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/LU0HA0NAN/we-token-parser/' not found\n"
+  },
+  {
+    "moduleName": "github.com/nasim-samimi/adm",
+    "version": "v0.0.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: downloading github.com/nasim-samimi/adm v0.0.2\ngo: github.com/nasim-samimi/adm@v0.0.2: verifying module: checksum mismatch\n\tdownloaded: h1:ydueLa4+tOrW+3I2scrjDzbu3OeUCndxyoOelThELNQ=\n\tsum.golang.org: h1:eEZx+tWz63k05bvgbJZtOf/lPxKKGfJZLLJVgxBNtFY=\n\nSECURITY ERROR\nThis download does NOT match the one reported by the checksum server.\nThe bits may have been replaced on the origin server, or an attacker may\nhave intercepted the download attempt.\n\nFor more information, see 'go help module-auth'.\n"
+  },
+  {
+    "moduleName": "github.com/saman-jafari/correlation-traefik",
+    "version": "v0.4.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/saman-jafari/correlation-traefik@v0.4.1: invalid version: unknown revision v0.4.1\n"
+  },
+  {
+    "moduleName": "github.com/mohamed-abdelrhman/logger2",
+    "version": "v.0.0.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/mohamed-abdelrhman/logger2@v.0.0.2: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/89f152ae43fd5bf779de7addb09e32deacf8bc95801aeaa532e7719556acd38e: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/mohamed-abdelrhman/logger2/' not found\n"
+  },
+  {
+    "moduleName": "github.com/mohamed-abdelrhman/logger",
+    "version": "v0.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/mohamed-abdelrhman/logger@v0.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/297f204b9e1a962a8afbbc8c661fbe20ea21f48860720eeaa7504405c139470f: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/mohamed-abdelrhman/logger/' not found\n"
+  },
+  {
+    "moduleName": "github.com/ditkrg/traefik-users-blocker-plugin",
+    "version": "v0.1.4",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/ditkrg/traefik-users-blocker-plugin@v0.1.4: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/cb8daee5504c2136b96520017d57fd0e97e35cfe9d53ae3c0c44d0ad9e55f2fb: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/ditkrg/traefik-users-blocker-plugin/' not found\n"
+  },
+  {
+    "moduleName": "github.com/mohamed-abdelrhman/traefikloggerdemoo",
+    "version": "v0.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/mohamed-abdelrhman/traefikloggerdemoo@v0.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/d584b130c5a134a468d54e1121189390b083e79c75504ea3c5e95376e1e69670: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/mohamed-abdelrhman/traefikloggerdemoo/' not found\n"
+  },
+  {
+    "moduleName": "github.com/tomn321/UAGuard",
+    "version": "v0.0.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/tomn321/UAGuard@v0.0.2: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/633b97a1aeb14a88c564ca2fb4d598b5f7008077d5bf6fb2ef8c3bc28ebbcb01: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/tomn321/UAGuard/' not found\n"
+  },
+  {
+    "moduleName": "github.com/niki-timofe/traefikretryplugin",
+    "version": "v0.0.1-alpha.8",
+    "error": "exit status 1",
+    "GoGetOutput": "go: downloading github.com/niki-timofe/traefikretryplugin v0.0.1-alpha.8\ngo: github.com/niki-timofe/traefikretryplugin@v0.0.1-alpha.8: verifying module: checksum mismatch\n\tdownloaded: h1:pK75/QEqpMP6SuTAGf0K/e/IeBXr9olKYJfsU0Zx66k=\n\tsum.golang.org: h1:glgvDqEUS+Ec1TQX8J0M5BxzSkmB99mJhE53dOclTc8=\n\nSECURITY ERROR\nThis download does NOT match the one reported by the checksum server.\nThe bits may have been replaced on the origin server, or an attacker may\nhave intercepted the download attempt.\n\nFor more information, see 'go help module-auth'.\n"
+  },
+  {
+    "moduleName": "github.com/tmpim/tmpauth-traefik",
+    "version": "v0.3",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/tmpim/tmpauth-traefik@v0.3: no matching versions for query \"v0.3\"\n"
+  },
+  {
+    "moduleName": "github.com/Morozzzko/traefik-csp-middleware",
+    "version": "v2.3.4",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/Morozzzko/traefik-csp-middleware@v2.3.4: invalid version: module contains a go.mod file, so module path must match major version (\"github.com/Morozzzko/traefik-csp-middleware/v2\")\n"
+  },
+  {
+    "moduleName": "github.com/osayd-mozn/basic_auth_for_prodigy",
+    "version": "v0.1.8",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/osayd-mozn/basic_auth_for_prodigy@v0.1.8: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/b370ca6592aedf736c9d9a52a26d6d3ac32422b863f439392b4f426cba6b7262: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/osayd-mozn/basic_auth_for_prodigy/' not found\n"
+  },
+  {
+    "moduleName": "github.com/behnambm/gors",
+    "version": "1.0.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/behnambm/gors@1.0.0: invalid version: unknown revision 1.0.0\n"
+  },
+  {
+    "moduleName": "github.com/fr3h4g/traefik_jwt_check",
+    "version": "v0.0.3",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/fr3h4g/traefik_jwt_check@v0.0.3: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/c4797fe310a21ff96408b61893d43e7adc12bd6e180cb57b479e09b763fd0c4e: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/fr3h4g/traefik_jwt_check/' not found\n"
+  },
+  {
+    "moduleName": "github.com/gister9000/Traefik-abUser-Agent",
+    "version": "v0.4",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/gister9000/Traefik-abUser-Agent@v0.4: no matching versions for query \"v0.4\"\n"
+  },
+  {
+    "moduleName": "github.com/fr3h4g/traefik-jwt-check",
+    "version": "v0.0.5",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/fr3h4g/traefik-jwt-check@v0.0.5: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/60dba9d6b6c6c8edb607e86457e9e6a738e3f9fa527fca4f14052e480c37f012: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/fr3h4g/traefik-jwt-check/' not found\n"
+  },
+  {
+    "moduleName": "github.com/CorentinMAG/geoip",
+    "version": "v0.0.1",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/CorentinMAG/geoip@v0.0.1: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/3ec0416940adc5cefabf1939196fabcd615b325c033aaf132486d85a46d574f7: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/CorentinMAG/geoip/' not found\n"
+  },
+  {
+    "moduleName": "github.com/0xDagal/charon-passto",
+    "version": "v0.1.8",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/0xDagal/charon-passto@v0.1.8: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/d32623a3109cb6241408fc84eae0042252162133191cbe5b94bbdd1bad4a059f: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/0xDagal/charon-passto/' not found\n"
+  },
+  {
+    "moduleName": "github.com/trinnylondon/redirector",
+    "version": "v0.0.2",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/trinnylondon/redirector@v0.0.2: invalid version: git ls-remote -q origin in /Users/juliensalleyron/go/pkg/mod/cache/vcs/9ded43d5873f58417837e820ab89204cf142a7ce2e457aaf65f8d2afdb7cd158: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/trinnylondon/redirector/' not found\n"
+  },
+  {
+    "moduleName": "github.com/LeslieRan/pluginDemo",
+    "version": "v0.3",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/LeslieRan/pluginDemo@v0.3: no matching versions for query \"v0.3\"\n"
+  },
+  {
+    "moduleName": "github.com/ftrihard/service1",
+    "version": "v1.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/ftrihard/service1@v1.0: no matching versions for query \"v1.0\"\n"
+  },
+  {
+    "moduleName": "github.com/bay1ts/SiriusGeo",
+    "version": "v2.5.0",
+    "error": "exit status 1",
+    "GoGetOutput": "go: github.com/bay1ts/SiriusGeo@v2.5.0: invalid version: module contains a go.mod file, so module path must match major version (\"github.com/bay1ts/SiriusGeo/v2\")\n"
+  }
+]
