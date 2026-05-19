@@ -649,6 +649,38 @@ func TestDomainFronting(t *testing.T) {
 			host:           "host1.local",
 			expectedStatus: http.StatusMisdirectedRequest,
 		},
+		{
+			desc: "Domain Fronting with wildcard host",
+			routers: map[string]*runtime.RouterInfo{
+				"router-1@file": {
+					Router: &dynamic.Router{
+						EntryPoints: entryPoints,
+						Rule:        "Host(`*.domain.local`)",
+						TLS: &dynamic.RouterTLSConfig{
+							Options: "host1@file",
+						},
+					},
+				},
+				"router-2@file": {
+					Router: &dynamic.Router{
+						EntryPoints: entryPoints,
+						Rule:        "Host(`public.domain.local`)",
+						TLS:         &dynamic.RouterTLSConfig{},
+					},
+				},
+			},
+			tlsOptions: map[string]traefiktls.Options{
+				"default": {
+					MinVersion: "VersionTLS13",
+				},
+				"host1@file": {
+					MinVersion: "VersionTLS12",
+				},
+			},
+			host:           "public.domain.local",
+			ServerName:     "admin.domain.local",
+			expectedStatus: http.StatusMisdirectedRequest,
+		},
 	}
 
 	for _, test := range tests {

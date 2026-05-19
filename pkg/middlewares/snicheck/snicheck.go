@@ -7,6 +7,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/middlewares/requestdecorator"
+	"github.com/traefik/traefik/v3/pkg/muxer"
 	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 )
 
@@ -82,25 +83,23 @@ func findTLSOptionName(tlsOptionsForHost map[string]string, host string, fqdn bo
 	return traefiktls.DefaultTLSConfigName
 }
 
-func findTLSOptName(tlsOptionsForHost map[string]string, host string, fqdn bool) string {
-	if tlsOptions, ok := tlsOptionsForHost[host]; ok {
-		return tlsOptions
-	}
-
-	if !fqdn {
-		return ""
-	}
-
-	if last := len(host) - 1; last >= 0 && host[last] == '.' {
-		if tlsOptions, ok := tlsOptionsForHost[host[:last]]; ok {
-			return tlsOptions
+func findTLSOptName(tlsOptionsForHost map[string]string, reqHost string, fqdn bool) string {
+	for host, options := range tlsOptionsForHost {
+		if muxer.DomainMatchHostExpression(reqHost, host) {
+			return options
 		}
 
-		return ""
-	}
-
-	if tlsOptions, ok := tlsOptionsForHost[host+"."]; ok {
-		return tlsOptions
+		if fqdn {
+			if last := len(reqHost) - 1; last >= 0 && reqHost[last] == '.' {
+				if muxer.DomainMatchHostExpression(reqHost[:last], host) {
+					return options
+				}
+			} else {
+				if muxer.DomainMatchHostExpression(reqHost+".", host) {
+					return options
+				}
+			}
+		}
 	}
 
 	return ""
