@@ -1,0 +1,234 @@
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: prefix
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: exact.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: exact
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: exact.localhost
+      http:
+        paths:
+          - path: /exact
+            pathType: Exact
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-prefix
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: exact.localhost
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-exact
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: exact.localhost
+      http:
+        paths:
+          - path: /api/exact
+            pathType: Exact
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: declared
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: declared.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: hostless
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /hostless
+            pathType: Exact
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: declared-wildcard
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: foo.wildcard.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: wildcard
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: "*.wildcard.localhost"
+      http:
+        paths:
+          - path: /exact
+            pathType: Exact
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: wildcard-prefix
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: "*.wildcard.localhost"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+          - path: /a-rather-long-path-declared-on-the-wildcard-host
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: hostless-prefix
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /a-rather-long-path-declared-without-host
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80
+
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: hostless-exact
+  namespace: default
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /a-rather-long-path-declared-without-host/exact
+            pathType: Exact
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80

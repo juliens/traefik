@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	httpmuxer "github.com/traefik/traefik/v3/pkg/muxer/http"
 	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/k8s"
 	"github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
@@ -85,11 +86,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-service-unavailable-http-37-unavailable-11-80-2",
-							Middlewares: []string{"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-service-unavailable-http-37-unavailable-11-80-2",
+							Middlewares:  []string{"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -101,11 +103,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-service-unavailable-http-37-unavailable-11-80-2",
-							Middlewares: []string{"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-service-unavailable-http-37-unavailable-11-80-2",
+							Middlewares:  []string{"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -190,11 +193,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-service-unavailable-http-37-unavailable-11-80-2",
-							Middlewares: []string{"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-redirect", "default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-service-unavailable-http-37-unavailable-11-80-2",
+							Middlewares:  []string{"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-redirect", "default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -206,11 +210,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-service-unavailable-http-37-unavailable-11-80-2",
-							Middlewares: []string{"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-tls-redirect", "default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-service-unavailable-http-37-unavailable-11-80-2",
+							Middlewares:  []string{"default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-tls-redirect", "default-7-ingress-with-service-unavailable-http-37-rule-0-path-0-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -309,11 +314,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-service-unavailable-default-backend-48-default-backend",
-							Middlewares: []string{"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-service-unavailable-default-backend-48-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -325,11 +331,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-default-backend-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-service-unavailable-default-backend-48-default-backend",
-							Middlewares: []string{"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-default-backend-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-service-unavailable-default-backend-48-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-default-backend-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -342,11 +349,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && (Path("/foo") || PathPrefix("/foo/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-service-unavailable-default-backend-48-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && (Path("/foo") || PathPrefix("/foo/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-service-unavailable-default-backend-48-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -358,11 +366,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && (Path("/foo") || PathPrefix("/foo/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-service-unavailable-default-backend-48-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-path-0-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && (Path("/foo") || PathPrefix("/foo/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-service-unavailable-default-backend-48-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-service-unavailable-default-backend-48-rule-0-path-0-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -488,11 +497,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-custom-headers-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -504,11 +514,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("cross-namespace.localhost") && Path("/")`,
-							Middlewares: []string{"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-custom-headers", "default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-retry"},
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-cross-namespace-headers-36-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("cross-namespace.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Middlewares:  []string{"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-custom-headers", "default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-retry"},
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-cross-namespace-headers-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -520,11 +531,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -537,11 +549,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("cross-namespace.localhost") && Path("/")`,
-							Middlewares: []string{"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls-retry"},
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-cross-namespace-headers-36-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("cross-namespace.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Middlewares:  []string{"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls-retry"},
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-cross-namespace-headers-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -703,10 +716,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-invalid-header-value-33-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     unavailableServiceName,
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      unavailableServiceName,
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -718,11 +732,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-invalid-header-value-33-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     unavailableServiceName,
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      unavailableServiceName,
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -799,11 +814,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-custom-headers-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -815,10 +831,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("cross-namespace.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "unavailable-service",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("cross-namespace.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "unavailable-service",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -830,11 +847,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -847,10 +865,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("cross-namespace.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "unavailable-service",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("cross-namespace.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "unavailable-service",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -991,11 +1010,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-custom-headers-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1007,11 +1027,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("cross-namespace.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-custom-headers", "default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-cross-namespace-headers-36-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("cross-namespace.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-custom-headers", "default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-cross-namespace-headers-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1023,11 +1044,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-custom-headers-27-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-custom-headers-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1040,11 +1062,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("cross-namespace.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-cross-namespace-headers-36-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("cross-namespace.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-cross-namespace-headers-36-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-cross-namespace-headers-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1206,12 +1229,13 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-no-annotation-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-ingress-with-no-annotation-26-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-no-annotation-26-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-ingress-with-no-annotation-26-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-no-annotation-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1223,9 +1247,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-no-annotation-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-no-annotation-26-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-no-annotation-26-rule-0-path-0-retry",
@@ -1339,12 +1364,13 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-my-ingress-10-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/dash")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-my-ingress-10-rule-0-path-0-tls-retry"},
-							Service:     "default-7-my-ingress-10-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/dash")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-my-ingress-10-rule-0-path-0-tls-retry"},
+							Service:      "default-7-my-ingress-10-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1356,11 +1382,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-my-ingress-10-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/dash")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-my-ingress-10-rule-0-path-0-retry"},
-							Service:     "default-7-my-ingress-10-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/dash")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-my-ingress-10-rule-0-path-0-retry"},
+							Service:      "default-7-my-ingress-10-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1372,12 +1399,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-my.ingress-10-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/dot")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-my.ingress-10-rule-0-path-0-tls-retry"},
-							Service:     "default-7-my.ingress-10-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/dot")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-my.ingress-10-rule-0-path-0-tls-retry"},
+							Service:      "default-7-my.ingress-10-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1389,11 +1417,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-my.ingress-10-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/dot")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-my.ingress-10-rule-0-path-0-retry"},
-							Service:     "default-7-my.ingress-10-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/dot")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-my.ingress-10-rule-0-path-0-retry"},
+							Service:      "default-7-my.ingress-10-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1535,12 +1564,13 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"team-4-dev-web-7-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/dash")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"team-4-dev-web-7-rule-0-path-0-tls-retry"},
-							Service:     "team-4-dev-web-7-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/dash")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"team-4-dev-web-7-rule-0-path-0-tls-retry"},
+							Service:      "team-4-dev-web-7-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1552,11 +1582,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"team-4-dev-web-7-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/dash")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"team-4-dev-web-7-rule-0-path-0-retry"},
-							Service:     "team-4-dev-web-7-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/dash")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"team-4-dev-web-7-rule-0-path-0-retry"},
+							Service:      "team-4-dev-web-7-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1568,12 +1599,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"team-dev-8-web-3-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/dot")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"team-dev-8-web-3-rule-0-path-0-tls-retry"},
-							Service:     "team-dev-8-web-3-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/dot")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"team-dev-8-web-3-rule-0-path-0-tls-retry"},
+							Service:      "team-dev-8-web-3-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1585,11 +1617,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"team-dev-8-web-3-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/dot")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"team-dev-8-web-3-rule-0-path-0-retry"},
-							Service:     "team-dev-8-web-3-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/dot")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"team-dev-8-web-3-rule-0-path-0-retry"},
+							Service:      "team-dev-8-web-3-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1711,11 +1744,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-basicauth-22-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/basicauth")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-basicauth-22-rule-0-path-0-basic-auth", "default-7-ingress-with-basicauth-22-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-basicauth-22-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/basicauth")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-basicauth-22-rule-0-path-0-basic-auth", "default-7-ingress-with-basicauth-22-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-basicauth-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1727,11 +1761,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-basicauth-22-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/basicauth")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-basicauth-22-rule-0-path-0-tls-basic-auth", "default-7-ingress-with-basicauth-22-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-basicauth-22-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/basicauth")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-basicauth-22-rule-0-path-0-tls-basic-auth", "default-7-ingress-with-basicauth-22-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-basicauth-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1853,11 +1888,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-digestauth-23-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/digestauth")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-digestauth-23-rule-0-path-0-digest-auth", "default-7-ingress-with-digestauth-23-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-digestauth-23-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/digestauth")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-digestauth-23-rule-0-path-0-digest-auth", "default-7-ingress-with-digestauth-23-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-digestauth-23-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -1869,11 +1905,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-digestauth-23-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/digestauth")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-digestauth-23-rule-0-path-0-tls-digest-auth", "default-7-ingress-with-digestauth-23-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-digestauth-23-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/digestauth")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-digestauth-23-rule-0-path-0-tls-digest-auth", "default-7-ingress-with-digestauth-23-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-digestauth-23-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2026,11 +2063,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-forwardauth-24-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/forwardauth")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-forwardauth-24-rule-0-path-0-snippet", "default-7-ingress-with-forwardauth-24-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-forwardauth-24-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/forwardauth")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-forwardauth-24-rule-0-path-0-snippet", "default-7-ingress-with-forwardauth-24-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-forwardauth-24-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2042,11 +2080,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-forwardauth-24-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/forwardauth")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-forwardauth-24-rule-0-path-0-tls-snippet", "default-7-ingress-with-forwardauth-24-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-forwardauth-24-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/forwardauth")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-forwardauth-24-rule-0-path-0-tls-snippet", "default-7-ingress-with-forwardauth-24-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-forwardauth-24-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2193,11 +2232,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/forwardauth-snippet")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-snippet", "default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-forwardauth-snippet-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/forwardauth-snippet")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-snippet", "default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-forwardauth-snippet-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2209,11 +2249,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/forwardauth-snippet")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-tls-snippet", "default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-forwardauth-snippet-32-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/forwardauth-snippet")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-tls-snippet", "default-7-ingress-with-forwardauth-snippet-32-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-forwardauth-snippet-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2330,11 +2371,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-without-auth-20-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-without-auth-20-rule-0-path-0-snippet", "default-7-ingress-without-auth-20-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-without-auth-20-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-without-auth-20-rule-0-path-0-snippet", "default-7-ingress-without-auth-20-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-without-auth-20-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2346,12 +2388,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-without-auth-20-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-without-auth-20-rule-0-path-0-tls-snippet", "default-7-ingress-without-auth-20-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-without-auth-20-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-without-auth-20-rule-0-path-0-tls-snippet", "default-7-ingress-without-auth-20-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-without-auth-20-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2449,11 +2492,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-global-auth-disabled-33-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-global-auth-disabled-33-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-global-auth-disabled-33-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-global-auth-disabled-33-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-global-auth-disabled-33-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2465,12 +2509,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-global-auth-disabled-33-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-global-auth-disabled-33-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-global-auth-disabled-33-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-global-auth-disabled-33-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-global-auth-disabled-33-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2554,11 +2599,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-forwardauth-24-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/forwardauth")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-forwardauth-24-rule-0-path-0-snippet", "default-7-ingress-with-forwardauth-24-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-forwardauth-24-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/forwardauth")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-forwardauth-24-rule-0-path-0-snippet", "default-7-ingress-with-forwardauth-24-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-forwardauth-24-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2570,12 +2616,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-forwardauth-24-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/forwardauth")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-forwardauth-24-rule-0-path-0-tls-snippet", "default-7-ingress-with-forwardauth-24-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-forwardauth-24-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/forwardauth")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-forwardauth-24-rule-0-path-0-tls-snippet", "default-7-ingress-with-forwardauth-24-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-forwardauth-24-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2678,11 +2725,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-without-auth-20-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-without-auth-20-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-without-auth-20-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-without-auth-20-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-without-auth-20-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2694,12 +2742,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-without-auth-20-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-without-auth-20-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-without-auth-20-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-without-auth-20-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-without-auth-20-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2783,12 +2832,13 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-ssl-redirect-25-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("sslredirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-ingress-with-ssl-redirect-25-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-ssl-redirect-25-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("sslredirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-ingress-with-ssl-redirect-25-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-ssl-redirect-25-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2800,9 +2850,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-ssl-redirect-25-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("sslredirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("sslredirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-ssl-redirect-25-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-ssl-redirect-25-rule-0-path-0-retry",
@@ -2819,11 +2870,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-without-ssl-redirect-28-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("withoutsslredirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-without-ssl-redirect-28-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-without-ssl-redirect-28-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("withoutsslredirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-without-ssl-redirect-28-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-without-ssl-redirect-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2835,12 +2887,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-without-ssl-redirect-28-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("withoutsslredirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-ingress-without-ssl-redirect-28-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-without-ssl-redirect-28-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("withoutsslredirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-ingress-without-ssl-redirect-28-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-without-ssl-redirect-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -2852,9 +2905,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-force-ssl-redirect-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("forcesslredirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("forcesslredirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-force-ssl-redirect-31-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-force-ssl-redirect-31-rule-0-path-0-retry",
@@ -2871,11 +2925,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-force-ssl-redirect-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("forcesslredirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-force-ssl-redirect-31-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-force-ssl-redirect-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("forcesslredirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-force-ssl-redirect-31-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-force-ssl-redirect-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -3086,10 +3141,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-force-ssl-redirect-no-tls-38-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("forcesslredirectnotls.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-force-ssl-redirect-no-tls-38-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("forcesslredirectnotls.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-force-ssl-redirect-no-tls-38-whoami-6-80-2",
 							Middlewares: []string{
 								"default-7-ingress-with-force-ssl-redirect-no-tls-38-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-force-ssl-redirect-no-tls-38-rule-0-path-0-retry",
@@ -3105,11 +3161,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-force-ssl-redirect-no-tls-38-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("forcesslredirectnotls.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Service:     "default-7-ingress-with-force-ssl-redirect-no-tls-38-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("forcesslredirectnotls.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Service:      "default-7-ingress-with-force-ssl-redirect-no-tls-38-whoami-6-80-2",
 							Middlewares: []string{
 								"default-7-ingress-with-force-ssl-redirect-no-tls-38-rule-0-path-0-tls-retry",
 							},
@@ -3231,11 +3288,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-ssl-passthrough-28-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough.whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-ssl-passthrough-28-whoami-tls-10-443-3",
-							Middlewares: []string{"default-7-ingress-with-ssl-passthrough-28-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough.whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-ssl-passthrough-28-whoami-tls-10-443-3",
+							Middlewares:  []string{"default-7-ingress-with-ssl-passthrough-28-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -3351,11 +3409,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-ssl-passthrough-similar-hosts-42-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough.whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-ssl-passthrough-similar-hosts-42-whoami-tls-10-443-3",
-							Middlewares: []string{"default-7-ingress-with-ssl-passthrough-similar-hosts-42-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough.whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-ssl-passthrough-similar-hosts-42-whoami-tls-10-443-3",
+							Middlewares:  []string{"default-7-ingress-with-ssl-passthrough-similar-hosts-42-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -3367,11 +3426,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-ssl-passthrough-similar-hosts-42-rule-1-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough-whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-ssl-passthrough-similar-hosts-42-whoami-tls-10-443-3",
-							Middlewares: []string{"default-7-ingress-with-ssl-passthrough-similar-hosts-42-rule-1-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough-whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-ssl-passthrough-similar-hosts-42-whoami-tls-10-443-3",
+							Middlewares:  []string{"default-7-ingress-with-ssl-passthrough-similar-hosts-42-rule-1-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -3484,11 +3544,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-ssl-passthrough-and-default-backend-48-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough.whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-ssl-passthrough-and-default-backend-48-whoami-tls-10-443-3",
-							Middlewares: []string{"default-7-ingress-with-ssl-passthrough-and-default-backend-48-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough.whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-ssl-passthrough-and-default-backend-48-whoami-tls-10-443-3",
+							Middlewares:  []string{"default-7-ingress-with-ssl-passthrough-and-default-backend-48-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -3500,11 +3561,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-ssl-passthrough-and-default-backend-48-rule-0-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough.whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-ssl-passthrough-and-default-backend-48-default-backend",
-							Middlewares: []string{"default-7-ingress-with-ssl-passthrough-and-default-backend-48-rule-0-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough.whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-ssl-passthrough-and-default-backend-48-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-ssl-passthrough-and-default-backend-48-rule-0-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -3636,10 +3698,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-ssl-passthrough-and-auth-37-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough-auth.whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-ssl-passthrough-and-auth-37-whoami-tls-10-443-3",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough-auth.whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-ssl-passthrough-and-auth-37-whoami-tls-10-443-3",
 							Middlewares: []string{
 								"default-7-ingress-with-ssl-passthrough-and-auth-37-rule-0-path-0-basic-auth",
 								"default-7-ingress-with-ssl-passthrough-and-auth-37-rule-0-path-0-allowed-source-range",
@@ -3866,10 +3929,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-ssl-passthrough-and-force-ssl-redirect-51-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough-redirect.whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-ssl-passthrough-and-force-ssl-redirect-51-rule-0-path-0-redirect-scheme", "default-7-ingress-with-ssl-passthrough-and-force-ssl-redirect-51-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough-redirect.whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-ssl-passthrough-and-force-ssl-redirect-51-rule-0-path-0-redirect-scheme", "default-7-ingress-with-ssl-passthrough-and-force-ssl-redirect-51-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -3980,10 +4044,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-ssl-passthrough-and-tls-section-and-ssl-redirect-disabled-70-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough-no-redirect.whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-ssl-passthrough-and-tls-section-and-ssl-redirect-disabled-70-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough-no-redirect.whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-ssl-passthrough-and-tls-section-and-ssl-redirect-disabled-70-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4128,11 +4193,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-sticky-19-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("sticky.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-sticky-19-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-sticky-19-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("sticky.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-sticky-19-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-sticky-19-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4144,11 +4210,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-sticky-19-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("sticky.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-sticky-19-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-sticky-19-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("sticky.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-sticky-19-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-sticky-19-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4256,11 +4323,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-ssl-22-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("proxy-ssl.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-ssl-22-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-ssl-22-whoami-tls-10-443-3",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("proxy-ssl.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-ssl-22-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-ssl-22-whoami-tls-10-443-3",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4272,11 +4340,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-ssl-22-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("proxy-ssl.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-ssl-22-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-ssl-22-whoami-tls-10-443-3",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("proxy-ssl.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-ssl-22-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-ssl-22-whoami-tls-10-443-3",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4373,11 +4442,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-cors-17-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("cors.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-cors-17-rule-0-path-0-cors", "default-7-ingress-with-cors-17-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-cors-17-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("cors.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-cors-17-rule-0-path-0-cors", "default-7-ingress-with-cors-17-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-cors-17-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4389,11 +4459,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-cors-17-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("cors.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-cors-17-rule-0-path-0-tls-cors", "default-7-ingress-with-cors-17-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-cors-17-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("cors.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-cors-17-rule-0-path-0-tls-cors", "default-7-ingress-with-cors-17-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-cors-17-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4507,11 +4578,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("cors-wildcard.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-cors", "default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-cors-wildcard-origin-33-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("cors-wildcard.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-cors", "default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-cors-wildcard-origin-33-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4523,11 +4595,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("cors-wildcard.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-tls-cors", "default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-cors-wildcard-origin-33-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("cors-wildcard.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-tls-cors", "default-7-ingress-with-cors-wildcard-origin-33-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-cors-wildcard-origin-33-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4643,11 +4716,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-service-upstream-29-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("service-upstream.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-service-upstream-29-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-service-upstream-29-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("service-upstream.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-service-upstream-29-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-service-upstream-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4659,11 +4733,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-service-upstream-29-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("service-upstream.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-service-upstream-29-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-service-upstream-29-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("service-upstream.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-service-upstream-29-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-service-upstream-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4754,11 +4829,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-upstream-vhost-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("upstream-vhost.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-upstream-vhost-27-rule-0-path-0-vhost", "default-7-ingress-with-upstream-vhost-27-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-upstream-vhost-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("upstream-vhost.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-upstream-vhost-27-rule-0-path-0-vhost", "default-7-ingress-with-upstream-vhost-27-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-upstream-vhost-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4770,11 +4846,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-upstream-vhost-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("upstream-vhost.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-upstream-vhost-27-rule-0-path-0-tls-vhost", "default-7-ingress-with-upstream-vhost-27-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-upstream-vhost-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("upstream-vhost.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-upstream-vhost-27-rule-0-path-0-tls-vhost", "default-7-ingress-with-upstream-vhost-27-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-upstream-vhost-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4892,11 +4969,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("x-forwarded-prefix.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("x-forwarded-prefix.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -4908,11 +4986,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("x-forwarded-prefix.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("x-forwarded-prefix.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-x-forwarded-prefix-no-rewrite-target-49-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5006,11 +5085,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("x-forwarded-prefix.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-x-forwarded-prefix-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("x-forwarded-prefix.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-x-forwarded-prefix-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5022,11 +5102,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("x-forwarded-prefix-regex.localhost") && PathRegexp("(?i)^/(something)(/.+)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-x-forwarded-prefix-regex-37-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("x-forwarded-prefix-regex.localhost") && PathRegexp("(?i)^/(something)(/.+)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-x-forwarded-prefix-regex-37-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5038,11 +5119,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("x-forwarded-prefix-three-groups.localhost") && PathRegexp("(?i)^/(prefix)/(sub)/(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-x-forwarded-prefix-three-groups-44-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("x-forwarded-prefix-three-groups.localhost") && PathRegexp("(?i)^/(prefix)/(sub)/(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-x-forwarded-prefix-three-groups-44-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5054,11 +5136,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("x-forwarded-prefix.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-tls-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-x-forwarded-prefix-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("x-forwarded-prefix.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-tls-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-31-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-x-forwarded-prefix-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5071,11 +5154,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("x-forwarded-prefix-regex.localhost") && PathRegexp("(?i)^/(something)(/.+)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-tls-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-x-forwarded-prefix-regex-37-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("x-forwarded-prefix-regex.localhost") && PathRegexp("(?i)^/(something)(/.+)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-tls-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-regex-37-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-x-forwarded-prefix-regex-37-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5088,11 +5172,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("x-forwarded-prefix-three-groups.localhost") && PathRegexp("(?i)^/(prefix)/(sub)/(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-tls-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-x-forwarded-prefix-three-groups-44-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("x-forwarded-prefix-three-groups.localhost") && PathRegexp("(?i)^/(prefix)/(sub)/(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-tls-rewrite-target", "default-7-ingress-with-x-forwarded-prefix-three-groups-44-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-x-forwarded-prefix-three-groups-44-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5322,11 +5407,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-use-regex-22-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("use-regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-use-regex-22-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-use-regex-22-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("use-regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-use-regex-22-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-use-regex-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5338,11 +5424,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-use-regex-22-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("use-regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-use-regex-22-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-use-regex-22-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("use-regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-use-regex-22-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-use-regex-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5436,11 +5523,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-a-with-use-regex-24-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("shared.localhost") && PathRegexp("(?i)^/test(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-a-with-use-regex-24-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-a-with-use-regex-24-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("shared.localhost") && PathRegexp("(?i)^/test(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-a-with-use-regex-24-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-a-with-use-regex-24-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5452,11 +5540,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-b-without-use-regex-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("shared.localhost") && PathRegexp("(?i)^/static")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-b-without-use-regex-27-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-b-without-use-regex-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("shared.localhost") && PathRegexp("(?i)^/static")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-b-without-use-regex-27-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-b-without-use-regex-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5468,11 +5557,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-a-with-use-regex-24-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("shared.localhost") && PathRegexp("(?i)^/test(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-a-with-use-regex-24-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-a-with-use-regex-24-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("shared.localhost") && PathRegexp("(?i)^/test(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-a-with-use-regex-24-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-a-with-use-regex-24-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5485,11 +5575,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-b-without-use-regex-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("shared.localhost") && PathRegexp("(?i)^/static")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-b-without-use-regex-27-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-b-without-use-regex-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("shared.localhost") && PathRegexp("(?i)^/static")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-b-without-use-regex-27-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-b-without-use-regex-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5630,11 +5721,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-a-with-use-regex-24-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-a-with-use-regex-24-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-a-with-use-regex-24-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-a-with-use-regex-24-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-a-with-use-regex-24-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5646,11 +5738,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-b-without-use-regex-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("no-regex.localhost") && (Path("/static") || PathPrefix("/static/"))`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-b-without-use-regex-27-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-b-without-use-regex-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("no-regex.localhost") && (Path("/static") || PathPrefix("/static/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-b-without-use-regex-27-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-b-without-use-regex-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5662,11 +5755,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-a-with-use-regex-24-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-a-with-use-regex-24-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-a-with-use-regex-24-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-a-with-use-regex-24-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-a-with-use-regex-24-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5679,11 +5773,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-b-without-use-regex-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("no-regex.localhost") && (Path("/static") || PathPrefix("/static/"))`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-b-without-use-regex-27-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-b-without-use-regex-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("no-regex.localhost") && (Path("/static") || PathPrefix("/static/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-b-without-use-regex-27-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-b-without-use-regex-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5824,10 +5919,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-rewrite-target-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("rewrite-target.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("rewrite-target.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5840,10 +5936,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-rewrite-target-27-rule-0-path-0-rewrite-target", "default-7-ingress-with-rewrite-target-27-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-rewrite-target-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("rewrite-target.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("rewrite-target.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5857,10 +5954,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-rewrite-target-no-regex-36-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("rewrite-target-no-regex.localhost") && (Path("/something") || PathPrefix("/something/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-no-regex-36-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("rewrite-target-no-regex.localhost") && (Path("/something") || PathPrefix("/something/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-no-regex-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -5873,10 +5971,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-rewrite-target-no-regex-36-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-rewrite-target-no-regex-36-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("rewrite-target-no-regex.localhost") && (Path("/something") || PathPrefix("/something/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-no-regex-36-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("rewrite-target-no-regex.localhost") && (Path("/something") || PathPrefix("/something/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-no-regex-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6030,10 +6129,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-rewrite-target-absolute-url-40-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("rewrite-target-absolute-url.localhost") && PathRegexp("(?i)^/original(?:/(.*))?")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-absolute-url-40-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("rewrite-target-absolute-url.localhost") && PathRegexp("(?i)^/original(?:/(.*))?")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-absolute-url-40-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6046,10 +6146,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-rewrite-target-absolute-url-40-rule-0-path-0-rewrite-target", "default-7-ingress-with-rewrite-target-absolute-url-40-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-rewrite-target-absolute-url-40-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("rewrite-target-absolute-url.localhost") && PathRegexp("(?i)^/original(?:/(.*))?")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-absolute-url-40-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("rewrite-target-absolute-url.localhost") && PathRegexp("(?i)^/original(?:/(.*))?")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-absolute-url-40-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6156,10 +6257,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-rewrite-target-trailing-group-42-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("rewrite-target-trailing-group.localhost") && PathRegexp("(?i)^/original/(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-trailing-group-42-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("rewrite-target-trailing-group.localhost") && PathRegexp("(?i)^/original/(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-trailing-group-42-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6172,10 +6274,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-rewrite-target-trailing-group-42-rule-0-path-0-rewrite-target", "default-7-ingress-with-rewrite-target-trailing-group-42-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-rewrite-target-trailing-group-42-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("rewrite-target-trailing-group.localhost") && PathRegexp("(?i)^/original/(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-trailing-group-42-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("rewrite-target-trailing-group.localhost") && PathRegexp("(?i)^/original/(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-trailing-group-42-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6282,10 +6385,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-rewrite-target-no-regex-36-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("rewrite-target-no-regex.localhost") && Path("/original")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-no-regex-36-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("rewrite-target-no-regex.localhost") && Path("/original")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-no-regex-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6301,10 +6405,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-rewrite-target-no-regex-36-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("rewrite-target-no-regex.localhost") && Path("/original")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-no-regex-36-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("rewrite-target-no-regex.localhost") && Path("/original")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-no-regex-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6414,10 +6519,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-a-with-rewrite-target-29-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("shared.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-a-with-rewrite-target-29-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("shared.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-a-with-rewrite-target-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6430,10 +6536,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-a-with-rewrite-target-29-rule-0-path-0-rewrite-target", "default-7-ingress-a-with-rewrite-target-29-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-b-without-rewrite-target-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("shared.localhost") && PathRegexp("(?i)^/static")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-b-without-rewrite-target-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("shared.localhost") && PathRegexp("(?i)^/static")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-b-without-rewrite-target-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6446,10 +6553,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-b-without-rewrite-target-32-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-a-with-rewrite-target-29-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("shared.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-a-with-rewrite-target-29-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("shared.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-a-with-rewrite-target-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6463,10 +6571,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-b-without-rewrite-target-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("shared.localhost") && PathRegexp("(?i)^/static")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-b-without-rewrite-target-32-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("shared.localhost") && PathRegexp("(?i)^/static")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-b-without-rewrite-target-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6600,10 +6709,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-a-with-rewrite-target-29-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("rewrite.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-a-with-rewrite-target-29-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("rewrite.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-a-with-rewrite-target-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6616,10 +6726,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-a-with-rewrite-target-29-rule-0-path-0-rewrite-target", "default-7-ingress-a-with-rewrite-target-29-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-b-without-rewrite-target-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("no-rewrite.localhost") && (Path("/static") || PathPrefix("/static/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-b-without-rewrite-target-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("no-rewrite.localhost") && (Path("/static") || PathPrefix("/static/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-b-without-rewrite-target-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6632,10 +6743,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-b-without-rewrite-target-32-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-a-with-rewrite-target-29-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("rewrite.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-a-with-rewrite-target-29-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("rewrite.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-a-with-rewrite-target-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6649,10 +6761,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-b-without-rewrite-target-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("no-rewrite.localhost") && (Path("/static") || PathPrefix("/static/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-b-without-rewrite-target-32-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("no-rewrite.localhost") && (Path("/static") || PathPrefix("/static/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-b-without-rewrite-target-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6786,10 +6899,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-rewrite-target-use-regex-false-43-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("rewrite-target.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-use-regex-false-43-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("rewrite-target.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-use-regex-false-43-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6802,10 +6916,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-rewrite-target-use-regex-false-43-rule-0-path-0-rewrite-target", "default-7-ingress-with-rewrite-target-use-regex-false-43-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-rewrite-target-use-regex-false-43-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("rewrite-target.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-rewrite-target-use-regex-false-43-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("rewrite-target.localhost") && PathRegexp("(?i)^/something(/|$)(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-rewrite-target-use-regex-false-43-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6902,10 +7017,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-app-root-21-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-21-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6918,10 +7034,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-21-rule-0-path-0-app-root", "default-7-ingress-with-app-root-21-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-app-root-21-rule-0-path-0-app-root-redirect": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "unavailable-service",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "unavailable-service",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6934,10 +7051,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-21-rule-0-path-0-app-root"},
 						},
 						"default-7-ingress-with-app-root-21-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-21-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -6951,10 +7069,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-app-root-21-rule-0-path-0-tls-app-root-redirect": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "unavailable-service",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "unavailable-service",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7059,10 +7178,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-app-root-alias-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("app-root.localhost") || Host("alias1.localhost")) && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-alias-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("app-root.localhost") || Host("alias1.localhost")) && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-alias-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7075,10 +7195,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-alias-27-rule-0-path-0-app-root", "default-7-ingress-with-app-root-alias-27-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-app-root-alias-27-rule-0-path-0-app-root-redirect": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("app-root.localhost") || Host("alias1.localhost")) && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "unavailable-service",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("app-root.localhost") || Host("alias1.localhost")) && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "unavailable-service",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7091,10 +7212,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-alias-27-rule-0-path-0-app-root"},
 						},
 						"default-7-ingress-with-app-root-alias-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("app-root.localhost") || Host("alias1.localhost")) && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-alias-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("app-root.localhost") || Host("alias1.localhost")) && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-alias-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7108,10 +7230,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-app-root-alias-27-rule-0-path-0-tls-app-root-redirect": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("app-root.localhost") || Host("alias1.localhost")) && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "unavailable-service",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("app-root.localhost") || Host("alias1.localhost")) && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "unavailable-service",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7216,10 +7339,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-app-root-root-path-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-root-path-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-root-path-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7232,10 +7356,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-root-path-31-rule-0-path-0-app-root", "default-7-ingress-with-app-root-root-path-31-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-app-root-root-path-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-root-path-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-root-path-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7249,10 +7374,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-app-root-root-path-31-rule-0-path-1": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-root-path-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-root-path-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7265,10 +7391,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-root-path-31-rule-0-path-1-app-root", "default-7-ingress-with-app-root-root-path-31-rule-0-path-1-retry"},
 						},
 						"default-7-ingress-with-app-root-root-path-31-rule-0-path-1-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-root-path-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-root-path-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7395,10 +7522,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-app-root-shared-host-root-38-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-shared-host-root-38-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-shared-host-root-38-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7411,10 +7539,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-shared-host-root-38-rule-0-path-0-app-root", "default-7-ingress-with-app-root-shared-host-root-38-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-app-root-shared-host-root-38-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-shared-host-root-38-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-shared-host-root-38-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7428,10 +7557,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-app-root-shared-host-33-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-shared-host-33-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-shared-host-33-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7444,10 +7574,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-shared-host-33-rule-0-path-0-app-root", "default-7-ingress-with-app-root-shared-host-33-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-app-root-shared-host-33-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-shared-host-33-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-shared-host-33-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7609,11 +7740,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-and-default-backend-41-default-backend",
-							Middlewares: []string{"default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-app-root", "default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-and-default-backend-41-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-app-root", "default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7625,12 +7757,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-and-default-backend-41-default-backend",
-							Middlewares: []string{"default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-tls-app-root", "default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-and-default-backend-41-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-tls-app-root", "default-7-ingress-with-app-root-and-default-backend-41-rule-0-default-backend-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7642,11 +7775,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-and-default-backend-41-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-app-root", "default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-and-default-backend-41-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-app-root", "default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7658,12 +7792,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-and-default-backend-41-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-tls-app-root", "default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-and-default-backend-41-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-tls-app-root", "default-7-ingress-with-app-root-and-default-backend-41-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7799,10 +7934,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-app-root-no-host-29-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-no-host-29-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-no-host-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7815,10 +7951,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-no-host-29-rule-0-path-0-app-root", "default-7-ingress-with-app-root-no-host-29-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-app-root-no-host-29-rule-0-path-0-app-root-redirect": {
-							EntryPoints: []string{"http"},
-							Rule:        `Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "unavailable-service",
+							EntryPoints:  []string{"http"},
+							Rule:         `Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "unavailable-service",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7831,10 +7968,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-app-root-no-host-29-rule-0-path-0-app-root"},
 						},
 						"default-7-ingress-with-app-root-no-host-29-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-app-root-no-host-29-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-app-root-no-host-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7848,10 +7986,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-app-root-no-host-29-rule-0-path-0-tls-app-root-redirect": {
-							EntryPoints: []string{"https"},
-							Rule:        `Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "unavailable-service",
+							EntryPoints:  []string{"https"},
+							Rule:         `Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "unavailable-service",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7956,11 +8095,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-app-root-21-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-app-root-21-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-app-root-21-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-app-root-21-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-app-root-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -7972,11 +8112,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-app-root-21-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-app-root-21-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-app-root-21-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("app-root.localhost") && (Path("/bar") || PathPrefix("/bar/"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-app-root-21-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-app-root-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8070,11 +8211,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-www-host-21-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("www.host.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-www-host-21-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-www-host-21-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("www.host.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-www-host-21-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-www-host-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8086,10 +8228,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-www-host-21-rule-0-path-0-from-to-www-redirect": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("host.localhost")`,
-							RuleSyntax:  "default",
-							Service:     unavailableServiceName,
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("host.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      unavailableServiceName,
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8102,11 +8245,12 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-www-host-21-rule-0-path-0-from-to-www-redirect"},
 						},
 						"default-7-ingress-with-www-host-21-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("www.host.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-www-host-21-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-www-host-21-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("www.host.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-www-host-21-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-www-host-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8119,10 +8263,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-www-host-21-rule-0-path-0-tls-from-to-www-redirect": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("host.localhost")`,
-							RuleSyntax:  "default",
-							Service:     unavailableServiceName,
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("host.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      unavailableServiceName,
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8231,11 +8376,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-host-17-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("host.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-host-17-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-host-17-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("host.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-host-17-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-host-17-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8247,10 +8393,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-host-17-rule-0-path-0-from-to-www-redirect": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("www.host.localhost")`,
-							RuleSyntax:  "default",
-							Service:     unavailableServiceName,
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("www.host.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      unavailableServiceName,
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8263,11 +8410,12 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-host-17-rule-0-path-0-from-to-www-redirect"},
 						},
 						"default-7-ingress-with-host-17-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("host.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-host-17-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-host-17-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("host.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-host-17-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-host-17-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8280,10 +8428,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-host-17-rule-0-path-0-tls-from-to-www-redirect": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("www.host.localhost")`,
-							RuleSyntax:  "default",
-							Service:     unavailableServiceName,
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("www.host.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      unavailableServiceName,
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8392,11 +8541,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-host-17-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("host.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-host-17-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-host-17-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("host.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-host-17-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-host-17-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8408,11 +8558,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-www-host-21-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("www.host.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-www-host-21-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-www-host-21-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("www.host.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-www-host-21-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-www-host-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8424,11 +8575,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-host-17-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("host.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-host-17-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-host-17-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("host.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-host-17-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-host-17-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -8441,11 +8593,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-www-host-21-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("www.host.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-www-host-21-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-www-host-21-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("www.host.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-www-host-21-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-www-host-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9210,11 +9363,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-basic-auth-48-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-basic-auth", "default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-basic-auth-48-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-basic-auth", "default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9226,12 +9380,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-basic-auth-48-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-tls-basic-auth", "default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-basic-auth-48-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-tls-basic-auth", "default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-default-backend-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9243,11 +9398,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/foo")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-basic-auth-48-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-basic-auth", "default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/foo")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-basic-auth-48-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-basic-auth", "default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9259,12 +9415,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/foo")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-basic-auth-48-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-tls-basic-auth", "default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/foo")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-basic-auth-48-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-tls-basic-auth", "default-7-ingress-with-default-backend-per-host-basic-auth-48-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9437,11 +9594,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-custom-headers-52-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-custom-headers", "default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-custom-headers-52-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-custom-headers", "default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9453,12 +9611,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-custom-headers-52-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-tls-custom-headers", "default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-custom-headers-52-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-tls-custom-headers", "default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-default-backend-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9470,11 +9629,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/foo")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-custom-headers-52-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-custom-headers", "default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/foo")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-custom-headers-52-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-custom-headers", "default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9486,12 +9646,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/foo")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-custom-headers-52-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/foo")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-custom-headers-52-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-tls-custom-headers", "default-7-ingress-with-default-backend-per-host-custom-headers-52-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9815,11 +9976,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-custom-http-errors", "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-custom-http-errors", "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9831,12 +9993,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-tls-custom-http-errors", "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-tls-custom-http-errors", "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-default-backend-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9848,11 +10011,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/foo")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-custom-http-errors", "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/foo")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-custom-http-errors", "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -9864,12 +10028,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/foo")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-tls-custom-http-errors", "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/foo")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-tls-custom-http-errors", "default-7-ingress-with-default-backend-per-host-custom-http-errors-56-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10255,11 +10420,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-default-backend-annotations-40-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-annotations-40-whoami-tls-10-443-3",
-							Middlewares: []string{"default-7-ingress-with-default-backend-annotations-40-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-annotations-40-whoami-tls-10-443-3",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-annotations-40-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10271,12 +10437,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-annotations-40-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-annotations-40-whoami-tls-10-443-3",
-							Middlewares: []string{"default-7-ingress-with-default-backend-annotations-40-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-annotations-40-whoami-tls-10-443-3",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-annotations-40-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10290,11 +10457,12 @@ func TestLoadIngresses(t *testing.T) {
 						// The ingress-level default backend should also use the ingress annotations
 						// (backend-protocol=HTTPS → https:// scheme, affinity=cookie → sticky session).
 						"default-7-ingress-with-default-backend-annotations-40-rule-0-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-annotations-40-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-annotations-40-rule-0-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-annotations-40-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-annotations-40-rule-0-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10306,12 +10474,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-annotations-40-rule-0-default-backend-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-annotations-40-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-annotations-40-rule-0-default-backend-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-annotations-40-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-annotations-40-rule-0-default-backend-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10455,11 +10624,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-default-backend-multiple-hosts-43-rule-0-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("one.whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-multiple-hosts-43-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-multiple-hosts-43-rule-0-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("one.whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-multiple-hosts-43-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-multiple-hosts-43-rule-0-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10471,12 +10641,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-multiple-hosts-43-rule-0-default-backend-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("one.whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-multiple-hosts-43-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-multiple-hosts-43-rule-0-default-backend-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("one.whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-multiple-hosts-43-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-multiple-hosts-43-rule-0-default-backend-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10488,11 +10659,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-multiple-hosts-43-rule-1-default-backend": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("two.whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-multiple-hosts-43-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-multiple-hosts-43-rule-1-default-backend-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("two.whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-multiple-hosts-43-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-multiple-hosts-43-rule-1-default-backend-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10504,12 +10676,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-default-backend-multiple-hosts-43-rule-1-default-backend-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("two.whoami.localhost")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-multiple-hosts-43-default-backend",
-							Middlewares: []string{"default-7-ingress-with-default-backend-multiple-hosts-43-rule-1-default-backend-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("two.whoami.localhost")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-multiple-hosts-43-default-backend",
+							Middlewares:  []string{"default-7-ingress-with-default-backend-multiple-hosts-43-rule-1-default-backend-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10610,11 +10783,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whitelist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-allowed-source-range", "default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-whitelist-single-ip-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whitelist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-allowed-source-range", "default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-whitelist-single-ip-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10626,11 +10800,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whitelist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-whitelist-single-ip-32-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whitelist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-whitelist-single-ip-32-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-whitelist-single-ip-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10734,11 +10909,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whitelist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-allowed-source-range", "default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-whitelist-single-cidr-34-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whitelist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-allowed-source-range", "default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-whitelist-single-cidr-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10750,11 +10926,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whitelist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-whitelist-single-cidr-34-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whitelist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-whitelist-single-cidr-34-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-whitelist-single-cidr-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10858,11 +11035,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whitelist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-allowed-source-range", "default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whitelist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-allowed-source-range", "default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10874,11 +11052,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whitelist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whitelist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-whitelist-multiple-ip-and-cidr-43-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10982,11 +11161,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-whitelist-empty-28-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whitelist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-whitelist-empty-28-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-whitelist-empty-28-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whitelist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-whitelist-empty-28-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-whitelist-empty-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -10998,11 +11178,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-whitelist-empty-28-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whitelist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-whitelist-empty-28-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-whitelist-empty-28-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whitelist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-whitelist-empty-28-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-whitelist-empty-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11096,11 +11277,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-allowlist-empty-28-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-empty-28-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-allowlist-empty-28-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-empty-28-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-allowlist-empty-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11112,11 +11294,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-allowlist-empty-28-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-empty-28-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-allowlist-empty-28-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-empty-28-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-allowlist-empty-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11210,11 +11393,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-allowed-source-range", "default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-allowlist-single-ip-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-allowed-source-range", "default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-allowlist-single-ip-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11226,11 +11410,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-allowlist-single-ip-32-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-allowlist-single-ip-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11335,11 +11520,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-allowed-source-range", "default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-allowlist-single-ip-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-allowed-source-range", "default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-allowlist-single-ip-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11351,12 +11537,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-allowlist-single-ip-32-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-allowlist-single-ip-32-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-allowlist-single-ip-32-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11465,11 +11652,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-allowed-source-range", "default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-allowlist-single-cidr-34-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-allowed-source-range", "default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-allowlist-single-cidr-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11481,11 +11669,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-allowlist-single-cidr-34-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-allowlist-single-cidr-34-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-allowlist-single-cidr-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11589,11 +11778,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-allowed-source-range", "default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-allowed-source-range", "default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11605,11 +11795,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("allowlist-source-range.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("allowlist-source-range.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-tls-allowed-source-range", "default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-allowlist-multiple-ip-and-cidr-43-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11713,11 +11904,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-access-log-enabled-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("accesslog-enabled.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-access-log-enabled-31-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-access-log-enabled-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("accesslog-enabled.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-access-log-enabled-31-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-access-log-enabled-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								AccessLogs: new(true),
 								Metadata: &dynamic.ObservabilityMetadata{
@@ -11730,12 +11922,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-access-log-enabled-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("accesslog-enabled.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-access-log-enabled-31-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-access-log-enabled-31-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("accesslog-enabled.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-access-log-enabled-31-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-access-log-enabled-31-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								AccessLogs: new(true),
 								Metadata: &dynamic.ObservabilityMetadata{
@@ -11748,11 +11941,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-access-log-disabled-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("accesslog-disabled.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-access-log-disabled-32-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-access-log-disabled-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("accesslog-disabled.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-access-log-disabled-32-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-access-log-disabled-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								AccessLogs: new(false),
 								Metadata: &dynamic.ObservabilityMetadata{
@@ -11765,12 +11959,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-access-log-disabled-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("accesslog-disabled.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-access-log-disabled-32-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-access-log-disabled-32-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("accesslog-disabled.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-access-log-disabled-32-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-access-log-disabled-32-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								AccessLogs: new(false),
 								Metadata: &dynamic.ObservabilityMetadata{
@@ -11783,11 +11978,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-access-log-default-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("accesslog-default.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-access-log-default-31-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-access-log-default-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("accesslog-default.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-access-log-default-31-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-access-log-default-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11799,12 +11995,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-access-log-default-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("accesslog-default.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-access-log-default-31-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-access-log-default-31-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("accesslog-default.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-access-log-default-31-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-access-log-default-31-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11949,10 +12146,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-permanent-redirect-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("permanent-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("permanent-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -11965,10 +12163,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-permanent-redirect-31-rule-0-path-0-redirect", "default-7-ingress-with-permanent-redirect-31-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-permanent-redirect-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("permanent-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("permanent-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12077,10 +12276,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-permanent-redirect-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("permanent-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("permanent-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12093,10 +12293,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-permanent-redirect-31-rule-0-path-0-redirect", "default-7-ingress-with-permanent-redirect-31-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-permanent-redirect-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("permanent-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("permanent-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12205,10 +12406,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-permanent-redirect-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("permanent-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("permanent-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12221,10 +12423,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-permanent-redirect-31-rule-0-path-0-redirect", "default-7-ingress-with-permanent-redirect-31-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-permanent-redirect-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("permanent-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("permanent-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-permanent-redirect-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12333,10 +12536,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-redirect-21-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-redirect-21-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-redirect-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12349,10 +12553,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-redirect-21-rule-0-path-0-redirect", "default-7-ingress-with-redirect-21-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-redirect-21-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-redirect-21-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-redirect-21-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12461,10 +12666,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-temporal-redirect-30-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("temporal-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("temporal-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12477,10 +12683,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-temporal-redirect-30-rule-0-path-0-redirect", "default-7-ingress-with-temporal-redirect-30-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-temporal-redirect-30-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("temporal-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("temporal-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12589,10 +12796,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-temporal-redirect-30-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("temporal-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("temporal-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12605,10 +12813,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-temporal-redirect-30-rule-0-path-0-redirect", "default-7-ingress-with-temporal-redirect-30-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-temporal-redirect-30-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("temporal-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("temporal-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12717,10 +12926,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-temporal-redirect-30-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("temporal-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("temporal-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12733,10 +12943,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-temporal-redirect-30-rule-0-path-0-redirect", "default-7-ingress-with-temporal-redirect-30-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-temporal-redirect-30-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("temporal-redirect.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("temporal-redirect.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-temporal-redirect-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12845,10 +13056,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-redirect-use-regex-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("redirect-regex.localhost") && PathRegexp("(?i)^/(example)(/.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-redirect-use-regex-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("redirect-regex.localhost") && PathRegexp("(?i)^/(example)(/.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-redirect-use-regex-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12861,10 +13073,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-redirect-use-regex-31-rule-0-path-0-redirect", "default-7-ingress-with-redirect-use-regex-31-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-redirect-use-regex-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("redirect-regex.localhost") && PathRegexp("(?i)^/(example)(/.*)")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-redirect-use-regex-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("redirect-regex.localhost") && PathRegexp("(?i)^/(example)(/.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-redirect-use-regex-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12973,11 +13186,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-timeout-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -12989,11 +13203,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13083,11 +13298,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-timeout-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13099,11 +13315,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13193,11 +13410,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-timeout-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13209,11 +13427,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-timeout-26-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-timeout-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13304,11 +13523,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-auth-tls-secret-28-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("auth-tls-secret.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-secret-28-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-auth-tls-secret-28-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("auth-tls-secret.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-secret-28-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-auth-tls-secret-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13323,9 +13543,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-auth-tls-secret-28-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("auth-tls-secret.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("auth-tls-secret.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-auth-tls-secret-28-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-auth-tls-secret-28-rule-0-path-0-retry",
@@ -13466,11 +13687,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("tls-option-collision-victim.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-rule-0-path-0-tls-retry"},
-							Service:     "a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("tls-option-collision-victim.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-rule-0-path-0-tls-retry"},
+							Service:      "a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13485,11 +13707,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("tls-option-collision-victim.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-rule-0-path-0-retry"},
-							Service:     "a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("tls-option-collision-victim.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-rule-0-path-0-retry"},
+							Service:      "a-1-ingress-with-auth-tls-secret-namespace-collision-victim-55-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13501,11 +13724,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("tls-option-collision-attacker.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-rule-0-path-0-tls-retry"},
-							Service:     "a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("tls-option-collision-attacker.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-rule-0-path-0-tls-retry"},
+							Service:      "a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13520,11 +13744,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("tls-option-collision-attacker.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-rule-0-path-0-retry"},
-							Service:     "a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("tls-option-collision-attacker.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-rule-0-path-0-retry"},
+							Service:      "a-3-3-ingress-with-auth-tls-secret-namespace-collision-attacker-57-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13693,11 +13918,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("tls-option-cross-namespace-owner.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-rule-0-path-0-tls-retry"},
-							Service:     "a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("tls-option-cross-namespace-owner.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-rule-0-path-0-tls-retry"},
+							Service:      "a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13712,11 +13938,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("tls-option-cross-namespace-owner.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-rule-0-path-0-retry"},
-							Service:     "a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("tls-option-cross-namespace-owner.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-rule-0-path-0-retry"},
+							Service:      "a-1-ingress-with-auth-tls-secret-cross-namespace-owner-50-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13830,11 +14057,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-auth-tls-secret-name-collision-dash-48-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("tls-option-name-collision-dash.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-secret-name-collision-dash-48-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-auth-tls-secret-name-collision-dash-48-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("tls-option-name-collision-dash.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-secret-name-collision-dash-48-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-auth-tls-secret-name-collision-dash-48-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13849,11 +14077,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-auth-tls-secret-name-collision-dash-48-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("tls-option-name-collision-dash.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-secret-name-collision-dash-48-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-auth-tls-secret-name-collision-dash-48-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("tls-option-name-collision-dash.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-secret-name-collision-dash-48-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-auth-tls-secret-name-collision-dash-48-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13865,11 +14094,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-auth-tls-secret-name-collision-dot-47-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("tls-option-name-collision-dot.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-secret-name-collision-dot-47-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-auth-tls-secret-name-collision-dot-47-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("tls-option-name-collision-dot.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-secret-name-collision-dot-47-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-auth-tls-secret-name-collision-dot-47-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -13884,11 +14114,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-auth-tls-secret-name-collision-dot-47-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("tls-option-name-collision-dot.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-secret-name-collision-dot-47-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-auth-tls-secret-name-collision-dot-47-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("tls-option-name-collision-dot.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-secret-name-collision-dot-47-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-auth-tls-secret-name-collision-dot-47-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14076,11 +14307,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-auth-tls-verify-client-35-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("auth-tls-verify-client.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-verify-client-35-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-auth-tls-verify-client-35-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("auth-tls-verify-client.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-verify-client-35-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-auth-tls-verify-client-35-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14095,9 +14327,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-auth-tls-verify-client-35-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("auth-tls-verify-client.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("auth-tls-verify-client.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-auth-tls-verify-client-35-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-auth-tls-verify-client-35-rule-0-path-0-retry",
@@ -14233,11 +14466,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-protected-ingress-17-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("mtls-conflict.localhost") && Path("/protected")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-protected-ingress-17-rule-0-path-0-tls-retry"},
-							Service:     "default-7-protected-ingress-17-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("mtls-conflict.localhost") && Path("/protected")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-protected-ingress-17-rule-0-path-0-tls-retry"},
+							Service:      "default-7-protected-ingress-17-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14252,9 +14486,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-protected-ingress-17-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("mtls-conflict.localhost") && Path("/protected")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("mtls-conflict.localhost") && Path("/protected")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-protected-ingress-17-rule-0-path-0-redirect-scheme",
 								"default-7-protected-ingress-17-rule-0-path-0-retry",
@@ -14271,11 +14506,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-same-host-second-ingress-24-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("mtls-conflict.localhost") && Path("/second")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-same-host-second-ingress-24-rule-0-path-0-tls-retry"},
-							Service:     "default-7-same-host-second-ingress-24-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("mtls-conflict.localhost") && Path("/second")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-same-host-second-ingress-24-rule-0-path-0-tls-retry"},
+							Service:      "default-7-same-host-second-ingress-24-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14290,9 +14526,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-same-host-second-ingress-24-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("mtls-conflict.localhost") && Path("/second")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("mtls-conflict.localhost") && Path("/second")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-same-host-second-ingress-24-rule-0-path-0-redirect-scheme",
 								"default-7-same-host-second-ingress-24-rule-0-path-0-retry",
@@ -14481,11 +14718,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-public-ingress-14-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("mtls-mixed.localhost") && Path("/public")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-public-ingress-14-rule-0-path-0-tls-retry"},
-							Service:     "default-7-public-ingress-14-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("mtls-mixed.localhost") && Path("/public")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-public-ingress-14-rule-0-path-0-tls-retry"},
+							Service:      "default-7-public-ingress-14-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14500,11 +14738,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-public-ingress-14-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("mtls-mixed.localhost") && Path("/public")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-public-ingress-14-rule-0-path-0-retry"},
-							Service:     "default-7-public-ingress-14-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("mtls-mixed.localhost") && Path("/public")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-public-ingress-14-rule-0-path-0-retry"},
+							Service:      "default-7-public-ingress-14-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14516,11 +14755,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-protected-ingress-17-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("mtls-mixed.localhost") && Path("/protected")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-protected-ingress-17-rule-0-path-0-tls-retry"},
-							Service:     "default-7-protected-ingress-17-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("mtls-mixed.localhost") && Path("/protected")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-protected-ingress-17-rule-0-path-0-tls-retry"},
+							Service:      "default-7-protected-ingress-17-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14535,9 +14775,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-protected-ingress-17-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("mtls-mixed.localhost") && Path("/protected")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("mtls-mixed.localhost") && Path("/protected")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-protected-ingress-17-rule-0-path-0-redirect-scheme",
 								"default-7-protected-ingress-17-rule-0-path-0-retry",
@@ -14554,11 +14795,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-optional-ingress-16-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("mtls-mixed.localhost") && Path("/optional")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-optional-ingress-16-rule-0-path-0-tls-retry"},
-							Service:     "default-7-optional-ingress-16-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("mtls-mixed.localhost") && Path("/optional")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-optional-ingress-16-rule-0-path-0-tls-retry"},
+							Service:      "default-7-optional-ingress-16-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14573,11 +14815,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-optional-ingress-16-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("mtls-mixed.localhost") && Path("/optional")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-optional-ingress-16-rule-0-path-0-retry"},
-							Service:     "default-7-optional-ingress-16-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("mtls-mixed.localhost") && Path("/optional")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-optional-ingress-16-rule-0-path-0-retry"},
+							Service:      "default-7-optional-ingress-16-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14801,10 +15044,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-custom-http-errors-and-default-backend-51-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-custom-http-errors-and-default-backend-51-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-custom-http-errors-and-default-backend-51-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14817,10 +15061,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-custom-http-errors-and-default-backend-51-rule-0-path-0-custom-http-errors", "default-7-ingress-with-custom-http-errors-and-default-backend-51-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-custom-http-errors-and-default-backend-51-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-custom-http-errors-and-default-backend-51-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-custom-http-errors-and-default-backend-51-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -14988,10 +15233,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-custom-http-errors-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-custom-http-errors-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-custom-http-errors-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15007,10 +15253,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-custom-http-errors-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-custom-http-errors-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-custom-http-errors-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15189,10 +15436,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-custom-http-errors-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-custom-http-errors-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-custom-http-errors-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15205,10 +15453,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-custom-http-errors-31-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-custom-http-errors-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-custom-http-errors-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-custom-http-errors-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15297,10 +15546,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-default-backend-annotation-39-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-annotation-39-empty-5-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-annotation-39-empty-5-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15313,10 +15563,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-default-backend-annotation-39-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-default-backend-annotation-39-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-default-backend-annotation-39-empty-5-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-default-backend-annotation-39-empty-5-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15411,11 +15662,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-body-size-28-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-body-size-28-rule-0-path-0-buffering", "default-7-ingress-with-proxy-body-size-28-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-body-size-28-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-body-size-28-rule-0-path-0-buffering", "default-7-ingress-with-proxy-body-size-28-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-body-size-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15427,11 +15679,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-body-size-28-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-body-size-28-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-body-size-28-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-body-size-28-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-body-size-28-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-body-size-28-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-body-size-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15542,10 +15795,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-request-buffering-off-40-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-request-buffering-off-40-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-request-buffering-off-40-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15558,10 +15812,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-proxy-request-buffering-off-40-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-proxy-request-buffering-off-40-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-request-buffering-off-40-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-request-buffering-off-40-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15656,11 +15911,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-body-size-retry-34-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-body-size-retry-34-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-body-size-retry-34-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-body-size-retry-34-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-body-size-retry-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15672,11 +15928,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-body-size-retry-34-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-body-size-retry-34-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-body-size-retry-34-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-body-size-retry-34-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-body-size-retry-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15770,11 +16027,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-body-size-zero-retry-39-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-body-size-zero-retry-39-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-body-size-zero-retry-39-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-body-size-zero-retry-39-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-body-size-zero-retry-39-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15786,11 +16044,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-body-size-zero-retry-39-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-body-size-zero-retry-39-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-body-size-zero-retry-39-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-body-size-zero-retry-39-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-body-size-zero-retry-39-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15884,11 +16143,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-http-status-retry-and-buffering-off-48-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-http-status-retry-and-buffering-off-48-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-http-status-retry-and-buffering-off-48-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-http-status-retry-and-buffering-off-48-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-http-status-retry-and-buffering-off-48-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -15900,11 +16160,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-http-status-retry-and-buffering-off-48-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-http-status-retry-and-buffering-off-48-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-http-status-retry-and-buffering-off-48-rule-0-path-0-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-http-status-retry-and-buffering-off-48-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-http-status-retry-and-buffering-off-48-rule-0-path-0-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16000,11 +16261,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-buffering", "default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-client-body-buffer-size-36-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-buffering", "default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-client-body-buffer-size-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16016,11 +16278,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-tls-buffering", "default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-client-body-buffer-size-36-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-tls-buffering", "default-7-ingress-with-client-body-buffer-size-36-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-client-body-buffer-size-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16130,11 +16393,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-buffering", "default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-buffering", "default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16146,11 +16410,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-body-size-and-client-body-buffer-size-56-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16260,11 +16525,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-buffering", "default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-buffer-size-30-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-buffering", "default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-buffer-size-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16276,11 +16542,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-buffer-size-30-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-buffer-size-30-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-buffer-size-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16392,11 +16659,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-buffering", "default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-buffers-number-33-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-buffering", "default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-buffers-number-33-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16408,11 +16676,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-buffers-number-33-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-buffers-number-33-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-buffers-number-33-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16524,11 +16793,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-buffering", "default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-buffer-size-and-number-41-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-buffering", "default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-buffer-size-and-number-41-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16540,11 +16810,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-buffer-size-and-number-41-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-buffer-size-and-number-41-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-buffer-size-and-number-41-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16656,11 +16927,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-buffering", "default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-proxy-max-temp-file-size-37-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-buffering", "default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-proxy-max-temp-file-size-37-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16672,11 +16944,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("hostname.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-proxy-max-temp-file-size-37-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("hostname.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-tls-buffering", "default-7-ingress-with-proxy-max-temp-file-size-37-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-proxy-max-temp-file-size-37-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16789,10 +17062,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-server-snippet-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-server-snippet-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-server-snippet-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16808,10 +17082,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-server-snippet-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-server-snippet-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-server-snippet-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16916,10 +17191,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-configuration-snippet-34-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-configuration-snippet-34-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-configuration-snippet-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -16935,10 +17211,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-configuration-snippet-34-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-configuration-snippet-34-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-configuration-snippet-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17043,10 +17320,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-both-snippets-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-both-snippets-26-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-both-snippets-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17062,10 +17340,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-both-snippets-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-both-snippets-26-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-both-snippets-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17268,10 +17547,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-server-snippet-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-server-snippet-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-server-snippet-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17284,10 +17564,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-server-snippet-27-rule-0-path-0-snippet", "default-7-ingress-with-server-snippet-27-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-server-snippet-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-server-snippet-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-server-snippet-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17389,10 +17670,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-configuration-snippet-34-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-configuration-snippet-34-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-configuration-snippet-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17405,10 +17687,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-configuration-snippet-34-rule-0-path-0-snippet", "default-7-ingress-with-configuration-snippet-34-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-configuration-snippet-34-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-configuration-snippet-34-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-configuration-snippet-34-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17510,10 +17793,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-both-snippets-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-both-snippets-26-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-both-snippets-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17526,10 +17810,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-both-snippets-26-rule-0-path-0-snippet", "default-7-ingress-with-both-snippets-26-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-both-snippets-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("snippet.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-both-snippets-26-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("snippet.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-both-snippets-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17633,11 +17918,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("auth-tls-pass-certificate-to-upstream.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-rule-0-path-0-tls-pass-certificate-to-upstream", "default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("auth-tls-pass-certificate-to-upstream.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-rule-0-path-0-tls-pass-certificate-to-upstream", "default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17652,9 +17938,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("auth-tls-pass-certificate-to-upstream.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("auth-tls-pass-certificate-to-upstream.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-50-rule-0-path-0-pass-certificate-to-upstream",
@@ -17804,11 +18091,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("auth-tls-pass-cert-ssl-redirect-disabled.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-rule-0-path-0-tls-pass-certificate-to-upstream", "default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("auth-tls-pass-cert-ssl-redirect-disabled.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-rule-0-path-0-tls-pass-certificate-to-upstream", "default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17823,9 +18111,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("auth-tls-pass-cert-ssl-redirect-disabled.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("auth-tls-pass-cert-ssl-redirect-disabled.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-rule-0-path-0-pass-certificate-to-upstream",
 								"default-7-ingress-with-auth-tls-pass-cert-ssl-redirect-disabled-53-rule-0-path-0-retry",
@@ -17967,11 +18256,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-next-upstream-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-32-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-proxy-next-upstream-32-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-32-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-proxy-next-upstream-32-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17983,10 +18273,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-next-upstream-off-36-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-off-36-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-off-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -17998,11 +18289,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-next-upstream-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-32-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-proxy-next-upstream-32-rule-0-path-0-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-32-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-proxy-next-upstream-32-rule-0-path-0-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18015,10 +18307,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-proxy-next-upstream-off-36-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-off-36-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-off-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18143,11 +18436,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-next-upstream-status-only-44-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-status-only-44-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-proxy-next-upstream-status-only-44-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-status-only-44-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-proxy-next-upstream-status-only-44-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18159,11 +18453,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-next-upstream-status-only-44-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-status-only-44-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-proxy-next-upstream-status-only-44-rule-0-path-0-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-status-only-44-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-proxy-next-upstream-status-only-44-rule-0-path-0-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18258,10 +18553,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-next-upstream-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18277,10 +18573,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-next-upstream-off-36-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-off-36-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-off-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18295,10 +18592,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-proxy-next-upstream-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-32-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18315,10 +18613,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-proxy-next-upstream-off-36-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-off-36-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-off-36-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18478,10 +18777,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-next-upstream-tries-unlimited-48-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-tries-unlimited-48-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-tries-unlimited-48-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18494,10 +18794,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-proxy-next-upstream-tries-unlimited-48-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-proxy-next-upstream-tries-38-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-tries-38-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-tries-38-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18510,10 +18811,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-proxy-next-upstream-tries-38-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-proxy-next-upstream-tries-unlimited-48-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-tries-unlimited-48-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-tries-unlimited-48-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18527,10 +18829,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-proxy-next-upstream-tries-38-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-tries-38-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-tries-38-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18664,10 +18967,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-next-upstream-timeout-40-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-timeout-40-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-timeout-40-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18680,10 +18984,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-proxy-next-upstream-timeout-40-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-proxy-next-upstream-timeout-40-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-next-upstream-timeout-40-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-next-upstream-timeout-40-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18776,11 +19081,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-server-alias-25-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("original.localhost") || Host("alias1.localhost") || Host("alias2.localhost")) && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-server-alias-25-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-server-alias-25-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("original.localhost") || Host("alias1.localhost") || Host("alias2.localhost")) && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-server-alias-25-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-server-alias-25-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18792,11 +19098,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-server-alias-25-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("original.localhost") || Host("alias1.localhost") || Host("alias2.localhost")) && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-server-alias-25-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-server-alias-25-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("original.localhost") || Host("alias1.localhost") || Host("alias2.localhost")) && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-server-alias-25-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-server-alias-25-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18891,11 +19198,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-primary-ingress-15-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("conflict.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-primary-ingress-15-rule-0-path-0-retry"},
-							Service:     "default-7-primary-ingress-15-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("conflict.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-primary-ingress-15-rule-0-path-0-retry"},
+							Service:      "default-7-primary-ingress-15-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18907,11 +19215,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-alias-ingress-13-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("original.localhost") || Host("alias1.localhost")) && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-alias-ingress-13-rule-0-path-0-retry"},
-							Service:     "default-7-alias-ingress-13-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("original.localhost") || Host("alias1.localhost")) && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-alias-ingress-13-rule-0-path-0-retry"},
+							Service:      "default-7-alias-ingress-13-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18923,11 +19232,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-primary-ingress-15-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("conflict.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-primary-ingress-15-rule-0-path-0-tls-retry"},
-							Service:     "default-7-primary-ingress-15-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("conflict.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-primary-ingress-15-rule-0-path-0-tls-retry"},
+							Service:      "default-7-primary-ingress-15-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -18940,11 +19250,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-alias-ingress-13-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("original.localhost") || Host("alias1.localhost")) && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-alias-ingress-13-rule-0-path-0-tls-retry"},
-							Service:     "default-7-alias-ingress-13-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("original.localhost") || Host("alias1.localhost")) && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-alias-ingress-13-rule-0-path-0-tls-retry"},
+							Service:      "default-7-alias-ingress-13-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19077,11 +19388,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-first-ingress-13-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("first.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-first-ingress-13-rule-0-path-0-retry"},
-							Service:     "default-7-first-ingress-13-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("first.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-first-ingress-13-rule-0-path-0-retry"},
+							Service:      "default-7-first-ingress-13-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19093,11 +19405,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-second-ingress-14-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("second.localhost") || Host("shared.localhost")) && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-second-ingress-14-rule-0-path-0-retry"},
-							Service:     "default-7-second-ingress-14-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("second.localhost") || Host("shared.localhost")) && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-second-ingress-14-rule-0-path-0-retry"},
+							Service:      "default-7-second-ingress-14-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19109,11 +19422,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-first-ingress-13-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("first.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-first-ingress-13-rule-0-path-0-tls-retry"},
-							Service:     "default-7-first-ingress-13-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("first.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-first-ingress-13-rule-0-path-0-tls-retry"},
+							Service:      "default-7-first-ingress-13-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19126,11 +19440,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-second-ingress-14-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("second.localhost") || Host("shared.localhost")) && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-second-ingress-14-rule-0-path-0-tls-retry"},
-							Service:     "default-7-second-ingress-14-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("second.localhost") || Host("shared.localhost")) && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-second-ingress-14-rule-0-path-0-tls-retry"},
+							Service:      "default-7-second-ingress-14-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19263,10 +19578,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-http-version-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("proxy-http-version.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-http-version-31-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("proxy-http-version.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-http-version-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19279,10 +19595,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-proxy-http-version-31-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-proxy-http-version-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("proxy-http-version.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-http-version-31-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("proxy-http-version.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-http-version-31-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19374,10 +19691,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-proxy-http-version-unsupported-43-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("proxy-http-version-unsupported.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-http-version-unsupported-43-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("proxy-http-version-unsupported.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-http-version-unsupported-43-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19390,10 +19708,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-proxy-http-version-unsupported-43-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-proxy-http-version-unsupported-43-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("proxy-http-version-unsupported.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-proxy-http-version-unsupported-43-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("proxy-http-version-unsupported.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-proxy-http-version-unsupported-43-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19484,10 +19803,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-upstream-hash-by-29-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-upstream-hash-by-29-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-upstream-hash-by-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19500,10 +19820,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-upstream-hash-by-29-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-upstream-hash-by-29-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-upstream-hash-by-29-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-upstream-hash-by-29-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19595,10 +19916,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-19-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-19-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-19-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19611,10 +19933,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-19-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-19-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-19-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-19-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19750,10 +20073,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-and-sticky-30-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-and-sticky-30-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-sticky-30-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19766,10 +20090,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-and-sticky-30-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-and-sticky-30-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-and-sticky-30-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-sticky-30-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19944,10 +20269,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-weight-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-weight-26-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-weight-26-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -19960,10 +20286,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-weight-26-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-weight-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-weight-26-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-weight-26-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20099,10 +20426,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-by-header-29-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20115,10 +20443,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-29-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-29-rule-0-path-0-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-canary",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20131,10 +20460,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-29-rule-0-path-0-canary-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-29-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20148,10 +20478,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-by-header-29-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-canary",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20299,10 +20630,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-by-header-value-35-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-value-35-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-value-35-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20315,10 +20647,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-value-35-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-value-35-rule-0-path-0-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "bar"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-value-35-whoami-6-80-2-canary",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "bar"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-value-35-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20331,10 +20664,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-value-35-rule-0-path-0-canary-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-value-35-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-value-35-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-value-35-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20348,10 +20682,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-by-header-value-35-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "bar"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-value-35-whoami-6-80-2-canary",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "bar"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-value-35-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20499,10 +20834,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-by-header-pattern-37-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-pattern-37-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-pattern-37-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20515,10 +20851,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-pattern-37-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-pattern-37-rule-0-path-0-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Foo", "bar(.*)"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-pattern-37-whoami-6-80-2-canary",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Foo", "bar(.*)"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-pattern-37-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20531,10 +20868,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-pattern-37-rule-0-path-0-canary-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-pattern-37-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-pattern-37-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-pattern-37-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20548,10 +20886,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-by-header-pattern-37-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Foo", "bar(.*)"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-pattern-37-whoami-6-80-2-canary",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Foo", "bar(.*)"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-pattern-37-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20699,10 +21038,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-by-header-misconfigured-43-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-misconfigured-43-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-misconfigured-43-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20715,10 +21055,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-misconfigured-43-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-misconfigured-43-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-misconfigured-43-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-misconfigured-43-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20854,10 +21195,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-by-cookie-29-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-cookie-29-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-cookie-29-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20870,10 +21212,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-cookie-29-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-by-cookie-29-rule-0-path-0-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-cookie-29-whoami-6-80-2-canary",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-cookie-29-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20886,10 +21229,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-cookie-29-rule-0-path-0-canary-retry"},
 						},
 						"default-7-ingress-with-canary-by-cookie-29-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-cookie-29-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-cookie-29-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -20903,10 +21247,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-by-cookie-29-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-cookie-29-whoami-6-80-2-canary",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-cookie-29-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21057,11 +21402,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-wrr",
-							Middlewares: []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-limit-rps", "default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-wrr",
+							Middlewares:  []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-limit-rps", "default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21073,12 +21419,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-wrr",
-							Middlewares: []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-wrr",
+							Middlewares:  []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21090,12 +21437,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-limit-allowlist": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && ClientIP("10.0.0.0/24")`,
-							RuleSyntax:  "default",
-							Priority:    48,
-							Service:     "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-wrr",
-							Middlewares: []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-limit-allowlist-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && ClientIP("10.0.0.0/24")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-wrr",
+							Middlewares:  []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-limit-allowlist-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21107,13 +21455,14 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-tls-limit-allowlist": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && ClientIP("10.0.0.0/24")`,
-							RuleSyntax:  "default",
-							Priority:    48,
-							Service:     "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-wrr",
-							Middlewares: []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-tls-limit-allowlist-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && ClientIP("10.0.0.0/24")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-wrr",
+							Middlewares:  []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-tls-limit-allowlist-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21125,11 +21474,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-canary",
-							Middlewares: []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-limit-rps", "default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-canary",
+							Middlewares:  []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-limit-rps", "default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21141,12 +21491,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-canary",
-							Middlewares: []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-tls-limit-rps", "default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-canary",
+							Middlewares:  []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-tls-limit-rps", "default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21158,12 +21509,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-limit-allowlist": {
-							EntryPoints: []string{"http"},
-							Rule:        `((Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))) && ClientIP("10.0.0.0/24")`,
-							RuleSyntax:  "default",
-							Priority:    112,
-							Service:     "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-canary",
-							Middlewares: []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-limit-allowlist-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `((Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))) && ClientIP("10.0.0.0/24")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-canary",
+							Middlewares:  []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-limit-allowlist-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21175,13 +21527,14 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-tls-limit-allowlist": {
-							EntryPoints: []string{"https"},
-							Rule:        `((Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))) && ClientIP("10.0.0.0/24")`,
-							RuleSyntax:  "default",
-							Priority:    112,
-							Service:     "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-canary",
-							Middlewares: []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-tls-limit-allowlist-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `((Host("production.localhost") && PathPrefix("/")) && (HeaderRegexp("Cookie", "(^|;\\s*)foo\\.bar=always(;|$)"))) && ClientIP("10.0.0.0/24")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-and-limit-allowlist-39-whoami-6-80-2-canary",
+							Middlewares:  []string{"default-7-ingress-with-canary-and-limit-allowlist-39-rule-0-path-0-canary-tls-limit-allowlist-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21331,10 +21684,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21347,10 +21701,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always") || (HeaderRegexp("Cookie", "(^|;\\s*)foo=always(;|$)") && !Header("Foo", "never")))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2-canary",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always") || (HeaderRegexp("Cookie", "(^|;\\s*)foo=always(;|$)") && !Header("Foo", "never")))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21363,10 +21718,12 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0-canary-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0-non-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "never") || HeaderRegexp("Cookie", "(^|;\\s*)foo=never(;|$)"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "never") || HeaderRegexp("Cookie", "(^|;\\s*)foo=never(;|$)"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        2,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21379,10 +21736,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0-non-canary-retry"},
 						},
 						"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21396,10 +21754,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always") || (HeaderRegexp("Cookie", "(^|;\\s*)foo=always(;|$)") && !Header("Foo", "never")))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2-canary",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always") || (HeaderRegexp("Cookie", "(^|;\\s*)foo=always(;|$)") && !Header("Foo", "never")))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21413,10 +21772,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-rule-0-path-0-non-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "never") || HeaderRegexp("Cookie", "(^|;\\s*)foo=never(;|$)"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "never") || HeaderRegexp("Cookie", "(^|;\\s*)foo=never(;|$)"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        2,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-and-cookie-and-weight-51-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21576,10 +21937,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-middlewares-31-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-middlewares-31-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-middlewares-31-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21595,10 +21957,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-middlewares-31-rule-0-path-0-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-middlewares-31-whoami-6-80-2-canary",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-middlewares-31-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21614,10 +21977,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-middlewares-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-middlewares-31-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-middlewares-31-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21634,10 +21998,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-middlewares-31-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-middlewares-31-whoami-6-80-2-canary",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-middlewares-31-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21808,10 +22173,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-non-matching-canary-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-non-matching-canary-32-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-non-matching-canary-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21824,10 +22190,11 @@ func TestLoadIngresses(t *testing.T) {
 							Middlewares: []string{"default-7-ingress-with-non-matching-canary-32-rule-0-path-0-retry"},
 						},
 						"default-7-ingress-with-non-matching-canary-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-non-matching-canary-32-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-non-matching-canary-32-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21923,10 +22290,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-middlewares-and-tls-39-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-middlewares-and-tls-39-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-middlewares-and-tls-39-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21943,10 +22311,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-middlewares-and-tls-39-rule-0-path-0-canary": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-middlewares-and-tls-39-whoami-6-80-2-canary",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-middlewares-and-tls-39-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21963,10 +22332,11 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-canary-middlewares-and-tls-39-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-middlewares-and-tls-39-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-middlewares-and-tls-39-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -21983,10 +22353,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-middlewares-and-tls-39-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-middlewares-and-tls-39-whoami-6-80-2-canary",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-middlewares-and-tls-39-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22162,11 +22533,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-limit-rps-22-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-rps-22-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-rps-22-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-rps-22-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-rps-22-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-rps-22-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-rps-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22178,11 +22550,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-rps-zero-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami-zero.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-rps-zero-27-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-rps-zero-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami-zero.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-rps-zero-27-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-rps-zero-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22194,11 +22567,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-rps-22-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-rps-22-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-rps-22-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-rps-22-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-rps-22-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-rps-22-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-rps-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22211,11 +22585,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-limit-rps-zero-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami-zero.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-rps-zero-27-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-rps-zero-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami-zero.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-rps-zero-27-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-rps-zero-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22362,11 +22737,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-limit-whitelist-28-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-whitelist-28-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-whitelist-28-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-whitelist-28-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-whitelist-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22378,12 +22754,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-whitelist-28-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-whitelist-28-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-whitelist-28-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-whitelist-28-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22395,12 +22772,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-limit-allowlist": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("whoami.localhost") && Path("/")) && ClientIP("10.0.0.0/24", "192.168.1.1")`,
-							RuleSyntax:  "default",
-							Priority:    38,
-							Middlewares: []string{"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-limit-allowlist-retry"},
-							Service:     "default-7-ingress-with-limit-whitelist-28-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("whoami.localhost") && Path("/")) && ClientIP("10.0.0.0/24", "192.168.1.1")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-limit-allowlist-retry"},
+							Service:      "default-7-ingress-with-limit-whitelist-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22412,13 +22790,14 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-tls-limit-allowlist": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("whoami.localhost") && Path("/")) && ClientIP("10.0.0.0/24", "192.168.1.1")`,
-							RuleSyntax:  "default",
-							Priority:    38,
-							Middlewares: []string{"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-tls-limit-allowlist-retry"},
-							Service:     "default-7-ingress-with-limit-whitelist-28-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("whoami.localhost") && Path("/")) && ClientIP("10.0.0.0/24", "192.168.1.1")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-whitelist-28-rule-0-path-0-tls-limit-allowlist-retry"},
+							Service:      "default-7-ingress-with-limit-whitelist-28-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22521,11 +22900,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-limit-allowlist-28-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-allowlist-28-rule-0-path-0-limit-connections", "default-7-ingress-with-limit-allowlist-28-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-allowlist-28-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-allowlist-28-rule-0-path-0-limit-connections", "default-7-ingress-with-limit-allowlist-28-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-allowlist-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22537,12 +22917,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-limit-connections", "default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-allowlist-28-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-limit-connections", "default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-allowlist-28-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22554,12 +22935,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-limit-allowlist": {
-							EntryPoints: []string{"http"},
-							Rule:        `(Host("whoami.localhost") && Path("/")) && ClientIP("10.0.0.0/24", "192.168.1.1")`,
-							RuleSyntax:  "default",
-							Priority:    38,
-							Middlewares: []string{"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-limit-allowlist-retry"},
-							Service:     "default-7-ingress-with-limit-allowlist-28-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `(Host("whoami.localhost") && Path("/")) && ClientIP("10.0.0.0/24", "192.168.1.1")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-limit-allowlist-retry"},
+							Service:      "default-7-ingress-with-limit-allowlist-28-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22571,13 +22953,14 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-limit-allowlist": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("whoami.localhost") && Path("/")) && ClientIP("10.0.0.0/24", "192.168.1.1")`,
-							RuleSyntax:  "default",
-							Priority:    38,
-							Middlewares: []string{"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-limit-allowlist-retry"},
-							Service:     "default-7-ingress-with-limit-allowlist-28-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("whoami.localhost") && Path("/")) && ClientIP("10.0.0.0/24", "192.168.1.1")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-allowlist-28-rule-0-path-0-tls-limit-allowlist-retry"},
+							Service:      "default-7-ingress-with-limit-allowlist-28-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22696,11 +23079,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-limit-allowlist-no-limit-37-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-allowlist-no-limit-37-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-allowlist-no-limit-37-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-allowlist-no-limit-37-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-allowlist-no-limit-37-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22712,12 +23096,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-allowlist-no-limit-37-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-allowlist-no-limit-37-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-allowlist-no-limit-37-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-allowlist-no-limit-37-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-allowlist-no-limit-37-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22819,8 +23204,9 @@ func TestLoadIngresses(t *testing.T) {
 						"default-backend-limit-allowlist": {
 							EntryPoints: []string{"http"},
 							Rule:        `(PathPrefix("/")) && ClientIP("10.0.0.0/24")`,
+							Order:       -1,
 							RuleSyntax:  "default",
-							Priority:    math.MinInt32 + 1,
+							Priority:    math.MinInt32,
 							Service:     "default-backend",
 							Middlewares: []string{"default-backend-limit-allowlist-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
@@ -22854,8 +23240,9 @@ func TestLoadIngresses(t *testing.T) {
 						"default-backend-tls-limit-allowlist": {
 							EntryPoints: []string{"https"},
 							Rule:        `(PathPrefix("/")) && ClientIP("10.0.0.0/24")`,
+							Order:       -1,
 							RuleSyntax:  "default",
-							Priority:    math.MinInt32 + 1,
+							Priority:    math.MinInt32,
 							Service:     "default-backend",
 							Middlewares: []string{"default-backend-tls-limit-allowlist-retry"},
 							TLS:         &dynamic.RouterTLSConfig{},
@@ -22973,11 +23360,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-limit-rpm-22-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-rpm-22-rule-0-path-0-limit-rpm", "default-7-ingress-with-limit-rpm-22-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-rpm-22-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-rpm-22-rule-0-path-0-limit-rpm", "default-7-ingress-with-limit-rpm-22-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-rpm-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -22989,11 +23377,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-rpm-zero-27-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami-zero.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-rpm-zero-27-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-rpm-zero-27-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami-zero.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-rpm-zero-27-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-rpm-zero-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23005,11 +23394,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-rpm-22-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-rpm-22-rule-0-path-0-tls-limit-rpm", "default-7-ingress-with-limit-rpm-22-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-rpm-22-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-rpm-22-rule-0-path-0-tls-limit-rpm", "default-7-ingress-with-limit-rpm-22-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-rpm-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23022,11 +23412,12 @@ func TestLoadIngresses(t *testing.T) {
 							TLS: &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-limit-rpm-zero-27-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami-zero.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-rpm-zero-27-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-rpm-zero-27-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami-zero.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-rpm-zero-27-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-rpm-zero-27-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23170,11 +23561,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami-burst.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-burst-multiplier-35-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami-burst.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-burst-multiplier-35-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23186,12 +23578,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami-burst.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-burst-multiplier-35-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami-burst.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-burst-multiplier-35-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-burst-multiplier-35-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23203,11 +23596,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami-burst-zero.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-burst-multiplier-zero-40-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami-burst-zero.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-limit-rps", "default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-burst-multiplier-zero-40-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23219,12 +23613,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami-burst-zero.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-burst-multiplier-zero-40-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami-burst-zero.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-tls-limit-rps", "default-7-ingress-with-limit-burst-multiplier-zero-40-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-burst-multiplier-zero-40-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23328,11 +23723,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-limit-connections-30-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-connections-30-rule-0-path-0-limit-connections", "default-7-ingress-with-limit-connections-30-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-limit-connections-30-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-connections-30-rule-0-path-0-limit-connections", "default-7-ingress-with-limit-connections-30-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-limit-connections-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23344,12 +23740,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-limit-connections-30-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-limit-connections-30-rule-0-path-0-tls-limit-connections", "default-7-ingress-with-limit-connections-30-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-limit-connections-30-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-limit-connections-30-rule-0-path-0-tls-limit-connections", "default-7-ingress-with-limit-connections-30-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-limit-connections-30-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23476,11 +23873,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-use-regex-22-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("use-regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-use-regex-22-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-use-regex-22-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("use-regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-use-regex-22-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-use-regex-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23492,11 +23890,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-use-regex-22-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("use-regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-use-regex-22-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-use-regex-22-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("use-regex.localhost") && PathRegexp("(?i)^/test(.*)")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-use-regex-22-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-use-regex-22-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23580,11 +23979,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-wildcard-host-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("*.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-wildcard-host-26-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-wildcard-host-26-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("*.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-wildcard-host-26-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-wildcard-host-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23596,12 +23996,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-wildcard-host-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("*.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-ingress-with-wildcard-host-26-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-wildcard-host-26-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("*.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-ingress-with-wildcard-host-26-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-wildcard-host-26-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23691,9 +24092,10 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-wildcard-host-tls-30-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("*.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("*.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-wildcard-host-tls-30-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-wildcard-host-tls-30-rule-0-path-0-retry",
@@ -23710,12 +24112,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-wildcard-host-tls-30-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("*.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-ingress-with-wildcard-host-tls-30-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-wildcard-host-tls-30-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("*.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-ingress-with-wildcard-host-tls-30-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-wildcard-host-tls-30-whoami-6-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23848,11 +24251,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-external-name-26-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("external.localhost") && Path("/external-with-matching-port")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-external-name-26-rule-0-path-0-retry"},
-							Service:     "default-7-ingress-with-external-name-26-external-8-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("external.localhost") && Path("/external-with-matching-port")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-external-name-26-rule-0-path-0-retry"},
+							Service:      "default-7-ingress-with-external-name-26-external-8-80-2",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23864,12 +24268,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-external-name-26-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("external.localhost") && Path("/external-with-matching-port")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-external-name-26-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-external-name-26-external-8-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("external.localhost") && Path("/external-with-matching-port")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-external-name-26-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-external-name-26-external-8-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23881,11 +24286,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-external-name-26-rule-0-path-1": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("external.localhost") && Path("/external-with-matching-named-port")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-external-name-26-rule-0-path-1-retry"},
-							Service:     "default-7-ingress-with-external-name-26-external-8-http-4",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("external.localhost") && Path("/external-with-matching-named-port")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-external-name-26-rule-0-path-1-retry"},
+							Service:      "default-7-ingress-with-external-name-26-external-8-http-4",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23897,12 +24303,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-external-name-26-rule-0-path-1-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("external.localhost") && Path("/external-with-matching-named-port")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-external-name-26-rule-0-path-1-tls-retry"},
-							Service:     "default-7-ingress-with-external-name-26-external-8-http-4",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("external.localhost") && Path("/external-with-matching-named-port")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-external-name-26-rule-0-path-1-tls-retry"},
+							Service:      "default-7-ingress-with-external-name-26-external-8-http-4",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23914,11 +24321,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-external-name-26-rule-0-path-2": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("external.localhost") && Path("/external-with-non-matching-port")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-external-name-26-rule-0-path-2-retry"},
-							Service:     "default-7-ingress-with-external-name-26-external-8-3000-4",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("external.localhost") && Path("/external-with-non-matching-port")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-external-name-26-rule-0-path-2-retry"},
+							Service:      "default-7-ingress-with-external-name-26-external-8-3000-4",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23930,12 +24338,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-external-name-26-rule-0-path-2-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("external.localhost") && Path("/external-with-non-matching-port")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-external-name-26-rule-0-path-2-tls-retry"},
-							Service:     "default-7-ingress-with-external-name-26-external-8-3000-4",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("external.localhost") && Path("/external-with-non-matching-port")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-external-name-26-rule-0-path-2-tls-retry"},
+							Service:      "default-7-ingress-with-external-name-26-external-8-3000-4",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23947,11 +24356,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-external-name-26-rule-0-path-3": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("external.localhost") && Path("/external-with-non-matching-named-port")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-external-name-26-rule-0-path-3-retry"},
-							Service:     "default-7-ingress-with-external-name-26-external-8-foo-3",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("external.localhost") && Path("/external-with-non-matching-named-port")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-external-name-26-rule-0-path-3-retry"},
+							Service:      "default-7-ingress-with-external-name-26-external-8-foo-3",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -23963,12 +24373,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-external-name-26-rule-0-path-3-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("external.localhost") && Path("/external-with-non-matching-named-port")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-external-name-26-rule-0-path-3-tls-retry"},
-							Service:     "default-7-ingress-with-external-name-26-external-8-foo-3",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("external.localhost") && Path("/external-with-non-matching-named-port")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-external-name-26-rule-0-path-3-tls-retry"},
+							Service:      "default-7-ingress-with-external-name-26-external-8-foo-3",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -24169,9 +24580,10 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-tls-multi-secrets-30-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("first.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("first.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-tls-multi-secrets-30-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-tls-multi-secrets-30-rule-0-path-0-retry",
@@ -24188,12 +24600,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-tls-multi-secrets-30-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("first.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-tls-multi-secrets-30-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-tls-multi-secrets-30-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("first.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-tls-multi-secrets-30-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-tls-multi-secrets-30-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -24205,9 +24618,10 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-tls-multi-secrets-30-rule-1-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("second.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("second.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-tls-multi-secrets-30-rule-1-path-0-redirect-scheme",
 								"default-7-ingress-with-tls-multi-secrets-30-rule-1-path-0-retry",
@@ -24224,12 +24638,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-tls-multi-secrets-30-rule-1-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("second.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-tls-multi-secrets-30-rule-1-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-tls-multi-secrets-30-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("second.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-tls-multi-secrets-30-rule-1-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-tls-multi-secrets-30-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -24376,10 +24791,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-ssl-passthrough-and-tls-section-44-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("passthrough-tls.whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-ssl-passthrough-and-tls-section-44-rule-0-path-0-redirect-scheme", "default-7-ingress-with-ssl-passthrough-and-tls-section-44-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("passthrough-tls.whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-ssl-passthrough-and-tls-section-44-rule-0-path-0-redirect-scheme", "default-7-ingress-with-ssl-passthrough-and-tls-section-44-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -24479,9 +24895,10 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("auth-tls-pass-cert-optional-no-ca.localhost") && Path("/")`,
-							RuleSyntax:  "default",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("auth-tls-pass-cert-optional-no-ca.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
 							Middlewares: []string{
 								"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-rule-0-path-0-redirect-scheme",
 								"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-rule-0-path-0-pass-certificate-to-upstream",
@@ -24499,11 +24916,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("auth-tls-pass-cert-optional-no-ca.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Middlewares: []string{"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-rule-0-path-0-tls-pass-certificate-to-upstream", "default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-rule-0-path-0-tls-retry"},
-							Service:     "default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-whoami-6-80-2",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("auth-tls-pass-cert-optional-no-ca.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Middlewares:  []string{"default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-rule-0-path-0-tls-pass-certificate-to-upstream", "default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-rule-0-path-0-tls-retry"},
+							Service:      "default-7-ingress-with-auth-tls-pass-certificate-to-upstream-optional-no-ca-65-whoami-6-80-2",
 							TLS: &dynamic.RouterTLSConfig{
 								Options: "default-7-ca-secret-9-request-client-cert",
 							},
@@ -24647,10 +25065,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-whoami-6-80-2",
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-whoami-6-80-2",
 							Middlewares: []string{
 								"default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-rule-0-path-0-custom-http-errors",
 								"default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-rule-0-path-0-retry",
@@ -24666,11 +25085,12 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && Path("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-whoami-6-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && Path("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-whoami-6-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
 							Middlewares: []string{
 								"default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-rule-0-path-0-tls-custom-http-errors",
 								"default-7-ingress-with-custom-http-errors-and-upstream-hash-by-52-rule-0-path-0-tls-retry",
@@ -24833,11 +25253,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-endpoint-conditions-32-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-endpoint-conditions-32-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-endpoint-conditions-32-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-endpoint-conditions-32-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-endpoint-conditions-32-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -24849,12 +25270,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-endpoint-conditions-32-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-endpoint-conditions-32-whoami-6-80-2",
-							Middlewares: []string{"default-7-ingress-with-endpoint-conditions-32-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-endpoint-conditions-32-whoami-6-80-2",
+							Middlewares:  []string{"default-7-ingress-with-endpoint-conditions-32-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -24945,12 +25367,13 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-disable-http-entrypoint-31-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-disable-http-entrypoint-31-service1-8-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-ingress-disable-http-entrypoint-31-rule-0-path-0-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-disable-http-entrypoint-31-service1-8-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-ingress-disable-http-entrypoint-31-rule-0-path-0-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -25030,12 +25453,13 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-disable-http-entrypoint-limit-allowlist-47-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-disable-http-entrypoint-limit-allowlist-47-service1-8-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-ingress-disable-http-entrypoint-limit-allowlist-47-rule-0-path-0-tls-limit-rps", "default-7-ingress-disable-http-entrypoint-limit-allowlist-47-rule-0-path-0-tls-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-disable-http-entrypoint-limit-allowlist-47-service1-8-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-ingress-disable-http-entrypoint-limit-allowlist-47-rule-0-path-0-tls-limit-rps", "default-7-ingress-disable-http-entrypoint-limit-allowlist-47-rule-0-path-0-tls-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -25047,13 +25471,14 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-disable-http-entrypoint-limit-allowlist-47-rule-0-path-0-tls-limit-allowlist": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("whoami.localhost") && PathPrefix("/")) && ClientIP("10.0.0.0/24")`,
-							RuleSyntax:  "default",
-							Priority:    44,
-							Service:     "default-7-ingress-disable-http-entrypoint-limit-allowlist-47-service1-8-80-2",
-							TLS:         &dynamic.RouterTLSConfig{},
-							Middlewares: []string{"default-7-ingress-disable-http-entrypoint-limit-allowlist-47-rule-0-path-0-tls-limit-allowlist-retry"},
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("whoami.localhost") && PathPrefix("/")) && ClientIP("10.0.0.0/24")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							Order:        -1,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-disable-http-entrypoint-limit-allowlist-47-service1-8-80-2",
+							TLS:          &dynamic.RouterTLSConfig{},
+							Middlewares:  []string{"default-7-ingress-disable-http-entrypoint-limit-allowlist-47-rule-0-path-0-tls-limit-allowlist-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -25145,10 +25570,11 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-canary-by-header-29-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("production.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-wrr",
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("production.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-wrr",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -25162,10 +25588,11 @@ func TestLoadIngresses(t *testing.T) {
 							TLS:         &dynamic.RouterTLSConfig{},
 						},
 						"default-7-ingress-with-canary-by-header-29-rule-0-path-0-canary-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-canary",
+							EntryPoints:  []string{"https"},
+							Rule:         `(Host("production.localhost") && PathPrefix("/")) && (Header("Foo", "always"))`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-canary-by-header-29-whoami-6-80-2-canary",
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -25440,11 +25867,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-nil-endpointslice-port-name-40-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-nil-endpointslice-port-name-40-whoami-nil-port-name-20-80-2",
-							Middlewares: []string{"default-7-ingress-with-nil-endpointslice-port-name-40-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-nil-endpointslice-port-name-40-whoami-nil-port-name-20-80-2",
+							Middlewares:  []string{"default-7-ingress-with-nil-endpointslice-port-name-40-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -25456,12 +25884,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-nil-endpointslice-port-name-40-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-nil-endpointslice-port-name-40-whoami-nil-port-name-20-80-2",
-							Middlewares: []string{"default-7-ingress-with-nil-endpointslice-port-name-40-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-nil-endpointslice-port-name-40-whoami-nil-port-name-20-80-2",
+							Middlewares:  []string{"default-7-ingress-with-nil-endpointslice-port-name-40-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -25545,11 +25974,12 @@ func TestLoadIngresses(t *testing.T) {
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
 						"default-7-ingress-with-nil-endpointslice-port-value-41-rule-0-path-0": {
-							EntryPoints: []string{"http"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-nil-endpointslice-port-value-41-whoami-nil-port-value-21-80-2",
-							Middlewares: []string{"default-7-ingress-with-nil-endpointslice-port-value-41-rule-0-path-0-retry"},
+							EntryPoints:  []string{"http"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-nil-endpointslice-port-value-41-whoami-nil-port-value-21-80-2",
+							Middlewares:  []string{"default-7-ingress-with-nil-endpointslice-port-value-41-rule-0-path-0-retry"},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
@@ -25561,12 +25991,13 @@ func TestLoadIngresses(t *testing.T) {
 							},
 						},
 						"default-7-ingress-with-nil-endpointslice-port-value-41-rule-0-path-0-tls": {
-							EntryPoints: []string{"https"},
-							Rule:        `Host("whoami.localhost") && PathPrefix("/")`,
-							RuleSyntax:  "default",
-							Service:     "default-7-ingress-with-nil-endpointslice-port-value-41-whoami-nil-port-value-21-80-2",
-							Middlewares: []string{"default-7-ingress-with-nil-endpointslice-port-value-41-rule-0-path-0-tls-retry"},
-							TLS:         &dynamic.RouterTLSConfig{},
+							EntryPoints:  []string{"https"},
+							Rule:         `Host("whoami.localhost") && PathPrefix("/")`,
+							PriorityMode: httpmuxer.PriorityModeSpecificity,
+							RuleSyntax:   "default",
+							Service:      "default-7-ingress-with-nil-endpointslice-port-value-41-whoami-nil-port-value-21-80-2",
+							Middlewares:  []string{"default-7-ingress-with-nil-endpointslice-port-value-41-rule-0-path-0-tls-retry"},
+							TLS:          &dynamic.RouterTLSConfig{},
 							Observability: &dynamic.RouterObservabilityConfig{
 								Metadata: &dynamic.ObservabilityMetadata{
 									Ingress: &dynamic.KubernetesMetadata{
