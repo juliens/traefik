@@ -1,0 +1,527 @@
+---
+kind: GatewayClass
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: my-gateway-class
+spec:
+  controllerName: traefik.io/gateway-controller
+
+---
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: my-gateway
+  namespace: default
+spec:
+  gatewayClassName: my-gateway-class
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        kinds:
+          - kind: HTTPRoute
+            group: gateway.networking.k8s.io
+        namespaces:
+          from: Same
+
+# An Exact path match before a Prefix path match.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: exact-prefix
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - exact.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: exact-exact
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - exact.example.com
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /x
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# The Prefix path match with the largest number of characters first.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: prefix-short
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - prefix.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /a
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: prefix-long
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - prefix.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /a/b
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# A method match before header matches.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: method-method
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - method.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /m
+          method: GET
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: method-headers
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - method.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /m
+          headers:
+            - name: h1
+              value: v
+            - name: h2
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# The largest number of header matches first.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: headers-one
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - headers.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /h
+          headers:
+            - name: h1
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: headers-two
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - headers.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /h
+          headers:
+            - name: h1
+              value: v
+            - name: h2
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# Header matches before query param matches.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: query-header
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - query.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /q
+          headers:
+            - name: h1
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: query-params
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - query.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /q
+          queryParams:
+            - name: q1
+              value: v
+            - name: q2
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# The longest Prefix path match before header matches.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: longest-long
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - longest.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /abc
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: longest-header
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - longest.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /a
+          headers:
+            - name: h1
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# Within an HTTPRoute, the first matching rule.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: rules
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - rules.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /r
+          headers:
+            - name: h1
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /r
+          headers:
+            - name: h2
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# Across HTTPRoutes, the oldest one, named so that the alphabetical order designates the other one.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: age-z-old
+  namespace: default
+  creationTimestamp: "2020-01-01T00:00:00Z"
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - age.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /t
+          headers:
+            - name: h1
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: age-a-new
+  namespace: default
+  creationTimestamp: "2024-01-01T00:00:00Z"
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - age.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /t
+          headers:
+            - name: h2
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# A matching non-wildcard hostname before any path match.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: hostname-wildcard
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - "*.hostname.example.com"
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /x
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: hostname-explicit
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - foo.hostname.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# The matching hostname with the largest number of characters before any path match.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: wildcard-short
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - "*.wildcard.example.com"
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /p
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: wildcard-long
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - "*.a.wildcard.example.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# A method match before any number of header matches.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: many-method
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - many.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /o
+          method: GET
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: many-headers
+  namespace: default
+spec:
+  parentRefs:
+    - name: my-gateway
+  hostnames:
+    - many.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /o
+          headers:
+            - name: h1
+              value: v
+            - name: h2
+              value: v
+            - name: h3
+              value: v
+            - name: h4
+              value: v
+            - name: h5
+              value: v
+            - name: h6
+              value: v
+            - name: h7
+              value: v
+            - name: h8
+              value: v
+            - name: h9
+              value: v
+            - name: h10
+              value: v
+            - name: h11
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80

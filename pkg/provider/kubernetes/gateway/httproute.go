@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	httpmuxer "github.com/traefik/traefik/v3/pkg/muxer/http"
 	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
@@ -26,7 +27,7 @@ import (
 	gatev1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
-func (p *Provider) loadHTTPRoute(ctx context.Context, gateways []gatewayWithListeners, route *gatev1.HTTPRoute, conf *dynamic.Configuration, attachedRoutes attachedRoutes, servedRules servedRules, statusReport *statusReport) {
+func (p *Provider) loadHTTPRoute(ctx context.Context, gateways []gatewayWithListeners, route *gatev1.HTTPRoute, routeIndex int, conf *dynamic.Configuration, attachedRoutes attachedRoutes, servedRules servedRules, statusReport *statusReport) {
 	logger := log.Ctx(ctx).With().
 		Str("http_route", route.Name).
 		Str("namespace", route.Namespace).
@@ -87,7 +88,7 @@ func (p *Provider) loadHTTPRoute(ctx context.Context, gateways []gatewayWithList
 
 			// The ResolvedRefs condition must be reported for every parentRef,
 			// even when the route does not attach to the listener.
-			routerConfs, condition := p.loadHTTPRouteConfiguration(logger.WithContext(ctx), match.GatewayName, match.GatewayNamespace, listener, route, hostnames, statusReport)
+			routerConfs, condition := p.loadHTTPRouteConfiguration(logger.WithContext(ctx), match.GatewayName, match.GatewayNamespace, listener, route, routeIndex, hostnames, statusReport)
 			if resolvedRefCondition == nil || resolvedRefCondition.Status == metav1.ConditionTrue {
 				resolvedRefCondition = new(condition)
 			}
@@ -128,7 +129,7 @@ type httpRouteRouter struct {
 	Conf *dynamic.Configuration
 }
 
-func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, gatewayNamespace string, listener gatewayListener, route *gatev1.HTTPRoute, hostnames []gatev1.Hostname, statusReport *statusReport) ([]httpRouteRouter, metav1.Condition) {
+func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, gatewayNamespace string, listener gatewayListener, route *gatev1.HTTPRoute, routeIndex int, hostnames []gatev1.Hostname, statusReport *statusReport) ([]httpRouteRouter, metav1.Condition) {
 	var routers []httpRouteRouter
 
 	condition := metav1.Condition{
@@ -163,18 +164,20 @@ func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, 
 			retry = createRetry(ctx, routeRule.Retry, p.RetryMaxRequestBodyBytes)
 		}
 
-		for _, match := range routeRule.Matches {
-			rule, priority := buildMatchRule(hostnames, match)
+		for _, rm := range buildRuleMatches(hostnames, routeRule.Matches, buildMatchRule) {
+			rule, match := rm.rule, rm.match
 			router := dynamic.Router{
 				// "default" stands for the default rule syntax in Traefik v3, i.e. the v3 syntax.
 				RuleSyntax:         "default",
 				Rule:               rule,
-				Priority:           priority + len(route.Spec.Rules) - ri,
+				PriorityMode:       httpmuxer.PriorityModeSpecificity,
+				Order:              routerOrder(routeIndex, ri),
 				ParentRefs:         listener.RouterNames,
 				RespondingTimeouts: respondingTimeouts,
 			}
 
 			routerName := makeRouterName(strings.ToLower(kindHTTPRoute), rule, route.Namespace, route.Name, gatewayNamespace, gatewayName, listener.EPName, ri)
+			resourceName := makeRouterName(strings.ToLower(kindHTTPRoute), rm.resourceRule, route.Namespace, route.Name, gatewayNamespace, gatewayName, listener.EPName, ri)
 
 			routerConf := &dynamic.Configuration{
 				HTTP: &dynamic.HTTPConfiguration{
@@ -193,12 +196,12 @@ func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, 
 			//  - an invalid RequestMirror backend reference only drops the mirror, as per the spec, but the route keeps
 			//    ResolvedRefs=True, whereas the spec requires ResolvedRefs=False, with the RefNotPermitted reason when
 			//    the reference is not allowed by a ReferenceGrant. This applies to backend-level filters too.
-			router.Middlewares, err = p.loadMiddlewares(ctx, gatewayName, gatewayNamespace, listener, routerConf, routerName, route, routeRule.Filters, match.Path, statusReport)
+			router.Middlewares, err = p.loadMiddlewares(ctx, gatewayName, gatewayNamespace, listener, routerConf, resourceName, route, routeRule.Filters, match.Path, statusReport)
 			switch {
 			case err != nil:
 				log.Ctx(ctx).Debug().Err(err).Msg("Unable to load HTTPRoute filters")
 
-				errWrrName := routerName + "-err-wrr"
+				errWrrName := resourceName + "-err-wrr"
 				routerConf.HTTP.Services[errWrrName] = &dynamic.Service{
 					Weighted: &dynamic.WeightedRoundRobin{
 						Services: []dynamic.WRRService{
@@ -228,7 +231,7 @@ func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, 
 
 			default:
 				var serviceCondition *metav1.Condition
-				router.Service, serviceCondition = p.loadWRRService(ctx, gatewayName, gatewayNamespace, listener, routerConf, routerName, routeRule, route, match.Path, statusReport)
+				router.Service, serviceCondition = p.loadWRRService(ctx, gatewayName, gatewayNamespace, listener, routerConf, resourceName, routeRule, route, match.Path, statusReport)
 				if serviceCondition != nil {
 					condition = *serviceCondition
 				}
@@ -236,7 +239,7 @@ func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, 
 
 			if err == nil && retry != nil {
 				// The retry middleware comes last, so that only the call to the backend is retried.
-				retryName := routerName + "-retry"
+				retryName := resourceName + "-retry"
 				routerConf.HTTP.Middlewares[retryName] = retry
 				router.Middlewares = append(router.Middlewares, retryName)
 			}
@@ -872,111 +875,76 @@ func (p *Provider) loadServersTransport(namespace string, policy *gatev1.Backend
 	}
 }
 
-func buildHostRule(hostnames []gatev1.Hostname) (string, int) {
+func buildHostRule(hostnames []gatev1.Hostname) string {
 	var rules []string
-	var priority int
-
 	for _, hostname := range hostnames {
-		host := string(hostname)
-
-		if priority < len(host) {
-			priority = len(host)
-		}
-
-		rules = append(rules, fmt.Sprintf("Host(%q)", hostnameMatcherValue(host)))
+		rules = append(rules, fmt.Sprintf("Host(%q)", hostnameMatcherValue(string(hostname))))
 	}
 
 	switch len(rules) {
 	case 0:
-		return "", 0
+		return ""
 	case 1:
-		return rules[0], priority
+		return rules[0]
 	default:
-		return fmt.Sprintf("(%s)", strings.Join(rules, " || ")), priority
+		return fmt.Sprintf("(%s)", strings.Join(rules, " || "))
 	}
 }
 
-// buildMatchRule builds the route rule and computes its priority.
-// The current priority computing is rather naive but aims to fulfill Conformance tests suite requirement.
-// The priority is computed to match the following precedence order:
-//
-// * "Exact" path match (+100000).
-// * "Prefix" path match with largest number of characters (+10000 + nb_characters*100).
-// * Method match (+1000).
-// * Largest number of header matches (+100 each).
-// * Largest number of query param matches (+10 each).
-//
-// In case of multiple matches for a route, the maximum priority among all matches is retain.
-func buildMatchRule(hostnames []gatev1.Hostname, match gatev1.HTTPRouteMatch) (string, int) {
+// buildMatchRule builds the router rule of an HTTPRoute match.
+// The matching precedence defined by the specification is enforced by the specificity priority mode of the routers,
+// computed from the matchers of this rule.
+func buildMatchRule(hostnames []gatev1.Hostname, match gatev1.HTTPRouteMatch) string {
 	path := ptr.Deref(match.Path, gatev1.HTTPPathMatch{
 		Type:  new(gatev1.PathMatchPathPrefix),
 		Value: new("/"),
 	})
 
-	var priority int
-	var matchRules []string
-
-	pathRule, pathPriority := buildPathRule(path)
-	matchRules = append(matchRules, pathRule)
-	priority += pathPriority
+	matchRules := []string{buildPathRule(path)}
 
 	if match.Method != nil {
 		matchRules = append(matchRules, fmt.Sprintf("Method(%q)", *match.Method))
-		priority += 1000
 	}
 
-	headerRules, headersPriority := buildHeaderRules(match.Headers)
-	matchRules = append(matchRules, headerRules...)
-	priority += headersPriority
-
-	queryParamRules, queryParamsPriority := buildQueryParamRules(match.QueryParams)
-	matchRules = append(matchRules, queryParamRules...)
-	priority += queryParamsPriority
+	matchRules = append(matchRules, buildHeaderRules(match.Headers)...)
+	matchRules = append(matchRules, buildQueryParamRules(match.QueryParams)...)
 
 	matchRulesStr := strings.Join(matchRules, " && ")
 
-	hostRule, hostPriority := buildHostRule(hostnames)
-
+	hostRule := buildHostRule(hostnames)
 	if hostRule == "" {
-		return matchRulesStr, priority
+		return matchRulesStr
 	}
 
-	// A route with a host should match over the same route with no host.
-	priority += hostPriority
-	return hostRule + " && " + matchRulesStr, priority
+	return hostRule + " && " + matchRulesStr
 }
 
-func buildPathRule(pathMatch gatev1.HTTPPathMatch) (string, int) {
+func buildPathRule(pathMatch gatev1.HTTPPathMatch) string {
 	pathType := ptr.Deref(pathMatch.Type, gatev1.PathMatchPathPrefix)
 	pathValue := ptr.Deref(pathMatch.Value, "/")
 
 	switch pathType {
 	case gatev1.PathMatchExact:
-		return fmt.Sprintf("Path(%q)", pathValue), 100000
+		return fmt.Sprintf("Path(%q)", pathValue)
 
 	case gatev1.PathMatchPathPrefix:
-		// PathPrefix(`/`) rule is a catch-all,
-		// here we ensure it would be evaluated last.
 		if pathValue == "/" {
-			return `PathPrefix("/")`, 1
+			return `PathPrefix("/")`
 		}
 
 		pv := strings.TrimSuffix(pathValue, "/")
-		return fmt.Sprintf("(Path(%q) || PathPrefix(%q))", pv, fmt.Sprintf("%s/", pv)), 10000 + len(pathValue)*100
+		return fmt.Sprintf("(Path(%q) || PathPrefix(%q))", pv, fmt.Sprintf("%s/", pv))
 
 	case gatev1.PathMatchRegularExpression:
-		return fmt.Sprintf("PathRegexp(%q)", pathValue), 10000 + len(pathValue)*100
+		return fmt.Sprintf("PathRegexp(%q)", pathValue)
 
 	default:
-		return `PathPrefix("/")`, 1
+		return `PathPrefix("/")`
 	}
 }
 
-func buildHeaderRules(headers []gatev1.HTTPHeaderMatch) ([]string, int) {
-	var (
-		rules    []string
-		priority int
-	)
+func buildHeaderRules(headers []gatev1.HTTPHeaderMatch) []string {
+	var rules []string
 	for _, header := range headers {
 		typ := ptr.Deref(header.Type, gatev1.HeaderMatchExact)
 		switch typ {
@@ -985,17 +953,13 @@ func buildHeaderRules(headers []gatev1.HTTPHeaderMatch) ([]string, int) {
 		case gatev1.HeaderMatchRegularExpression:
 			rules = append(rules, fmt.Sprintf("HeaderRegexp(%q,%q)", header.Name, header.Value))
 		}
-		priority += 100
 	}
 
-	return rules, priority
+	return rules
 }
 
-func buildQueryParamRules(queryParams []gatev1.HTTPQueryParamMatch) ([]string, int) {
-	var (
-		rules    []string
-		priority int
-	)
+func buildQueryParamRules(queryParams []gatev1.HTTPQueryParamMatch) []string {
+	var rules []string
 	for _, qp := range queryParams {
 		typ := ptr.Deref(qp.Type, gatev1.QueryParamMatchExact)
 		switch typ {
@@ -1004,10 +968,9 @@ func buildQueryParamRules(queryParams []gatev1.HTTPQueryParamMatch) ([]string, i
 		case gatev1.QueryParamMatchRegularExpression:
 			rules = append(rules, fmt.Sprintf("QueryRegexp(%q,%q)", qp.Name, qp.Value))
 		}
-		priority += 10
 	}
 
-	return rules, priority
+	return rules
 }
 
 // createRequestHeaderModifier does not enforce/check the configuration,

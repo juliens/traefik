@@ -9,23 +9,20 @@ import (
 
 func Test_buildGRPCMatchRule(t *testing.T) {
 	testCases := []struct {
-		desc             string
-		match            gatev1.GRPCRouteMatch
-		hostnames        []gatev1.Hostname
-		expectedRule     string
-		expectedPriority int
-		expectedError    bool
+		desc          string
+		match         gatev1.GRPCRouteMatch
+		hostnames     []gatev1.Hostname
+		expectedRule  string
+		expectedError bool
 	}{
 		{
-			desc:             "Empty rule and matches",
-			expectedRule:     `PathPrefix("/")`,
-			expectedPriority: 15,
+			desc:         "Empty rule and matches",
+			expectedRule: `PathPrefix("/")`,
 		},
 		{
-			desc:             "One Host rule without match",
-			hostnames:        []gatev1.Hostname{"foo.com"},
-			expectedRule:     `Host("foo.com") && PathPrefix("/")`,
-			expectedPriority: 22,
+			desc:         "One Host rule without match",
+			hostnames:    []gatev1.Hostname{"foo.com"},
+			expectedRule: `Host("foo.com") && PathPrefix("/")`,
 		},
 		{
 			desc: "One GRPCRouteMatch with no GRPCHeaderMatch",
@@ -36,8 +33,7 @@ func Test_buildGRPCMatchRule(t *testing.T) {
 					Method:  new("bar"),
 				},
 			},
-			expectedRule:     `PathRegexp("/foo/bar")`,
-			expectedPriority: 22,
+			expectedRule: `PathRegexp("/foo/bar")`,
 		},
 		{
 			desc: "One GRPCRouteMatch with one GRPCHeaderMatch",
@@ -55,8 +51,7 @@ func Test_buildGRPCMatchRule(t *testing.T) {
 					},
 				},
 			},
-			expectedRule:     `PathRegexp("/foo/bar") && Header("foo","bar")`,
-			expectedPriority: 45,
+			expectedRule: `PathRegexp("/foo/bar") && Header("foo","bar")`,
 		},
 		{
 			desc:      "One GRPCRouteMatch with one GRPCHeaderMatch and one Host",
@@ -75,8 +70,7 @@ func Test_buildGRPCMatchRule(t *testing.T) {
 					},
 				},
 			},
-			expectedRule:     `Host("foo.com") && PathRegexp("/foo/bar") && Header("foo","bar")`,
-			expectedPriority: 52,
+			expectedRule: `Host("foo.com") && PathRegexp("/foo/bar") && Header("foo","bar")`,
 		},
 	}
 
@@ -84,9 +78,8 @@ func Test_buildGRPCMatchRule(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
-			rule, priority := buildGRPCMatchRule(test.hostnames, test.match)
+			rule := buildGRPCMatchRule(test.hostnames, test.match)
 			assert.Equal(t, test.expectedRule, rule)
-			assert.Equal(t, test.expectedPriority, priority)
 		})
 	}
 }

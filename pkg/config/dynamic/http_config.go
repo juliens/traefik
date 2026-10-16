@@ -101,6 +101,14 @@ type Router struct {
 	RespondingTimeouts          *RouterRespondingTimeouts          `json:"respondingTimeouts,omitempty" toml:"respondingTimeouts,omitempty" yaml:"respondingTimeouts,omitempty" export:"true"`
 	DefaultRule                 bool                               `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
 	DeniedEncodedPathCharacters *RouterDeniedEncodedPathCharacters `json:"-" toml:"-" yaml:"-" label:"-" file:"-" kv:"-"`
+	// PriorityMode selects how the priority is computed when it is not set: from the rule length by default, or
+	// from the specificity of the rule matchers, which the providers implementing a routing specification rely on.
+	// Routers computed with the same mode from the same rule get the same priority, which keeps the providers
+	// precedence effective between providers.
+	PriorityMode string `json:"-" toml:"-" yaml:"-" label:"-" file:"-" kv:"-"`
+	// Order breaks the ties between the routers of the same provider with the same priority, lower first.
+	// It is compared after the providers precedence.
+	Order int `json:"-" toml:"-" yaml:"-" label:"-" file:"-" kv:"-"`
 }
 
 // +k8s:deepcopy-gen=true
