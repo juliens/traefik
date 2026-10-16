@@ -102,11 +102,6 @@ func TestRulePriority_specificityOrder(t *testing.T) {
 			lower:  `Host("foo.com") && PathPrefix("/q") && Query("q1", "v") && Query("q2", "v") && Query("q3", "v")`,
 		},
 		{
-			desc:   "Additional matcher before the same rule without it",
-			higher: `Host("foo.com") && PathPrefix("/") && ClientIP("10.0.0.0/8")`,
-			lower:  `Host("foo.com") && PathPrefix("/")`,
-		},
-		{
 			desc:   "Negated host does not designate a host",
 			higher: `Host("*.example.com") && PathPrefix("/")`,
 			lower:  `!Host("foo.example.com") && PathPrefix("/a/very/long/path")`,
@@ -130,6 +125,40 @@ func TestRulePriority_specificityOrder(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Greater(t, higher, lower)
+		})
+	}
+}
+
+func TestRulePriority_specificityUnchanged(t *testing.T) {
+	testCases := []struct {
+		desc  string
+		rule  string
+		other string
+	}{
+		{
+			desc:  "ClientIP",
+			rule:  `Host("foo.com") && PathPrefix("/") && ClientIP("10.0.0.0/8")`,
+			other: `Host("foo.com") && PathPrefix("/")`,
+		},
+		{
+			desc:  "Negated header",
+			rule:  `Host("foo.com") && PathPrefix("/") && !Header("X-Canary", "never")`,
+			other: `Host("foo.com") && PathPrefix("/")`,
+		},
+	}
+
+	parser, err := NewSyntaxParser()
+	require.NoError(t, err)
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			rule, err := parser.RulePriority("v3", test.rule, PriorityModeSpecificity)
+			require.NoError(t, err)
+
+			other, err := parser.RulePriority("v3", test.other, PriorityModeSpecificity)
+			require.NoError(t, err)
+
+			assert.Equal(t, other, rule)
 		})
 	}
 }

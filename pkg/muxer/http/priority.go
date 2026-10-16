@@ -18,9 +18,8 @@ const (
 // Bit layout of a specificity priority, from the most to the least significant criterion.
 // Each criterion is saturated to its width before being shifted, so that no value of a criterion can ever outweigh
 // a more significant one, whatever the number of matchers in the rule.
-// The 31 bits fit the router priority on 32-bit platforms, below the maximum user-defined priority.
+// The 30 bits fit the router priority on 32-bit platforms, below the maximum user-defined priority.
 const (
-	otherBits   = 1
 	queryBits   = 4
 	headerBits  = 4
 	methodBits  = 1
@@ -28,7 +27,7 @@ const (
 	exactBits   = 1
 	hostLenBits = 8
 
-	queryShift   = otherBits
+	queryShift   = 0
 	headerShift  = queryShift + queryBits
 	methodShift  = headerShift + headerBits
 	pathShift    = methodShift + methodBits
@@ -83,6 +82,9 @@ func (s SyntaxParser) RulePriority(syntax, rule, mode string) (int, error) {
 // HTTPRoute specification, which is also how NGINX selects a location and how the Kubernetes Ingress specification
 // orders paths: the matching host first, then an exact path, the longest path, a method, and the largest numbers of
 // header and query matches.
+// The other matchers, such as ClientIP or the negated ones, select no location in these specifications: they restrict
+// what a location serves, so they leave the specificity unchanged, and the routers they distinguish are ordered by
+// their order.
 type specificity struct {
 	hostKind int
 	// hostLength only orders wildcard hosts: the explicit hosts matching the same request are the same host.
@@ -92,7 +94,6 @@ type specificity struct {
 	method     bool
 	headers    int
 	queries    int
-	others     int
 }
 
 func (s specificity) priority() int {
@@ -102,8 +103,7 @@ func (s specificity) priority() int {
 		saturate(s.pathLength, pathBits)<<pathShift |
 		boolToInt(s.method)<<methodShift |
 		saturate(s.headers, headerBits)<<headerShift |
-		saturate(s.queries, queryBits)<<queryShift |
-		saturate(s.others, otherBits)
+		saturate(s.queries, queryBits)<<queryShift
 }
 
 // and combines the criteria of two matchers which must both match.
@@ -119,7 +119,6 @@ func (s specificity) and(o specificity) specificity {
 	s.method = s.method || o.method
 	s.headers += o.headers
 	s.queries += o.queries
-	s.others += o.others
 
 	return s
 }
@@ -138,9 +137,8 @@ func treeSpecificity(tree *rules.Tree) specificity {
 		return right
 	}
 
-	// A negated matcher restricts what the rule matches without designating what it matches.
 	if tree.Not {
-		return specificity{others: 1}
+		return specificity{}
 	}
 
 	value := ""
@@ -180,7 +178,7 @@ func treeSpecificity(tree *rules.Tree) specificity {
 		return specificity{queries: 1}
 
 	default:
-		return specificity{others: 1}
+		return specificity{}
 	}
 }
 

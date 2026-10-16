@@ -293,6 +293,7 @@ func (p *Provider) translate(ctx context.Context, mc *model) *dynamic.Configurat
 					EntryPoints:   rt.EntryPoints,
 					Rule:          appendNonCanaryRule(rule, loc.Canary),
 					RuleSyntax:    rt.RuleSyntax,
+					Order:         nonCanaryRouterOrder,
 					Service:       primarySvcName,
 					Observability: obs,
 				}
@@ -306,6 +307,7 @@ func (p *Provider) translate(ctx context.Context, mc *model) *dynamic.Configurat
 						EntryPoints:   rtTLS.EntryPoints,
 						Rule:          appendNonCanaryRule(rule, loc.Canary),
 						RuleSyntax:    rtTLS.RuleSyntax,
+						Order:         nonCanaryRouterOrder,
 						Service:       primarySvcName,
 						TLS:           rtTLS.TLS,
 						Observability: obs,
@@ -317,8 +319,23 @@ func (p *Provider) translate(ctx context.Context, mc *model) *dynamic.Configurat
 		}
 	}
 
+	// NGINX selects the server block first, an explicit server name before a wildcard one before the default server,
+	// then an exact location before the longest prefix one, whatever the lengths of the paths: the specificity
+	// priority mode orders the routers the same way, where their rule length would let a long path of a less specific
+	// location serve the request instead of the location NGINX selects.
+	for _, rt := range conf.HTTP.Routers {
+		if rt.Priority == 0 {
+			rt.PriorityMode = httpmuxer.PriorityModeSpecificity
+		}
+	}
+
 	return conf
 }
+
+// nonCanaryRouterOrder places the non-canary router of a location after its canary router: their rules have the same
+// specificity, and a request can match both, such as one with the canary header set to always and the canary cookie
+// set to never, which ingress-nginx sends to the canary as it evaluates the header first.
+const nonCanaryRouterOrder = 2
 
 // addNonTLSRouter registers a router on the non-TLS entryPoints,
 // unless non-TLS routers are disabled.
@@ -481,23 +498,19 @@ func (p *Provider) applyLimitAllowlist(mc *model, loc *location, routerKey strin
 	}
 
 	allowlistKey := routerKey + "-limit-allowlist"
+	// The ClientIP matcher leaves the rule specificity unchanged, so the allowlist router gets the priority of the
+	// router it exempts and is placed right before it by its order: it must neither lose to the router it exempts,
+	// nor outrank the other routers of the host.
 	allowlistRouter := &dynamic.Router{
 		EntryPoints:   rt.EntryPoints,
 		Rule:          appendLimitAllowlistRule(rt.Rule, loc.LimitAllowlist),
 		RuleSyntax:    rt.RuleSyntax,
+		Priority:      rt.Priority,
+		Order:         rt.Order - 1,
 		Service:       rt.Service,
 		TLS:           rt.TLS,
 		Observability: rt.Observability,
 	}
-
-	// The rule wrapping makes the allowlist rule longer than the rule it exempts, and
-	// the default priority is the rule length: left implicit, the allowlist router
-	// outranks unrelated routers of the same host and steals their traffic.
-	priority := rt.Priority
-	if priority == 0 {
-		priority = httpmuxer.GetRulePriority(rt.Rule)
-	}
-	allowlistRouter.Priority = priority + 1
 
 	conf.HTTP.Routers[allowlistKey] = allowlistRouter
 
