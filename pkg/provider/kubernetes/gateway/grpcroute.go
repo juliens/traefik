@@ -12,6 +12,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	httpmuxer "github.com/traefik/traefik/v3/pkg/muxer/http"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +21,7 @@ import (
 	gatev1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
-func (p *Provider) loadGRPCRoute(ctx context.Context, gateways []gatewayWithListeners, route *gatev1.GRPCRoute, conf *dynamic.Configuration, attachedRoutes attachedRoutes, servedRules servedRules, statusReport *statusReport) {
+func (p *Provider) loadGRPCRoute(ctx context.Context, gateways []gatewayWithListeners, route *gatev1.GRPCRoute, routeIndex int, conf *dynamic.Configuration, attachedRoutes attachedRoutes, servedRules servedRules, statusReport *statusReport) {
 	logger := log.Ctx(ctx).With().
 		Str("grpc_route", route.Name).
 		Str("namespace", route.Namespace).
@@ -81,7 +82,7 @@ func (p *Provider) loadGRPCRoute(ctx context.Context, gateways []gatewayWithList
 
 			// The ResolvedRefs condition must be reported for every parentRef,
 			// even when the route does not attach to the listener.
-			routerConfs, condition := p.loadGRPCRouteConfiguration(logger.WithContext(ctx), match.GatewayName, match.GatewayNamespace, listener, route, hostnames, statusReport)
+			routerConfs, condition := p.loadGRPCRouteConfiguration(logger.WithContext(ctx), match.GatewayName, match.GatewayNamespace, listener, route, routeIndex, hostnames, statusReport)
 			if resolvedRefCondition == nil || resolvedRefCondition.Status == metav1.ConditionTrue {
 				resolvedRefCondition = new(condition)
 			}
@@ -122,7 +123,7 @@ type grpcRouteRouter struct {
 	Conf *dynamic.Configuration
 }
 
-func (p *Provider) loadGRPCRouteConfiguration(ctx context.Context, gatewayName, gatewayNamespace string, listener gatewayListener, route *gatev1.GRPCRoute, hostnames []gatev1.Hostname, statusReport *statusReport) ([]grpcRouteRouter, metav1.Condition) {
+func (p *Provider) loadGRPCRouteConfiguration(ctx context.Context, gatewayName, gatewayNamespace string, listener gatewayListener, route *gatev1.GRPCRoute, routeIndex int, hostnames []gatev1.Hostname, statusReport *statusReport) ([]grpcRouteRouter, metav1.Condition) {
 	var routers []grpcRouteRouter
 
 	condition := metav1.Condition{
@@ -139,17 +140,19 @@ func (p *Provider) loadGRPCRouteConfiguration(ctx context.Context, gatewayName, 
 			matches = []gatev1.GRPCRouteMatch{{}}
 		}
 
-		for _, match := range matches {
-			rule, priority := buildGRPCMatchRule(hostnames, match)
+		for _, rm := range buildRuleMatches(hostnames, matches, buildGRPCMatchRule) {
+			rule := rm.rule
 			router := dynamic.Router{
 				// "default" stands for the default rule syntax in Traefik v3, i.e. the v3 syntax.
-				RuleSyntax: "default",
-				Rule:       rule,
-				Priority:   priority,
-				ParentRefs: listener.RouterNames,
+				RuleSyntax:   "default",
+				Rule:         rule,
+				PriorityMode: httpmuxer.PriorityModeSpecificity,
+				Order:        routerOrder(routeIndex, ri),
+				ParentRefs:   listener.RouterNames,
 			}
 
 			routerName := makeRouterName(strings.ToLower(kindGRPCRoute), rule, route.Namespace, route.Name, gatewayNamespace, gatewayName, listener.EPName, ri)
+			resourceName := makeRouterName(strings.ToLower(kindGRPCRoute), rm.resourceRule, route.Namespace, route.Name, gatewayNamespace, gatewayName, listener.EPName, ri)
 
 			routerConf := &dynamic.Configuration{
 				HTTP: &dynamic.HTTPConfiguration{
@@ -161,12 +164,12 @@ func (p *Provider) loadGRPCRouteConfiguration(ctx context.Context, gatewayName, 
 			}
 
 			var err error
-			router.Middlewares, err = p.loadGRPCMiddlewares(routerConf, route.Namespace, routerName, routeRule.Filters)
+			router.Middlewares, err = p.loadGRPCMiddlewares(routerConf, route.Namespace, resourceName, routeRule.Filters)
 			switch {
 			case err != nil:
 				log.Ctx(ctx).Error().Err(err).Msg("Unable to load GRPC route filters")
 
-				errWrrName := routerName + "-err-wrr"
+				errWrrName := resourceName + "-err-wrr"
 				routerConf.HTTP.Services[errWrrName] = &dynamic.Service{
 					Weighted: &dynamic.WeightedRoundRobin{
 						Services: []dynamic.WRRService{
@@ -185,7 +188,7 @@ func (p *Provider) loadGRPCRouteConfiguration(ctx context.Context, gatewayName, 
 
 			default:
 				var serviceCondition *metav1.Condition
-				router.Service, serviceCondition = p.loadGRPCService(gatewayName, gatewayNamespace, listener, routerConf, routerName, routeRule, route, statusReport)
+				router.Service, serviceCondition = p.loadGRPCService(gatewayName, gatewayNamespace, listener, routerConf, resourceName, routeRule, route, statusReport)
 				if serviceCondition != nil {
 					condition = *serviceCondition
 				}
@@ -495,22 +498,20 @@ func (p *Provider) loadGRPCServers(gatewayName, gatewayNamespace, namespace stri
 	return lb, serversTransport, nil
 }
 
-func buildGRPCMatchRule(hostnames []gatev1.Hostname, match gatev1.GRPCRouteMatch) (string, int) {
-	var matchRules []string
-
-	methodRule := buildGRPCMethodRule(match.Method)
-	matchRules = append(matchRules, methodRule)
-
-	headerRules := buildGRPCHeaderRules(match.Headers)
-	matchRules = append(matchRules, headerRules...)
+// buildGRPCMatchRule builds the router rule of a GRPCRoute match.
+// The matching precedence is enforced by the specificity priority mode of the routers, the characters of the matching
+// service and method being approximated by the length of the method path regular expression.
+func buildGRPCMatchRule(hostnames []gatev1.Hostname, match gatev1.GRPCRouteMatch) string {
+	matchRules := []string{buildGRPCMethodRule(match.Method)}
+	matchRules = append(matchRules, buildGRPCHeaderRules(match.Headers)...)
 
 	matchRulesStr := strings.Join(matchRules, " && ")
 
-	hostRule, priority := buildHostRule(hostnames)
+	hostRule := buildHostRule(hostnames)
 	if hostRule == "" {
-		return matchRulesStr, len(matchRulesStr)
+		return matchRulesStr
 	}
-	return hostRule + " && " + matchRulesStr, priority + len(matchRulesStr)
+	return hostRule + " && " + matchRulesStr
 }
 
 func buildGRPCMethodRule(method *gatev1.GRPCMethodMatch) string {

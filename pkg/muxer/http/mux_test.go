@@ -267,6 +267,7 @@ func Test_addRoutePriority(t *testing.T) {
 		xFrom        string
 		rule         string
 		priority     int
+		order        int
 		providerName string
 	}
 
@@ -490,6 +491,48 @@ func Test_addRoutePriority(t *testing.T) {
 			},
 			expected: "header1",
 		},
+		{
+			desc: "Same priority and provider, lower order wins",
+			path: "/my",
+			cases: []Case{
+				{
+					xFrom:        "header1",
+					rule:         "PathPrefix(`/my`)",
+					priority:     10,
+					order:        2,
+					providerName: "kubernetesgateway",
+				},
+				{
+					xFrom:        "header2",
+					rule:         "PathPrefix(`/my`)",
+					priority:     10,
+					order:        1,
+					providerName: "kubernetesgateway",
+				},
+			},
+			expected: "header2",
+		},
+		{
+			desc: "Same priority, provider precedence wins over order",
+			path: "/my",
+			cases: []Case{
+				{
+					xFrom:        "header1",
+					rule:         "PathPrefix(`/my`)",
+					priority:     10,
+					order:        0,
+					providerName: "kubernetesingressnginx",
+				},
+				{
+					xFrom:        "header2",
+					rule:         "PathPrefix(`/my`)",
+					priority:     10,
+					order:        100,
+					providerName: "kubernetesgateway",
+				},
+			},
+			expected: "header2",
+		},
 	}
 
 	for _, test := range testCases {
@@ -509,7 +552,7 @@ func Test_addRoutePriority(t *testing.T) {
 					route.priority = GetRulePriority(route.rule)
 				}
 
-				err := muxer.AddRoute(route.rule, "", route.priority, route.providerName, handler)
+				err := muxer.AddRouteWithOrder(route.rule, "", route.priority, route.order, route.providerName, handler)
 				require.NoError(t, err, route.rule)
 			}
 

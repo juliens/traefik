@@ -90,6 +90,12 @@ func GetRulePriority(rule string) int {
 
 // AddRoute add a new route to the router.
 func (m *Muxer) AddRoute(rule string, syntax string, priority int, providerName string, handler http.Handler) error {
+	return m.AddRouteWithOrder(rule, syntax, priority, 0, providerName, handler)
+}
+
+// AddRouteWithOrder adds a new route to the router, ordered by the given order among the routes of the same provider
+// with the same priority.
+func (m *Muxer) AddRouteWithOrder(rule string, syntax string, priority, order int, providerName string, handler http.Handler) error {
 	matchers, err := m.parser.parse(syntax, rule)
 	if err != nil {
 		return fmt.Errorf("error while parsing rule %s: %w", rule, err)
@@ -100,6 +106,7 @@ func (m *Muxer) AddRoute(rule string, syntax string, priority int, providerName 
 		matchers:         matchers,
 		priority:         priority,
 		providerPriority: slices.Index(m.providersPrecedence, providerName),
+		order:            order,
 	})
 
 	sort.Sort(m.routes)
@@ -226,8 +233,15 @@ func (r routes) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 
 // Less implements sort.Interface.
 func (r routes) Less(i, j int) bool {
-	return r[i].priority > r[j].priority ||
-		(r[i].priority == r[j].priority && r[i].providerPriority > r[j].providerPriority)
+	if r[i].priority != r[j].priority {
+		return r[i].priority > r[j].priority
+	}
+
+	if r[i].providerPriority != r[j].providerPriority {
+		return r[i].providerPriority > r[j].providerPriority
+	}
+
+	return r[i].order < r[j].order
 }
 
 // route holds the matchers to match HTTP route,
@@ -242,6 +256,9 @@ type route struct {
 	priority int
 	// providerPriority is used to disambiguate between two (or more) rules that would all match for a given request and have the same priority.
 	providerPriority int
+	// order is used to disambiguate between two (or more) rules of the same provider that would all match for a given request and have the same priority.
+	// It comes after providerPriority, so that a provider can never take precedence over another one through its own order.
+	order int
 }
 
 // matchersTree represents the matchers tree structure.

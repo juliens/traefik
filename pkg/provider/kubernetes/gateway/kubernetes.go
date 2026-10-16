@@ -555,14 +555,78 @@ func (p *Provider) loadHTTPAndGRPCRoutes(ctx context.Context, gateways []gateway
 
 	attached := make(attachedRoutes)
 	served := make(servedRules)
-	for _, route := range routes {
+	for routeIndex, route := range routes {
 		switch route := route.(type) {
 		case *gatev1.HTTPRoute:
-			p.loadHTTPRoute(ctx, gateways, route, conf, attached, served, statusReport)
+			p.loadHTTPRoute(ctx, gateways, route, routeIndex, conf, attached, served, statusReport)
 		case *gatev1.GRPCRoute:
-			p.loadGRPCRoute(ctx, gateways, route, conf, attached, served, statusReport)
+			p.loadGRPCRoute(ctx, gateways, route, routeIndex, conf, attached, served, statusReport)
 		}
 	}
+}
+
+// routeRulesStride is larger than the number of rules of an HTTPRoute or a GRPCRoute, bounded to 16 by the
+// specification, so that the router orders of two routes never interleave.
+const routeRulesStride = 1 << 8
+
+// routerOrder returns the order of the routers of the given rule of the given route, the routes being sorted by
+// creation timestamp then by "{namespace}/{name}": as stated in the specification, the ties between the matches of
+// several routes are broken by these criteria, then by the order of the rules within a route.
+func routerOrder(routeIndex, ruleIndex int) int {
+	return routeIndex*routeRulesStride + ruleIndex
+}
+
+// ruleMatch is a router rule built from a route match, for one group of the route hostnames.
+type ruleMatch[M any] struct {
+	rule string
+	// resourceRule is the rule of the match for all the route hostnames: the routers of the hostname groups of a
+	// match share the middlewares and services named after it, which keeps a single load-balancing state.
+	resourceRule string
+	match        M
+}
+
+// buildRuleMatches builds the router rules of the given matches, one per group of hostnames of the same specificity.
+func buildRuleMatches[M any](hostnames []gatev1.Hostname, matches []M, buildRule func([]gatev1.Hostname, M) string) []ruleMatch[M] {
+	var ruleMatches []ruleMatch[M]
+	for _, match := range matches {
+		resourceRule := buildRule(hostnames, match)
+		for _, group := range groupHostnamesBySpecificity(hostnames) {
+			ruleMatches = append(ruleMatches, ruleMatch[M]{rule: buildRule(group, match), resourceRule: resourceRule, match: match})
+		}
+	}
+
+	return ruleMatches
+}
+
+// groupHostnamesBySpecificity groups the explicit hostnames together, and the wildcard hostnames by length.
+// The router priority is computed from the specificity of the rule, and a rule matching hostnames of different
+// specificities has none that holds for all of them: the specification orders the matches of a request by the
+// hostname it matches, a non-wildcard one first, then the longest one.
+func groupHostnamesBySpecificity(hostnames []gatev1.Hostname) [][]gatev1.Hostname {
+	if len(hostnames) == 0 {
+		return [][]gatev1.Hostname{nil}
+	}
+
+	var explicit []gatev1.Hostname
+	wildcards := make(map[int][]gatev1.Hostname)
+	for _, hostname := range hostnames {
+		if strings.HasPrefix(string(hostname), "*") {
+			wildcards[len(hostname)] = append(wildcards[len(hostname)], hostname)
+			continue
+		}
+
+		explicit = append(explicit, hostname)
+	}
+
+	var groups [][]gatev1.Hostname
+	if len(explicit) > 0 {
+		groups = append(groups, explicit)
+	}
+	for _, length := range slices.Sorted(maps.Keys(wildcards)) {
+		groups = append(groups, wildcards[length])
+	}
+
+	return groups
 }
 
 // loadGatewayListeners loads the listeners of the given ListenerSet, or of the given Gateway when nil,

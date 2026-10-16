@@ -958,6 +958,7 @@ func TestProvidersPrecedence(t *testing.T) {
 		providersPrecedence []string
 		routersConfig       map[string]*dynamic.Router
 		serviceConfig       map[string]*dynamic.Service
+		headers             map[string]string
 		expectedFrom        string
 	}{
 		{
@@ -1048,6 +1049,78 @@ func TestProvidersPrecedence(t *testing.T) {
 			},
 			expectedFrom: "kubernetes",
 		},
+		{
+			desc:                "same rule in specificity priority mode, providersPrecedence decides",
+			providersPrecedence: []string{"kubernetescrd", "kubernetes"},
+			routersConfig: map[string]*dynamic.Router{
+				"router@kubernetes": {
+					EntryPoints:  []string{"web"},
+					Rule:         "Host(`foo.bar`) && PathPrefix(`/`)",
+					PriorityMode: httpmuxer.PriorityModeSpecificity,
+					Service:      "svc",
+				},
+				"router@kubernetescrd": {
+					EntryPoints:  []string{"web"},
+					Rule:         "Host(`foo.bar`) && PathPrefix(`/`)",
+					PriorityMode: httpmuxer.PriorityModeSpecificity,
+					Service:      "svc",
+				},
+			},
+			serviceConfig: map[string]*dynamic.Service{
+				"svc@kubernetes":    svcFor("kubernetes"),
+				"svc@kubernetescrd": svcFor("kubernetescrd"),
+			},
+			expectedFrom: "kubernetescrd",
+		},
+		{
+			desc:                "more specific rule in specificity priority mode wins regardless of providersPrecedence",
+			providersPrecedence: []string{"kubernetescrd", "kubernetes"},
+			routersConfig: map[string]*dynamic.Router{
+				"router@kubernetes": {
+					EntryPoints:  []string{"web"},
+					Rule:         "Host(`foo.bar`) && Path(`/`)",
+					PriorityMode: httpmuxer.PriorityModeSpecificity,
+					Service:      "svc",
+				},
+				"router@kubernetescrd": {
+					EntryPoints:  []string{"web"},
+					Rule:         "Host(`foo.bar`) && PathPrefix(`/`)",
+					PriorityMode: httpmuxer.PriorityModeSpecificity,
+					Service:      "svc",
+				},
+			},
+			serviceConfig: map[string]*dynamic.Service{
+				"svc@kubernetes":    svcFor("kubernetes"),
+				"svc@kubernetescrd": svcFor("kubernetescrd"),
+			},
+			expectedFrom: "kubernetes",
+		},
+		{
+			desc:                "same priority and provider, lower order wins",
+			providersPrecedence: []string{"kubernetes"},
+			routersConfig: map[string]*dynamic.Router{
+				"first@kubernetes": {
+					EntryPoints:  []string{"web"},
+					Rule:         "Host(`foo.bar`) && Header(`X-A`, `1`)",
+					PriorityMode: httpmuxer.PriorityModeSpecificity,
+					Order:        1,
+					Service:      "first",
+				},
+				"second@kubernetes": {
+					EntryPoints:  []string{"web"},
+					Rule:         "Host(`foo.bar`) && Header(`X-B`, `1`)",
+					PriorityMode: httpmuxer.PriorityModeSpecificity,
+					Order:        2,
+					Service:      "second",
+				},
+			},
+			serviceConfig: map[string]*dynamic.Service{
+				"first@kubernetes":  svcFor("first"),
+				"second@kubernetes": svcFor("second"),
+			},
+			headers:      map[string]string{"X-A": "1", "X-B": "1"},
+			expectedFrom: "first",
+		},
 	}
 
 	for _, test := range testCases {
@@ -1077,10 +1150,75 @@ func TestProvidersPrecedence(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
+			for k, v := range test.headers {
+				req.Header.Set(k, v)
+			}
 			requestdecorator.New(nil).ServeHTTP(w, req, handlers["web"].ServeHTTP)
 
 			assert.Equal(t, http.StatusOK, w.Code)
 			assert.Equal(t, test.expectedFrom, w.Header().Get("X-From"), "wrong provider won the route")
+		})
+	}
+}
+
+func TestPriorityModeErrors(t *testing.T) {
+	testCases := []struct {
+		desc   string
+		router *dynamic.Router
+	}{
+		{
+			desc: "unknown priority mode",
+			router: &dynamic.Router{
+				EntryPoints:  []string{"web"},
+				Rule:         "Host(`foo.bar`)",
+				PriorityMode: "unknown",
+				Service:      "svc",
+			},
+		},
+		{
+			desc: "specificity priority mode with the v2 rule syntax",
+			router: &dynamic.Router{
+				EntryPoints:  []string{"web"},
+				Rule:         "Host(`foo.bar`)",
+				RuleSyntax:   "v2",
+				PriorityMode: httpmuxer.PriorityModeSpecificity,
+				Service:      "svc",
+			},
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			rtConf := runtime.NewConfig(dynamic.Configuration{
+				HTTP: &dynamic.HTTPConfiguration{
+					Services: map[string]*dynamic.Service{
+						"svc@file": {
+							LoadBalancer: &dynamic.ServersLoadBalancer{
+								Strategy: dynamic.BalancerStrategyWRR,
+								Servers:  []dynamic.Server{{URL: "http://foo"}},
+							},
+						},
+					},
+					Routers:     map[string]*dynamic.Router{"router@file": test.router},
+					Middlewares: map[string]*dynamic.Middleware{},
+				},
+			})
+
+			transportManager := service.NewTransportManager(nil)
+			transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
+
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, labellingProxyBuilder{})
+			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
+
+			parser, err := httpmuxer.NewSyntaxParser()
+			require.NoError(t, err)
+
+			routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, traefiktls.NewManager(nil), parser, nil)
+			routerManager.BuildHandlers(t.Context(), []string{"web"}, false)
+
+			assert.NotEmpty(t, rtConf.Routers["router@file"].Err)
 		})
 	}
 }

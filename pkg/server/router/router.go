@@ -244,7 +244,13 @@ func (m *Manager) buildEntryPointHandler(ctx context.Context, entryPointName str
 		ctxRouter := logger.WithContext(provider.AddInContext(ctx, routerName))
 
 		if routerConfig.Priority == 0 {
-			routerConfig.Priority = httpmuxer.GetRulePriority(routerConfig.Rule)
+			priority, err := m.parser.RulePriority(routerConfig.RuleSyntax, routerConfig.Rule, routerConfig.PriorityMode)
+			if err != nil {
+				routerConfig.AddError(err, true)
+				logger.Error().Err(err).Send()
+				continue
+			}
+			routerConfig.Priority = priority
 		}
 
 		if routerConfig.Priority > maxUserPriority && !strings.HasSuffix(routerName, "@internal") {
@@ -279,7 +285,7 @@ func (m *Manager) buildEntryPointHandler(ctx context.Context, entryPointName str
 			continue
 		}
 
-		if err = muxer.AddRoute(routerConfig.Rule, routerConfig.RuleSyntax, routerConfig.Priority, providerName(routerName), handler); err != nil {
+		if err = muxer.AddRouteWithOrder(routerConfig.Rule, routerConfig.RuleSyntax, routerConfig.Priority, routerConfig.Order, providerName(routerName), handler); err != nil {
 			routerConfig.AddError(err, true)
 			logger.Error().Err(err).Send()
 			continue
@@ -493,7 +499,13 @@ func (m *Manager) buildChildRoutersMuxer(ctx context.Context, entryPointName str
 
 		// Set priority if not set.
 		if childRouter.Priority == 0 {
-			childRouter.Priority = httpmuxer.GetRulePriority(childRouter.Rule)
+			priority, err := m.parser.RulePriority(childRouter.RuleSyntax, childRouter.Rule, childRouter.PriorityMode)
+			if err != nil {
+				childRouter.AddError(err, true)
+				logger.Error().Err(err).Send()
+				continue
+			}
+			childRouter.Priority = priority
 		}
 
 		// Build the child router handler.
@@ -505,7 +517,7 @@ func (m *Manager) buildChildRoutersMuxer(ctx context.Context, entryPointName str
 		}
 
 		// Add the child router to the muxer.
-		if err = childMuxer.AddRoute(childRouter.Rule, childRouter.RuleSyntax, childRouter.Priority, providerName(childName), childHandler); err != nil {
+		if err = childMuxer.AddRouteWithOrder(childRouter.Rule, childRouter.RuleSyntax, childRouter.Priority, childRouter.Order, providerName(childName), childHandler); err != nil {
 			childRouter.AddError(err, true)
 			logger.Error().Err(err).Send()
 			continue
