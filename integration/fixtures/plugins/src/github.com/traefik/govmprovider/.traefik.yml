@@ -1,0 +1,7 @@
+displayName: go-vm test provider
+type: provider
+import: github.com/traefik/govmprovider
+summary: Provides a router to a server, to test the go-vm interpreter.
+
+testData:
+  serverURL: http://127.0.0.1:9000

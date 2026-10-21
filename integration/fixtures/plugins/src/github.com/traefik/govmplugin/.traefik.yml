@@ -1,0 +1,7 @@
+displayName: go-vm test plugin
+type: middleware
+import: github.com/traefik/govmplugin
+summary: Adds a header to the response, to test the go-vm interpreter.
+
+testData:
+  headerValue: govm

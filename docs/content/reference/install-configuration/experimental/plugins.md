@@ -85,3 +85,26 @@ experimental:
 | <a id="opt-settings-envs-2" href="#opt-settings-envs-2" title="#opt-settings-envs-2">`settings.envs`</a> | Environment variables to forward to the wasm guest. | []string | No |
 | <a id="opt-settings-mounts-2" href="#opt-settings-mounts-2" title="#opt-settings-mounts-2">`settings.mounts`</a> | Directory to mount to the wasm guest. | []string | No |
 | <a id="opt-settings-useUnsafe-2" href="#opt-settings-useUnsafe-2" title="#opt-settings-useUnsafe-2">`settings.useUnsafe`</a> | Allow the plugin to use unsafe and syscall packages. | bool | No |
+
+## Go Plugins
+
+Traefik runs the Go plugins (the plugins with the `yaegi` runtime in their manifest) with the go-vm interpreter, from their source code.
+WASM plugins are not affected.
+
+Traefik applies these restrictions to the Go plugins when it loads them:
+
+- The `unsafe` package can only be imported when both the plugin manifest and the `settings.useUnsafe` option allow it.
+- The `os/exec`, `plugin`, and `net/http/cgi` packages are refused.
+- The functions of the `syscall` package are refused, even when `useUnsafe` is allowed.
+- The functions that start or signal a process (`os.StartProcess`, `os.FindProcess`), change the current directory (`os.Chdir`), or change the runtime settings (`runtime/debug.Set*`) are refused.
+- `reflect.NewAt` is refused, unless `useUnsafe` is allowed.
+
+A Go plugin gets a copy of the environment of Traefik, so it cannot change the environment of Traefik.
+A panic in a goroutine started by a Go plugin is logged and does not stop Traefik.
+
+The `New` function of a provider plugin must return a concrete type, such as `*Provider`, and not an interface.
+
+!!! danger "Not a security boundary"
+
+    The Go plugins run inside the Traefik process.
+    These restrictions stop a careless plugin, not a plugin written to attack Traefik: only install plugins that you trust.
