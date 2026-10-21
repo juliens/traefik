@@ -73,7 +73,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.42.0
 	github.com/tetratelabs/wazero v1.8.0
 	github.com/tidwall/gjson v1.17.0
-	github.com/traefik/go-vm v0.0.0-20261021121415-56837be53f1a
+	github.com/traefik/go-vm v0.0.0-20261021144143-802ea466c80e
 	github.com/traefik/grpc-web v0.18.0
 	github.com/traefik/paerser v0.2.2
 	github.com/traefik/traefik/dynamic/ext v0.0.0-00010101000000-000000000000
