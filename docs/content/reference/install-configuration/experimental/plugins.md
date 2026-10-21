@@ -100,6 +100,7 @@ Traefik applies these restrictions to the Go plugins when it loads them:
 - `reflect.NewAt` is refused, unless `useUnsafe` is allowed.
 
 A Go plugin gets a copy of the environment of Traefik, so it cannot change the environment of Traefik.
+As with Yaegi, unused variables, imports, and labels in the code of a Go plugin do not prevent Traefik from loading it.
 A panic in a goroutine started by a Go plugin is logged and does not stop Traefik.
 
 Traefik also limits the resources of the Go plugins:
