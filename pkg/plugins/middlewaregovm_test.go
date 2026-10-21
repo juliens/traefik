@@ -1,10 +1,12 @@
 package plugins
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,6 +65,43 @@ func TestGoVMMiddleware_concurrentRequests(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestGoVMMiddleware_requestContextCanceled(t *testing.T) {
+	manifest := &Manifest{Type: typeMiddleware, Import: "testplugincontext"}
+
+	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", manifest, "testplugincontext", Settings{})
+	require.NoError(t, err)
+
+	middleware, err := builder.newMiddleware(nil, "test-middleware")
+	require.NoError(t, err)
+
+	handler, err := middleware.NewHandler(t.Context(), http.NotFoundHandler())
+	require.NoError(t, err)
+
+	result := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		handler.ServeHTTP(rw, req)
+		result <- rw.Header().Get("X-Context")
+	}))
+	t.Cleanup(server.Close)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+
+	// The client goes away before the plugin answers.
+	_, err = http.DefaultClient.Do(req)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+
+	select {
+	case got := <-result:
+		assert.Equal(t, context.Canceled.Error(), got)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the plugin did not see the cancellation of the request context")
+	}
 }
 
 func TestGoVMMiddleware_limits(t *testing.T) {
