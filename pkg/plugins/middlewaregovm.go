@@ -63,8 +63,11 @@ func loadGoVMPlugin(ctx context.Context, goPath string, manifest *Manifest, modu
 		Budget:        goVMBudget,
 		MaxGoroutines: goVMMaxGoroutines,
 		LoadTimeout:   goVMLoadTimeout,
-		// Yaegi did not report unused variables, imports and labels, so some plugins have them.
-		IgnoreSoftErrors: true,
+		// Yaegi did not report unused variables, imports, labels and expression values,
+		// and skipped the test files, so some plugins have them.
+		IgnoreSoftErrors:  true,
+		IgnoreUnusedExprs: true,
+		IgnoreTestFiles:   true,
 		// The plugins have always read the environment of Traefik.
 		Env:    os.Environ(),
 		Stdout: logs.NoLevel(*logger, zerolog.DebugLevel),
