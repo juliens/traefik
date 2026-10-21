@@ -102,6 +102,16 @@ Traefik applies these restrictions to the Go plugins when it loads them:
 A Go plugin gets a copy of the environment of Traefik, so it cannot change the environment of Traefik.
 A panic in a goroutine started by a Go plugin is logged and does not stop Traefik.
 
+Traefik also limits the resources of the Go plugins:
+
+- Each call from Traefik into a plugin (`New`, the handling of a request, a method of a provider) has an execution budget of 100,000,000 steps (function calls and loop iterations).
+  A call that uses its budget stops, so an infinite loop in a plugin stops after a fraction of a second, and the request gets a `500 Internal Server Error` response.
+- A plugin can run at most 1,000 goroutines at the same time.
+  Past this limit, the code that starts a new goroutine fails.
+- The load of a plugin must end within 30 seconds, or Traefik refuses the plugin.
+
+A request whose client goes away is not stopped in the middle of a plugin: the plugin call runs to its end, within its budget.
+
 The `New` function of a provider plugin must return a concrete type, such as `*Provider`, and not an interface.
 
 !!! danger "Not a security boundary"

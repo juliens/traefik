@@ -11,6 +11,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	// The AOT copies of the standard library and of common libraries, used by vm.TraefikDefaults.
+	_ "github.com/traefik/go-vm/aot/all"
 	"github.com/traefik/go-vm/vm"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
 )
@@ -42,16 +44,18 @@ func loadGoVMPlugin(ctx context.Context, goPath string, manifest *Manifest, modu
 
 	logger := log.Ctx(ctx)
 
-	opts := vm.Options{
-		Dir:       filepath.Join(goPath, goPathSrc, filepath.FromSlash(moduleName)),
-		UseUnsafe: manifest.UseUnsafe && settings.UseUnsafe,
-		Env:       os.Environ(),
-		Stdout:    logs.NoLevel(*logger, zerolog.DebugLevel),
-		Stderr:    logs.NoLevel(*logger, zerolog.ErrorLevel),
-		// A panic in a goroutine started by the plugin must not stop Traefik.
-		GoPanic: func(r any) {
-			logger.Error().Msgf("Panic in a goroutine of the plugin: %v", r)
-		},
+	// TraefikDefaults bounds the plugin calls (budget), the plugin goroutines, and the plugin load,
+	// and runs the AOT copies registered by the aot/all import.
+	opts := vm.TraefikDefaults()
+	opts.Dir = filepath.Join(goPath, goPathSrc, filepath.FromSlash(moduleName))
+	opts.UseUnsafe = manifest.UseUnsafe && settings.UseUnsafe
+	// TraefikDefaults gives an empty environment, but the plugins have always read the environment of Traefik.
+	opts.Env = os.Environ()
+	opts.Stdout = logs.NoLevel(*logger, zerolog.DebugLevel)
+	opts.Stderr = logs.NoLevel(*logger, zerolog.ErrorLevel)
+	// A panic in a goroutine started by the plugin must not stop Traefik.
+	opts.GoPanic = func(r any) {
+		logger.Error().Msgf("Panic in a goroutine of the plugin: %v", r)
 	}
 
 	p, err := vm.Load(opts, manifest.Import)

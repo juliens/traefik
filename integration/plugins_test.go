@@ -63,4 +63,11 @@ func (s *PluginsSuite) TestLocalMiddlewarePlugin() {
 
 	err := try.GetRequest("http://127.0.0.1:8000/", 10*time.Second, try.StatusCodeIs(http.StatusOK), try.HasHeaderValue("X-Govm-Plugin", "govm", true))
 	require.NoError(s.T(), err)
+
+	// The execution budget stops the infinite loop of the plugin.
+	err = try.GetRequest("http://127.0.0.1:8000/loop", 5*time.Second, try.StatusCodeIs(http.StatusInternalServerError))
+	require.NoError(s.T(), err)
+
+	err = try.GetRequest("http://127.0.0.1:8000/", time.Second, try.StatusCodeIs(http.StatusOK))
+	require.NoError(s.T(), err)
 }
