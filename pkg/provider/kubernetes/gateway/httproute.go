@@ -161,14 +161,12 @@ func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, 
 			}
 
 			var err error
-			// TODO the filters loading issues should be reported in the route conditions, which is not done yet:
-			//  - an unsupported filter, or an invalid ExtensionRef or URLRewrite filter, makes the rule respond
-			//    with a 500 status, but the route keeps ResolvedRefs=True, whereas the spec requires a warning condition.
-			//    Backend-level filters already report it as ResolvedRefs=False with the InvalidKind reason, see loadService.
-			//  - an invalid RequestMirror backend reference only drops the mirror, as per the spec, but the route keeps
-			//    ResolvedRefs=True, whereas the spec requires ResolvedRefs=False, with the RefNotPermitted reason when
-			//    the reference is not allowed by a ReferenceGrant. This applies to backend-level filters too.
-			router.Middlewares, err = p.loadMiddlewares(ctx, gatewayName, gatewayNamespace, listener, routerConf, routerName, route, routeRule.Filters, match.Path, statusReport)
+			var filtersCondition *metav1.Condition
+			router.Middlewares, filtersCondition, err = p.loadMiddlewares(ctx, gatewayName, gatewayNamespace, listener, routerConf, routerName, route, routeRule.Filters, match.Path, statusReport)
+			if filtersCondition != nil {
+				condition = *filtersCondition
+			}
+
 			switch {
 			case err != nil:
 				log.Ctx(ctx).Error().Err(err).Msg("Unable to load HTTPRoute filters")
@@ -249,13 +247,15 @@ func (p *Provider) loadWRRService(ctx context.Context, gatewayName, gatewayNames
 	for bi, backendRef := range routeRule.BackendRefs {
 		// TODO in loadService we need to always return a non-nil serviceName even when there is an error which is not the
 		// usual defacto.
-		svcName, errCondition := p.loadService(ctx, gatewayName, gatewayNamespace, listener, conf, routerName, route, bi, backendRef, pathMatch, statusReport)
-		weight := new(int(ptr.Deref(backendRef.Weight, 1)))
-		if errCondition != nil {
-			log.Ctx(ctx).Error().
-				Msgf("Unable to load HTTPRoute backend: %s", errCondition.Message)
+		svcName, svcCondition, err := p.loadService(ctx, gatewayName, gatewayNamespace, listener, conf, routerName, route, bi, backendRef, pathMatch, statusReport)
+		if svcCondition != nil {
+			condition = svcCondition
+		}
 
-			condition = errCondition
+		weight := new(int(ptr.Deref(backendRef.Weight, 1)))
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("Unable to load HTTPRoute backend")
+
 			wrr.Services = append(wrr.Services, dynamic.WRRService{
 				Name:   svcName,
 				Status: new(500),
@@ -274,9 +274,10 @@ func (p *Provider) loadWRRService(ctx context.Context, gatewayName, gatewayNames
 	return name, condition
 }
 
-// loadService returns a dynamic.Service config corresponding to the given gatev1.HTTPBackendRef.
+// loadService returns a dynamic.Service config corresponding to the given gatev1.HTTPBackendRef, and the condition to report, if any.
+// A returned error means that the backend cannot be loaded, and that the requests forwarded to it must not be served.
 // Note that the returned dynamic.Service config can be nil (for cross-provider, internal services, and backendFunc).
-func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespace string, listener gatewayListener, conf *dynamic.Configuration, routerName string, route *gatev1.HTTPRoute, backendIndex int, backendRef gatev1.HTTPBackendRef, pathMatch *gatev1.HTTPPathMatch, statusReport *statusReport) (string, *metav1.Condition) {
+func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespace string, listener gatewayListener, conf *dynamic.Configuration, routerName string, route *gatev1.HTTPRoute, backendIndex int, backendRef gatev1.HTTPBackendRef, pathMatch *gatev1.HTTPPathMatch, statusReport *statusReport) (string, *metav1.Condition, error) {
 	kind := ptr.Deref(backendRef.Kind, kindService)
 
 	group := groupCore
@@ -289,7 +290,7 @@ func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespac
 		namespace = string(*backendRef.Namespace)
 
 		if strings.Contains(string(backendRef.Name), "@") {
-			return provider.Normalize(fmt.Sprintf("%s-svc-%s-%s-%d", routerName, namespace, backendRef.Name, backendIndex)), &metav1.Condition{
+			condition := &metav1.Condition{
 				Type:               string(gatev1.RouteConditionResolvedRefs),
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: route.Generation,
@@ -297,13 +298,14 @@ func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespac
 				Reason:             string(gatev1.RouteReasonRefNotPermitted),
 				Message:            fmt.Sprintf("Cannot load HTTPBackendRef %s/%s/%s/%s: namespace is not allowed with a cross-provider reference", group, kind, namespace, backendRef.Name),
 			}
+			return provider.Normalize(fmt.Sprintf("%s-svc-%s-%s-%d", routerName, namespace, backendRef.Name, backendIndex)), condition, errors.New(condition.Message)
 		}
 	}
 
 	serviceName := fmt.Sprintf("%s-svc-%s-%s-%d", routerName, namespace, backendRef.Name, backendIndex)
 
 	if err := p.isReferenceGranted(kindHTTPRoute, route.Namespace, group, string(kind), string(backendRef.Name), namespace); err != nil {
-		return serviceName, &metav1.Condition{
+		condition := &metav1.Condition{
 			Type:               string(gatev1.RouteConditionResolvedRefs),
 			Status:             metav1.ConditionFalse,
 			ObservedGeneration: route.Generation,
@@ -311,25 +313,19 @@ func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespac
 			Reason:             string(gatev1.RouteReasonRefNotPermitted),
 			Message:            fmt.Sprintf("Cannot load HTTPBackendRef %s/%s/%s/%s: %s", group, kind, namespace, backendRef.Name, err),
 		}
+		return serviceName, condition, errors.New(condition.Message)
 	}
 
-	middlewares, err := p.loadMiddlewares(ctx, gatewayName, gatewayNamespace, listener, conf, serviceName, route, backendRef.Filters, pathMatch, statusReport)
+	middlewares, filtersCondition, err := p.loadMiddlewares(ctx, gatewayName, gatewayNamespace, listener, conf, serviceName, route, backendRef.Filters, pathMatch, statusReport)
 	if err != nil {
-		return serviceName, &metav1.Condition{
-			Type:               string(gatev1.RouteConditionResolvedRefs),
-			Status:             metav1.ConditionFalse,
-			ObservedGeneration: route.Generation,
-			LastTransitionTime: metav1.Now(),
-			Reason:             string(gatev1.RouteReasonInvalidKind),
-			Message:            fmt.Sprintf("Cannot load filters on HTTPBackendRef %s/%s/%s/%s: %s", group, kind, namespace, backendRef.Name, err),
-		}
+		return serviceName, filtersCondition, err
 	}
 
 	// TODO may be we could incorporate this "ignored" case into the loadHTTPBackendRef.
 	if group != groupCore || kind != kindService {
 		name, service, err := p.loadHTTPBackendRef(namespace, backendRef)
 		if err != nil {
-			return serviceName, &metav1.Condition{
+			condition := &metav1.Condition{
 				Type:               string(gatev1.RouteConditionResolvedRefs),
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: route.Generation,
@@ -337,6 +333,7 @@ func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespac
 				Reason:             string(gatev1.RouteReasonInvalidKind),
 				Message:            fmt.Sprintf("Cannot load HTTPBackendRef %s/%s/%s/%s: %s", group, kind, namespace, backendRef.Name, err),
 			}
+			return serviceName, condition, errors.New(condition.Message)
 		}
 
 		if service != nil {
@@ -344,12 +341,12 @@ func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespac
 			conf.HTTP.Services[name] = service
 		}
 
-		return name, nil
+		return name, filtersCondition, nil
 	}
 
 	port := ptr.Deref(backendRef.Port, gatev1.PortNumber(0))
 	if port == 0 {
-		return serviceName, &metav1.Condition{
+		condition := &metav1.Condition{
 			Type:               string(gatev1.RouteConditionResolvedRefs),
 			Status:             metav1.ConditionFalse,
 			ObservedGeneration: route.Generation,
@@ -357,11 +354,12 @@ func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespac
 			Reason:             string(gatev1.RouteReasonUnsupportedProtocol),
 			Message:            fmt.Sprintf("Cannot load HTTPBackendRef %s/%s/%s/%s: port is required", group, kind, namespace, backendRef.Name),
 		}
+		return serviceName, condition, errors.New(condition.Message)
 	}
 
 	lb, st, errCondition := p.loadHTTPServers(gatewayName, gatewayNamespace, namespace, route, backendRef, listener, statusReport)
 	if errCondition != nil {
-		return serviceName, errCondition
+		return serviceName, errCondition, errors.New(errCondition.Message)
 	}
 
 	if st != nil {
@@ -371,7 +369,7 @@ func (p *Provider) loadService(ctx context.Context, gatewayName, gatewayNamespac
 
 	conf.HTTP.Services[serviceName] = &dynamic.Service{LoadBalancer: lb, Middlewares: middlewares}
 
-	return serviceName, nil
+	return serviceName, filtersCondition, nil
 }
 
 func (p *Provider) loadHTTPBackendRef(namespace string, backendRef gatev1.HTTPBackendRef) (string, *dynamic.Service, error) {
@@ -396,7 +394,9 @@ func (p *Provider) loadHTTPBackendRef(namespace string, backendRef gatev1.HTTPBa
 	return backendFunc(string(backendRef.Name), namespace)
 }
 
-func (p *Provider) loadMiddlewares(ctx context.Context, gatewayName, gatewayNamespace string, listener gatewayListener, conf *dynamic.Configuration, parentName string, route *gatev1.HTTPRoute, filters []gatev1.HTTPRouteFilter, pathMatch *gatev1.HTTPPathMatch, statusReport *statusReport) ([]string, error) {
+// loadMiddlewares returns the middlewares corresponding to the given filters, and the condition to report, if any.
+// A returned error means that the filters cannot be applied, and that the request must not be served.
+func (p *Provider) loadMiddlewares(ctx context.Context, gatewayName, gatewayNamespace string, listener gatewayListener, conf *dynamic.Configuration, parentName string, route *gatev1.HTTPRoute, filters []gatev1.HTTPRouteFilter, pathMatch *gatev1.HTTPPathMatch, statusReport *statusReport) ([]string, *metav1.Condition, error) {
 	type namedMiddleware struct {
 		Name   string
 		Config *dynamic.Middleware
@@ -408,6 +408,7 @@ func (p *Provider) loadMiddlewares(ctx context.Context, gatewayName, gatewayName
 	})
 
 	var middlewares []namedMiddleware
+	var condition *metav1.Condition
 	for i, filter := range filters {
 		name := fmt.Sprintf("%s-%s-%d", parentName, strings.ToLower(string(filter.Type)), i)
 
@@ -433,7 +434,8 @@ func (p *Provider) loadMiddlewares(ctx context.Context, gatewayName, gatewayName
 		case gatev1.HTTPRouteFilterExtensionRef:
 			name, middleware, err := p.loadHTTPRouteFilterExtensionRef(route.Namespace, filter.ExtensionRef)
 			if err != nil {
-				return nil, fmt.Errorf("loading ExtensionRef filter %s: %w", filter.Type, err)
+				err = fmt.Errorf("loading ExtensionRef filter %s: %w", filter.Type, err)
+				return nil, invalidFiltersCondition(route, err), err
 			}
 			middlewares = append(middlewares, namedMiddleware{
 				name,
@@ -443,7 +445,8 @@ func (p *Provider) loadMiddlewares(ctx context.Context, gatewayName, gatewayName
 		case gatev1.HTTPRouteFilterURLRewrite:
 			middleware, err := createURLRewrite(filter.URLRewrite, pm)
 			if err != nil {
-				return nil, fmt.Errorf("invalid filter %s: %w", filter.Type, err)
+				err = fmt.Errorf("invalid filter %s: %w", filter.Type, err)
+				return nil, invalidFiltersCondition(route, err), err
 			}
 			middlewares = append(middlewares, namedMiddleware{
 				name,
@@ -458,14 +461,18 @@ func (p *Provider) loadMiddlewares(ctx context.Context, gatewayName, gatewayName
 
 		case gatev1.HTTPRouteFilterRequestMirror:
 			if filter.RequestMirror == nil {
-				return nil, fmt.Errorf("invalid filter %s: missing configuration", filter.Type)
+				err := fmt.Errorf("invalid filter %s: missing configuration", filter.Type)
+				return nil, invalidFiltersCondition(route, err), err
 			}
 
 			mirrorBackendRef := gatev1.HTTPBackendRef{BackendObjectReference: filter.RequestMirror.BackendRef}
-			serviceName, condition := p.loadService(ctx, gatewayName, gatewayNamespace, listener, conf, name, route, 0, mirrorBackendRef, pathMatch, statusReport)
-			if condition != nil {
+			serviceName, mirrorCondition, err := p.loadService(ctx, gatewayName, gatewayNamespace, listener, conf, name, route, 0, mirrorBackendRef, pathMatch, statusReport)
+			if mirrorCondition != nil {
+				condition = mirrorCondition
+			}
+			if err != nil {
 				// As per the spec, an invalid mirror backend reference is dropped without failing the request.
-				log.Ctx(ctx).Error().Msgf("Dropping RequestMirror filter: %s", condition.Message)
+				log.Ctx(ctx).Error().Err(err).Msg("Dropping RequestMirror filter")
 				continue
 			}
 
@@ -484,7 +491,8 @@ func (p *Provider) loadMiddlewares(ctx context.Context, gatewayName, gatewayName
 			// In all cases where incompatible or unsupported filters are
 			// specified, implementations MUST add a warning condition to
 			// status.
-			return nil, fmt.Errorf("unsupported filter %s", filter.Type)
+			err := fmt.Errorf("unsupported filter %s", filter.Type)
+			return nil, invalidFiltersCondition(route, err), err
 		}
 	}
 
@@ -496,7 +504,18 @@ func (p *Provider) loadMiddlewares(ctx context.Context, gatewayName, gatewayName
 		middlewareNames = append(middlewareNames, m.Name)
 	}
 
-	return middlewareNames, nil
+	return middlewareNames, condition, nil
+}
+
+func invalidFiltersCondition(route *gatev1.HTTPRoute, err error) *metav1.Condition {
+	return &metav1.Condition{
+		Type:               string(gatev1.RouteConditionResolvedRefs),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: route.Generation,
+		LastTransitionTime: metav1.Now(),
+		Reason:             string(gatev1.RouteReasonInvalidKind),
+		Message:            fmt.Sprintf("Cannot load filters: %s", err),
+	}
 }
 
 // mirrorPercent returns the percentage of requests to mirror.

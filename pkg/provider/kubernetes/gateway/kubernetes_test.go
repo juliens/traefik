@@ -13684,3 +13684,81 @@ func Test_loadListenerSetListeners(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadHTTPRoutes_filtersConditions(t *testing.T) {
+	testCases := []struct {
+		desc           string
+		paths          []string
+		expectedReason gatev1.RouteConditionReason
+		expectedServed bool
+	}{
+		{
+			desc:           "invalid filter",
+			paths:          []string{"services.yml", "httproute/filter_extension_ref.yml"},
+			expectedReason: gatev1.RouteReasonInvalidKind,
+		},
+		{
+			desc:           "request mirror filter referencing a missing service",
+			paths:          []string{"services.yml", "httproute/filter_request_mirror_missing_service.yml"},
+			expectedReason: gatev1.RouteReasonBackendNotFound,
+			expectedServed: true,
+		},
+		{
+			desc:           "backend request mirror filter referencing a missing service",
+			paths:          []string{"services.yml", "httproute/backend_filter_request_mirror_missing_service.yml"},
+			expectedReason: gatev1.RouteReasonBackendNotFound,
+			expectedServed: true,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			k8sObjects, gwObjects := readResources(t, test.paths)
+
+			kubeClient := kubefake.NewClientset(k8sObjects...)
+			gwClient := newGatewaySimpleClientSet(t, gwObjects...)
+
+			client := newClientImpl(kubeClient, gwClient)
+
+			eventCh, err := client.WatchAll(nil, make(chan struct{}))
+			require.NoError(t, err)
+
+			if len(k8sObjects) > 0 || len(gwObjects) > 0 {
+				// just wait for the first event
+				<-eventCh
+			}
+
+			p := Provider{
+				EntryPoints: map[string]Entrypoint{"web": {Address: ":80"}},
+				client:      client,
+			}
+
+			conf, statusReport, err := p.loadConfigurationFromGateways(t.Context())
+			require.NoError(t, err)
+
+			var failingServices []string
+			for _, service := range conf.HTTP.Services {
+				if service.Weighted == nil {
+					continue
+				}
+				for _, wrrService := range service.Weighted.Services {
+					if wrrService.Status != nil {
+						failingServices = append(failingServices, wrrService.Name)
+					}
+				}
+			}
+			assert.Equal(t, test.expectedServed, len(failingServices) == 0)
+
+			routeStatus, ok := statusReport.httpRoutes[ktypes.NamespacedName{Namespace: "default", Name: "http-app-1"}]
+			require.True(t, ok)
+			require.Len(t, routeStatus.Parents, 1)
+
+			condition := meta.FindStatusCondition(routeStatus.Parents[0].Conditions, string(gatev1.RouteConditionResolvedRefs))
+			require.NotNil(t, condition)
+			assert.Equal(t, metav1.ConditionFalse, condition.Status)
+			assert.Equal(t, string(test.expectedReason), condition.Reason)
+		})
+	}
+}
