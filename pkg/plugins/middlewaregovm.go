@@ -34,8 +34,8 @@ type goVMMiddlewareBuilder struct {
 }
 
 // newGoVMMiddlewareBuilder loads a Go middleware plugin with the go-vm interpreter.
-func newGoVMMiddlewareBuilder(ctx context.Context, goPath string, manifest *Manifest, moduleName string, settings Settings) (*goVMMiddlewareBuilder, error) {
-	p, err := loadGoVMPlugin(ctx, goPath, manifest, moduleName, settings)
+func newGoVMMiddlewareBuilder(ctx context.Context, goPath string, local bool, manifest *Manifest, moduleName string, settings Settings) (*goVMMiddlewareBuilder, error) {
+	p, err := loadGoVMPlugin(ctx, goPath, local, manifest, moduleName, settings)
 	if err != nil {
 		return nil, err
 	}
@@ -49,15 +49,32 @@ func newGoVMMiddlewareBuilder(ctx context.Context, goPath string, manifest *Mani
 // and a copy of the process environment.
 // Unrestricted and RealProcess must never be set: they would give the plugin
 // os/exec, syscall, and the ability to stop Traefik.
-func loadGoVMPlugin(ctx context.Context, goPath string, manifest *Manifest, moduleName string, settings Settings) (*vm.Plugin, error) {
+// A local plugin (local is true) is read in GOPATH mode when it has no go.mod, as Yaegi read it.
+func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Manifest, moduleName string, settings Settings) (*vm.Plugin, error) {
 	if manifest.UseUnsafe && !settings.UseUnsafe {
 		return nil, errors.New("this plugin uses restricted imports. If you want to use it, you need to allow useUnsafe in the settings")
 	}
 
 	logger := log.Ctx(ctx)
 
+	dir := filepath.Join(goPath, goPathSrc, filepath.FromSlash(moduleName))
+
+	// The go.mod of a downloaded plugin must be in its archive:
+	// the search for it never leaves the directories Traefik owns.
+	root := dir
+
+	var pluginGoPath string
+	if local {
+		// Yaegi loaded the local plugins in GOPATH mode and did not read go.mod,
+		// so a local plugin without go.mod is read from the plugins GOPATH.
+		root = filepath.Join(goPath, goPathSrc)
+		pluginGoPath = goPath
+	}
+
 	opts := vm.Options{
-		Dir:           filepath.Join(goPath, goPathSrc, filepath.FromSlash(moduleName)),
+		Dir:           dir,
+		Root:          root,
+		GoPath:        pluginGoPath,
 		UseUnsafe:     manifest.UseUnsafe && settings.UseUnsafe,
 		AOT:           true,
 		Budget:        goVMBudget,
@@ -82,6 +99,12 @@ func loadGoVMPlugin(ctx context.Context, goPath string, manifest *Manifest, modu
 	p, err := vm.Load(opts, manifest.Import)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load plugin code %q: %w", manifest.Import, err)
+	}
+
+	// The notes say where the plugin now runs other code than under Yaegi
+	// (for example, files selected by "//go:build" lines that Yaegi ignored).
+	for _, note := range p.Notes {
+		logger.Warn().Msg(note)
 	}
 
 	if p.Pkg.Func("CreateConfig") == nil {

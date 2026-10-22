@@ -95,13 +95,23 @@ Traefik applies these restrictions to the Go plugins when it loads them:
 
 - The `unsafe` package can only be imported when both the plugin manifest and the `settings.useUnsafe` option allow it.
 - The `os/exec`, `plugin`, and `net/http/cgi` packages are refused.
-- The functions of the `syscall` package are refused, even when `useUnsafe` is allowed.
+- The functions of the `syscall` package are refused, except, when `useUnsafe` is allowed, the functions that only read information about the process (`Getpid`, `Getuid`, `Getenv`, `Gettimeofday`, ...).
+  The functions that change the process or reach raw memory (`Kill`, `Exec`, `Mmap`, `Syscall`, ...) are always refused.
 - The functions that start or signal a process (`os.StartProcess`, `os.FindProcess`), change the current directory (`os.Chdir`), or change the runtime settings (`runtime/debug.Set*`) are refused.
 - `reflect.NewAt` is refused, unless `useUnsafe` is allowed.
 
 A Go plugin gets a copy of the environment of Traefik, so it cannot change the environment of Traefik.
 As with Yaegi, unused variables, imports, and labels in the code of a Go plugin do not prevent Traefik from loading it.
 A panic in a goroutine started by a Go plugin is logged and does not stop Traefik.
+
+As with Yaegi, a local plugin (`experimental.localPlugins`) can have no `go.mod` file: Traefik then reads it and its dependencies from `./plugins-local/src`, in GOPATH mode.
+A local plugin with a `go.mod` file is a Go module: its packages must be under the module path, and its dependencies in its `vendor` directory.
+The files of a local plugin can be symbolic links that stay inside `./plugins-local/src`, as in a Kubernetes ConfigMap volume.
+A downloaded plugin must have a `go.mod` file at the root of its archive.
+
+Traefik selects the files of a Go plugin with the `//go:build` lines, as the Go compiler does.
+Yaegi only read the `// +build` lines.
+When a package of a plugin now uses other files than with Yaegi, Traefik logs a warning that names the files.
 
 Traefik also limits the resources of the Go plugins:
 

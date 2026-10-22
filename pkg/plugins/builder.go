@@ -52,7 +52,7 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 
 		switch manifest.Type {
 		case typeMiddleware:
-			middleware, err := newMiddlewareBuilder(logCtx, manager.GoPath(), manifest, desc.ModuleName, desc.Settings)
+			middleware, err := newMiddlewareBuilder(logCtx, manager.GoPath(), false, manifest, desc.ModuleName, desc.Settings)
 			if err != nil {
 				return nil, err
 			}
@@ -60,7 +60,7 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 			pb.middlewareBuilders[pName] = middleware
 
 		case typeProvider:
-			pBuilder, err := newProviderBuilder(logCtx, manifest, manager.GoPath(), desc.ModuleName, desc.Settings)
+			pBuilder, err := newProviderBuilder(logCtx, manifest, manager.GoPath(), false, desc.ModuleName, desc.Settings)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", desc.ModuleName, err)
 			}
@@ -87,7 +87,7 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 
 		switch manifest.Type {
 		case typeMiddleware:
-			middleware, err := newMiddlewareBuilder(logCtx, localGoPath, manifest, desc.ModuleName, desc.Settings)
+			middleware, err := newMiddlewareBuilder(logCtx, localGoPath, true, manifest, desc.ModuleName, desc.Settings)
 			if err != nil {
 				return nil, err
 			}
@@ -95,7 +95,7 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 			pb.middlewareBuilders[pName] = middleware
 
 		case typeProvider:
-			builder, err := newProviderBuilder(logCtx, manifest, localGoPath, desc.ModuleName, desc.Settings)
+			builder, err := newProviderBuilder(logCtx, manifest, localGoPath, true, desc.ModuleName, desc.Settings)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", desc.ModuleName, err)
 			}
@@ -128,7 +128,8 @@ func (b Builder) Build(pName string, config map[string]any, middlewareName strin
 	return nil, fmt.Errorf("unknown plugin type: %s", pName)
 }
 
-func newMiddlewareBuilder(ctx context.Context, goPath string, manifest *Manifest, moduleName string, settings Settings) (middlewareBuilder, error) {
+// local is true for a local plugin (experimental.localPlugins).
+func newMiddlewareBuilder(ctx context.Context, goPath string, local bool, manifest *Manifest, moduleName string, settings Settings) (middlewareBuilder, error) {
 	switch manifest.Runtime {
 	case runtimeWasm:
 		wasmPath, err := getWasmPath(manifest)
@@ -139,17 +140,18 @@ func newMiddlewareBuilder(ctx context.Context, goPath string, manifest *Manifest
 		return newWasmMiddlewareBuilder(goPath, moduleName, wasmPath, settings)
 
 	case runtimeYaegi, "":
-		return newGoVMMiddlewareBuilder(ctx, goPath, manifest, moduleName, settings)
+		return newGoVMMiddlewareBuilder(ctx, goPath, local, manifest, moduleName, settings)
 
 	default:
 		return nil, fmt.Errorf("unknown plugin runtime: %s", manifest.Runtime)
 	}
 }
 
-func newProviderBuilder(ctx context.Context, manifest *Manifest, goPath, moduleName string, settings Settings) (providerBuilder, error) {
+// local is true for a local plugin (experimental.localPlugins).
+func newProviderBuilder(ctx context.Context, manifest *Manifest, goPath string, local bool, moduleName string, settings Settings) (providerBuilder, error) {
 	switch manifest.Runtime {
 	case runtimeYaegi, "":
-		p, err := loadGoVMPlugin(ctx, goPath, manifest, moduleName, settings)
+		p, err := loadGoVMPlugin(ctx, goPath, local, manifest, moduleName, settings)
 		if err != nil {
 			return providerBuilder{}, err
 		}

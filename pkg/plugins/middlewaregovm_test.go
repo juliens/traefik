@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/go-vm/vm"
@@ -16,7 +18,7 @@ import (
 func TestGoVMMiddleware(t *testing.T) {
 	manifest := &Manifest{Type: typeMiddleware, Import: "testpluginsafe"}
 
-	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", manifest, "testpluginsafe", Settings{})
+	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, "testpluginsafe", Settings{})
 	require.NoError(t, err)
 	require.IsType(t, &goVMMiddlewareBuilder{}, builder)
 
@@ -43,7 +45,7 @@ func TestGoVMMiddleware(t *testing.T) {
 func TestGoVMMiddleware_concurrentRequests(t *testing.T) {
 	manifest := &Manifest{Type: typeMiddleware, Import: "testpluginsafe"}
 
-	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", manifest, "testpluginsafe", Settings{})
+	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, "testpluginsafe", Settings{})
 	require.NoError(t, err)
 
 	middleware, err := builder.newMiddleware(nil, "test-middleware")
@@ -70,7 +72,7 @@ func TestGoVMMiddleware_concurrentRequests(t *testing.T) {
 func TestGoVMMiddleware_flusher(t *testing.T) {
 	manifest := &Manifest{Type: typeMiddleware, Import: "testpluginflusher"}
 
-	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", manifest, "testpluginflusher", Settings{})
+	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, "testpluginflusher", Settings{})
 	require.NoError(t, err)
 
 	middleware, err := builder.newMiddleware(nil, "test-middleware")
@@ -88,7 +90,7 @@ func TestGoVMMiddleware_flusher(t *testing.T) {
 func TestGoVMMiddleware_requestContextCanceled(t *testing.T) {
 	manifest := &Manifest{Type: typeMiddleware, Import: "testplugincontext"}
 
-	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", manifest, "testplugincontext", Settings{})
+	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, "testplugincontext", Settings{})
 	require.NoError(t, err)
 
 	middleware, err := builder.newMiddleware(nil, "test-middleware")
@@ -146,7 +148,7 @@ func TestGoVMMiddleware_limits(t *testing.T) {
 
 			manifest := &Manifest{Type: typeMiddleware, Import: "testpluginlimits"}
 
-			builder, err := newMiddlewareBuilder(t.Context(), "fixtures", manifest, "testpluginlimits", Settings{})
+			builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, "testpluginlimits", Settings{})
 			require.NoError(t, err)
 
 			middleware, err := builder.newMiddleware(map[string]any{"mode": test.mode}, "test-middleware")
@@ -168,6 +170,55 @@ func TestGoVMMiddleware_limits(t *testing.T) {
 			assert.ErrorIs(t, err, test.expectedPanic)
 		})
 	}
+}
+
+func TestGoVMMiddleware_localPluginWithoutGoMod(t *testing.T) {
+	// The fixtures/_gopath directory is a plugins GOPATH, as ./plugins-local/:
+	// testpluginnogomod has no go.mod, as Yaegi allowed for local plugins.
+	manifest := &Manifest{Type: typeMiddleware, Import: "testpluginnogomod"}
+
+	builder, err := newMiddlewareBuilder(t.Context(), "fixtures/_gopath", true, manifest, "testpluginnogomod", Settings{})
+	require.NoError(t, err)
+
+	middleware, err := builder.newMiddleware(nil, "test-middleware")
+	require.NoError(t, err)
+
+	handler, err := middleware.NewHandler(t.Context(), http.NotFoundHandler())
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "http://localhost/", nil))
+
+	assert.Equal(t, "nogomod", recorder.Header().Get("X-Test-Plugin"))
+
+	// A downloaded plugin must have its go.mod.
+	_, err = newMiddlewareBuilder(t.Context(), "fixtures/_gopath", false, manifest, "testpluginnogomod", Settings{})
+	require.ErrorContains(t, err, "no go.mod")
+}
+
+func TestGoVMMiddleware_notesAreLogged(t *testing.T) {
+	var logs bytes.Buffer
+	ctx := zerolog.New(&logs).WithContext(t.Context())
+
+	// platform_onlyplan9.go has only a "//go:build" line: Yaegi kept it, go-vm leaves it out.
+	manifest := &Manifest{Type: typeMiddleware, Import: "testplugingobuild"}
+
+	builder, err := newMiddlewareBuilder(ctx, "fixtures", false, manifest, "testplugingobuild", Settings{})
+	require.NoError(t, err)
+
+	assert.Contains(t, logs.String(), `"level":"warn"`)
+	assert.Contains(t, logs.String(), "platform_onlyplan9.go")
+
+	middleware, err := builder.newMiddleware(nil, "test-middleware")
+	require.NoError(t, err)
+
+	handler, err := middleware.NewHandler(t.Context(), http.NotFoundHandler())
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "http://localhost/", nil))
+
+	assert.Equal(t, "other", recorder.Header().Get("X-Test-Plugin"))
 }
 
 func TestGoVMMiddleware_restrictions(t *testing.T) {
@@ -205,11 +256,17 @@ func TestGoVMMiddleware_restrictions(t *testing.T) {
 			expectedError: "syscall",
 		},
 		{
-			desc:           "syscall functions are refused even when the manifest and the settings allow useUnsafe",
+			desc:           "read-only syscall functions are allowed when the manifest and the settings allow useUnsafe",
 			moduleName:     "testpluginsyscall",
 			manifestUnsafe: true,
 			settingsUnsafe: true,
-			expectedError:  "syscall.Getpid not in registry",
+		},
+		{
+			desc:           "syscall functions that change the process are refused even when the manifest and the settings allow useUnsafe",
+			moduleName:     "testpluginsyscallkill",
+			manifestUnsafe: true,
+			settingsUnsafe: true,
+			expectedError:  "syscall.Kill",
 		},
 		{
 			desc:           "unsafe is allowed when the manifest and the settings allow it",
@@ -226,7 +283,7 @@ func TestGoVMMiddleware_restrictions(t *testing.T) {
 			manifest := &Manifest{Type: typeMiddleware, Import: test.moduleName, UseUnsafe: test.manifestUnsafe}
 			settings := Settings{UseUnsafe: test.settingsUnsafe}
 
-			builder, err := newMiddlewareBuilder(t.Context(), "fixtures", manifest, test.moduleName, settings)
+			builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, test.moduleName, settings)
 			if test.expectedError != "" {
 				require.ErrorContains(t, err, test.expectedError)
 				return

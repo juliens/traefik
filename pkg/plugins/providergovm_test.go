@@ -13,7 +13,7 @@ import (
 func TestBuildProvider(t *testing.T) {
 	manifest := &Manifest{Type: typeProvider, Import: "testpluginprovider"}
 
-	pBuilder, err := newProviderBuilder(t.Context(), manifest, "fixtures", "testpluginprovider", Settings{})
+	pBuilder, err := newProviderBuilder(t.Context(), manifest, "fixtures", false, "testpluginprovider", Settings{})
 	require.NoError(t, err)
 
 	builder := Builder{providerBuilders: map[string]providerBuilder{"test": pBuilder}}
