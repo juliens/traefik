@@ -73,7 +73,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.42.0
 	github.com/tetratelabs/wazero v1.8.0
 	github.com/tidwall/gjson v1.17.0
-	github.com/traefik/go-vm v0.0.0-20261023050708-d418abbec06d
+	github.com/traefik/go-vm v0.0.0-20261023194229-0f841e175507
 	github.com/traefik/grpc-web v0.18.0
 	github.com/traefik/paerser v0.2.2
 	github.com/traefik/traefik/dynamic/ext v0.0.0-00010101000000-000000000000
@@ -424,5 +424,3 @@ replace (
 // ambiguous import: found package github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/http in multiple modules
 // tencentcloud uses monorepo with multimodule but the go.mod files are incomplete.
 exclude github.com/tencentcloud/tencentcloud-sdk-go v3.0.83+incompatible
-
-replace github.com/traefik/go-vm => github.com/juliens/go-vm-dev v0.0.0-20261023145900-566d0ab17581
