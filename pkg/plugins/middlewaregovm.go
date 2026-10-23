@@ -14,6 +14,10 @@ import (
 	"github.com/rs/zerolog/log"
 	// The AOT copies of the standard library and of common libraries, used with vm.Options.AOT.
 	_ "github.com/traefik/go-vm/aot/all"
+	// The symbols of expvar, net/http/pprof and testing/quick, which go-vm leaves out of its standard library
+	// because their init changes the state of the process: a plugin that imports expvar (the Prometheus client does)
+	// gets its own table of variables. Traefik already imports expvar and net/http/pprof (pkg/api/debug.go).
+	_ "github.com/traefik/go-vm/stdsyms/sideeffect"
 	"github.com/traefik/go-vm/vm"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
 )
