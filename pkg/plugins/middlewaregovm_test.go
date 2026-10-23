@@ -128,6 +128,7 @@ func TestGoVMMiddleware_limits(t *testing.T) {
 	testCases := []struct {
 		desc          string
 		mode          string
+		goVM          GoVMSettings
 		expectedPanic error
 	}{
 		{
@@ -140,6 +141,36 @@ func TestGoVMMiddleware_limits(t *testing.T) {
 			mode:          "goroutines",
 			expectedPanic: vm.ErrTooManyGoroutines,
 		},
+		{
+			desc: "work within the default budget",
+			mode: "work",
+		},
+		{
+			desc:          "settings.goVM.budget lowers the budget",
+			mode:          "work",
+			goVM:          GoVMSettings{Budget: 1_000},
+			expectedPanic: vm.ErrBudget,
+		},
+		{
+			desc:          "a long loop passes the default budget",
+			mode:          "loop-bounded",
+			expectedPanic: vm.ErrBudget,
+		},
+		{
+			desc: "settings.goVM.budget raises the budget",
+			mode: "loop-bounded",
+			goVM: GoVMSettings{Budget: 1_000_000_000},
+		},
+		{
+			desc: "goroutines within the default limit",
+			mode: "some-goroutines",
+		},
+		{
+			desc:          "settings.goVM.maxGoroutines lowers the limit",
+			mode:          "some-goroutines",
+			goVM:          GoVMSettings{MaxGoroutines: 10},
+			expectedPanic: vm.ErrTooManyGoroutines,
+		},
 	}
 
 	for _, test := range testCases {
@@ -148,7 +179,7 @@ func TestGoVMMiddleware_limits(t *testing.T) {
 
 			manifest := &Manifest{Type: typeMiddleware, Import: "testpluginlimits"}
 
-			builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, "testpluginlimits", Settings{})
+			builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, "testpluginlimits", Settings{GoVM: test.goVM})
 			require.NoError(t, err)
 
 			middleware, err := builder.newMiddleware(map[string]any{"mode": test.mode}, "test-middleware")
@@ -157,19 +188,80 @@ func TestGoVMMiddleware_limits(t *testing.T) {
 			handler, err := middleware.NewHandler(t.Context(), http.NotFoundHandler())
 			require.NoError(t, err)
 
+			recorder := httptest.NewRecorder()
 			recovered := func() (r any) {
 				defer func() { r = recover() }()
 
-				handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "http://localhost/", nil))
+				handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "http://localhost/", nil))
 
 				return nil
 			}()
+
+			if test.expectedPanic == nil {
+				require.Nil(t, recovered)
+				assert.Equal(t, http.StatusNotFound, recorder.Code)
+				return
+			}
 
 			err, ok := recovered.(error)
 			require.True(t, ok, "%v", recovered)
 			assert.ErrorIs(t, err, test.expectedPanic)
 		})
 	}
+}
+
+func TestGoVMLimits(t *testing.T) {
+	testCases := []struct {
+		desc                  string
+		settings              GoVMSettings
+		expectedBudget        int64
+		expectedMaxGoroutines int
+		expectedError         string
+	}{
+		{
+			desc:                  "defaults",
+			expectedBudget:        goVMBudget,
+			expectedMaxGoroutines: goVMMaxGoroutines,
+		},
+		{
+			desc:                  "values of the settings",
+			settings:              GoVMSettings{Budget: 5_000, MaxGoroutines: 5_000},
+			expectedBudget:        5_000,
+			expectedMaxGoroutines: 5_000,
+		},
+		{
+			desc:          "negative budget",
+			settings:      GoVMSettings{Budget: -1},
+			expectedError: "settings.goVM.budget",
+		},
+		{
+			desc:          "negative maxGoroutines",
+			settings:      GoVMSettings{MaxGoroutines: -1},
+			expectedError: "settings.goVM.maxGoroutines",
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			budget, maxGoroutines, err := goVMLimits(test.settings)
+			if test.expectedError != "" {
+				require.ErrorContains(t, err, test.expectedError)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, test.expectedBudget, budget)
+			assert.Equal(t, test.expectedMaxGoroutines, maxGoroutines)
+		})
+	}
+}
+
+// TestGoVMAOTCopies fails when Traefik is built with a Go release that the AOT copies of go-vm were not made for:
+// update go-vm with the Go toolchain, else the plugins that run the standard library as AOT copies are refused.
+func TestGoVMAOTCopies(t *testing.T) {
+	require.NoError(t, vm.CheckAOT(false))
 }
 
 func TestGoVMMiddleware_localPluginWithoutGoMod(t *testing.T) {

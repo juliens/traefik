@@ -29,6 +29,29 @@ const (
 	goVMLoadTimeout = 30 * time.Second
 )
 
+// goVMLimits returns the budget and the maximum number of goroutines of a Go plugin:
+// the values of settings.goVM, or the defaults when they are zero (go-vm would read zero as no limit).
+// A negative value is refused.
+func goVMLimits(settings GoVMSettings) (int64, int, error) {
+	budget := int64(goVMBudget)
+	if settings.Budget < 0 {
+		return 0, 0, fmt.Errorf("invalid settings.goVM.budget %d: it must be positive", settings.Budget)
+	}
+	if settings.Budget > 0 {
+		budget = settings.Budget
+	}
+
+	maxGoroutines := goVMMaxGoroutines
+	if settings.MaxGoroutines < 0 {
+		return 0, 0, fmt.Errorf("invalid settings.goVM.maxGoroutines %d: it must be positive", settings.MaxGoroutines)
+	}
+	if settings.MaxGoroutines > 0 {
+		maxGoroutines = settings.MaxGoroutines
+	}
+
+	return budget, maxGoroutines, nil
+}
+
 type goVMMiddlewareBuilder struct {
 	plugin *vm.Plugin
 }
@@ -55,6 +78,11 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 		return nil, errors.New("this plugin uses restricted imports. If you want to use it, you need to allow useUnsafe in the settings")
 	}
 
+	budget, maxGoroutines, err := goVMLimits(settings.GoVM)
+	if err != nil {
+		return nil, err
+	}
+
 	logger := log.Ctx(ctx)
 
 	dir := filepath.Join(goPath, goPathSrc, filepath.FromSlash(moduleName))
@@ -79,8 +107,8 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 		// The options of settings.goVM, all off by default.
 		AOT:           settings.GoVM.AOT,
 		StubAssembly:  settings.GoVM.StubAssembly,
-		Budget:        goVMBudget,
-		MaxGoroutines: goVMMaxGoroutines,
+		Budget:        budget,
+		MaxGoroutines: maxGoroutines,
 		LoadTimeout:   goVMLoadTimeout,
 		// Yaegi did not report unused variables, imports, labels and expression values,
 		// nor identical copies of a declaration, and skipped the test files, so some plugins have them.

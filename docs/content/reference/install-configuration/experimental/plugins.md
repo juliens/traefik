@@ -57,6 +57,8 @@ To learn more about how to add a new plugin to a Traefik instance, please refer 
 | <a id="opt-settings-goVM-aot" href="#opt-settings-goVM-aot" title="#opt-settings-goVM-aot">`settings.goVM.aot`</a> | Run the packages compiled ahead of time into Traefik (AOT mode) instead of interpreting them. | bool | No |
 | <a id="opt-settings-goVM-stubAssembly" href="#opt-settings-goVM-stubAssembly" title="#opt-settings-goVM-stubAssembly">`settings.goVM.stubAssembly`</a> | Load a plugin that reaches functions written in assembly: a call of one of them fails at run time. | bool | No |
 | <a id="opt-settings-goVM-execMock" href="#opt-settings-goVM-execMock" title="#opt-settings-goVM-execMock">`settings.goVM.execMock`</a> | Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error. | bool | No |
+| <a id="opt-settings-goVM-budget" href="#opt-settings-goVM-budget" title="#opt-settings-goVM-budget">`settings.goVM.budget`</a> | Execution budget of each call into the plugin, in steps (function calls and loop iterations). Default: 100000000. | int | No |
+| <a id="opt-settings-goVM-maxGoroutines" href="#opt-settings-goVM-maxGoroutines" title="#opt-settings-goVM-maxGoroutines">`settings.goVM.maxGoroutines`</a> | Maximum number of goroutines that the plugin runs at the same time. Default: 1000. | int | No |
 
 ## Local Plugins
 
@@ -93,6 +95,8 @@ experimental:
 | <a id="opt-settings-goVM-aot-2" href="#opt-settings-goVM-aot-2" title="#opt-settings-goVM-aot-2">`settings.goVM.aot`</a> | Run the packages compiled ahead of time into Traefik (AOT mode) instead of interpreting them. | bool | No |
 | <a id="opt-settings-goVM-stubAssembly-2" href="#opt-settings-goVM-stubAssembly-2" title="#opt-settings-goVM-stubAssembly-2">`settings.goVM.stubAssembly`</a> | Load a plugin that reaches functions written in assembly: a call of one of them fails at run time. | bool | No |
 | <a id="opt-settings-goVM-execMock-2" href="#opt-settings-goVM-execMock-2" title="#opt-settings-goVM-execMock-2">`settings.goVM.execMock`</a> | Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error. | bool | No |
+| <a id="opt-settings-goVM-budget-2" href="#opt-settings-goVM-budget-2" title="#opt-settings-goVM-budget-2">`settings.goVM.budget`</a> | Execution budget of each call into the plugin, in steps (function calls and loop iterations). Default: 100000000. | int | No |
+| <a id="opt-settings-goVM-maxGoroutines-2" href="#opt-settings-goVM-maxGoroutines-2" title="#opt-settings-goVM-maxGoroutines-2">`settings.goVM.maxGoroutines`</a> | Maximum number of goroutines that the plugin runs at the same time. Default: 1000. | int | No |
 
 ## Go Plugins
 
@@ -151,6 +155,27 @@ Traefik also limits the resources of the Go plugins:
 - A plugin can run at most 1,000 goroutines at the same time.
   Past this limit, the code that starts a new goroutine fails.
 - The load of a plugin must end within 30 seconds, or Traefik refuses the plugin.
+
+The `settings.goVM.budget` and `settings.goVM.maxGoroutines` options change the first two limits for one plugin, for example for a plugin that starts many goroutines under load:
+
+```yaml tab="File (YAML)"
+experimental:
+  plugins:
+    plugin-name:
+      moduleName: "github.com/github-organization/github-repository"
+      version: "vX.XX.X"
+      settings:
+        goVM:
+          budget: 500000000
+          maxGoroutines: 5000
+```
+
+```bash tab="CLI"
+--experimental.plugins.plugin-name.settings.govm.budget=500000000
+--experimental.plugins.plugin-name.settings.govm.maxgoroutines=5000
+```
+
+A value of zero, or no value, keeps the default limit; a negative value is refused.
 
 A request whose client goes away is not stopped in the middle of a plugin: the plugin call runs to its end, within its budget.
 
