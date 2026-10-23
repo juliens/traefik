@@ -88,6 +88,10 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 		IgnoreUnusedExprs:    true,
 		IgnoreTestFiles:      true,
 		IgnoreDuplicateDecls: true,
+		// Yaegi read the vendor directory as it is, and did not read the go directive of go.mod,
+		// so some plugins have a vendor/modules.txt that go build refuses, or ask for a newer Go.
+		IgnoreInconsistentVendoring: true,
+		AllowNewerGo:                true,
 		// The plugins have always read the environment of Traefik.
 		Env:    os.Environ(),
 		Stdout: logs.NoLevel(*logger, zerolog.DebugLevel),
