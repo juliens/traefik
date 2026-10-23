@@ -178,6 +178,12 @@ type GoVMMiddleware struct {
 
 // NewHandler creates a new HTTP handler.
 func (m *GoVMMiddleware) NewHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
+	return wrapExternal(next, func(next http.Handler) (http.Handler, error) {
+		return m.newPluginHandler(ctx, next)
+	})
+}
+
+func (m *GoVMMiddleware) newPluginHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
 	res, err := m.plugin.Call(ctx, "New", ctx, next, m.config, m.middlewareName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call New: %w", err)

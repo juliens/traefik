@@ -67,6 +67,24 @@ func TestGoVMMiddleware_concurrentRequests(t *testing.T) {
 	wg.Wait()
 }
 
+func TestGoVMMiddleware_flusher(t *testing.T) {
+	manifest := &Manifest{Type: typeMiddleware, Import: "testpluginflusher"}
+
+	builder, err := newMiddlewareBuilder(t.Context(), "fixtures", manifest, "testpluginflusher", Settings{})
+	require.NoError(t, err)
+
+	middleware, err := builder.newMiddleware(nil, "test-middleware")
+	require.NoError(t, err)
+
+	handler, err := middleware.NewHandler(t.Context(), http.NotFoundHandler())
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(&unwrapOnlyWriter{ResponseWriter: recorder}, httptest.NewRequest(http.MethodGet, "http://localhost/", nil))
+
+	assert.Equal(t, "true", recorder.Header().Get("X-Flusher"))
+}
+
 func TestGoVMMiddleware_requestContextCanceled(t *testing.T) {
 	manifest := &Manifest{Type: typeMiddleware, Import: "testplugincontext"}
 
