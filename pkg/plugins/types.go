@@ -14,6 +14,16 @@ type Settings struct {
 	Envs      []string `description:"Environment variables to forward to the wasm guest." json:"envs,omitempty" toml:"envs,omitempty" yaml:"envs,omitempty"`
 	Mounts    []string `description:"Directory to mount to the wasm guest." json:"mounts,omitempty" toml:"mounts,omitempty" yaml:"mounts,omitempty"`
 	UseUnsafe bool     `description:"Allow the plugin to use unsafe and syscall packages." json:"useUnsafe,omitempty" toml:"useUnsafe,omitempty" yaml:"useUnsafe,omitempty"`
+	// GoVM (optional)
+	GoVM GoVMSettings `description:"Options of the go-vm interpreter (Go plugins only)." json:"goVM,omitempty" toml:"goVM,omitempty" yaml:"goVM,omitempty" export:"true"`
+}
+
+// GoVMSettings are the options of the go-vm interpreter for one Go plugin.
+// They are all off by default.
+type GoVMSettings struct {
+	AOT          bool `description:"Run the packages compiled ahead of time into Traefik (AOT mode) instead of interpreting them." json:"aot,omitempty" toml:"aot,omitempty" yaml:"aot,omitempty" export:"true"`
+	StubAssembly bool `description:"Load a plugin that reaches functions written in assembly: a call of one of them fails at run time." json:"stubAssembly,omitempty" toml:"stubAssembly,omitempty" yaml:"stubAssembly,omitempty" export:"true"`
+	ExecMock     bool `description:"Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error." json:"execMock,omitempty" toml:"execMock,omitempty" yaml:"execMock,omitempty" export:"true"`
 }
 
 // Descriptor The static part of a plugin configuration.

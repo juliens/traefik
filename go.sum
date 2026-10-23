@@ -1275,6 +1275,8 @@ github.com/traefik/go-vm v0.0.0-20261021222445-b55506f3ac26 h1:ShKztRiq0O0klWcwE
 github.com/traefik/go-vm v0.0.0-20261021222445-b55506f3ac26/go.mod h1:Wzq2SkAyjDpERQKGk+rEW7GGccTX9McaqDk6kHdsFxc=
 github.com/traefik/go-vm v0.0.0-20261022132817-13a8b8e42ff1 h1:Hua4lOp7o0xAo2psXk6XBS/mvxwGwG8PRmyig2d2osk=
 github.com/traefik/go-vm v0.0.0-20261022132817-13a8b8e42ff1/go.mod h1:Wzq2SkAyjDpERQKGk+rEW7GGccTX9McaqDk6kHdsFxc=
+github.com/traefik/go-vm v0.0.0-20261023050708-d418abbec06d h1:q0ZQmpBIkNwUbQPR0brdwPZNyj6xn+QA5P1u5tLWAJc=
+github.com/traefik/go-vm v0.0.0-20261023050708-d418abbec06d/go.mod h1:iRh4qDOFnrv8nFJ6m5ll38/3wxwj6GpCUpwvjiPW6QE=
 github.com/traefik/grpc-web v0.17.0 h1:ZMPoEeH/8SqO0vl0NOs03aW6ky56NKKVsucLp9xMi+g=
 github.com/traefik/grpc-web v0.17.0/go.mod h1:2jNLG2xOchSXr9/tUp8ZdqSvpeACPW3j7qGZrMwSfnw=
 github.com/traefik/paerser v0.2.2 h1:cpzW/ZrQrBh3mdwD/jnp6aXASiUFKOVr6ldP+keJTcQ=

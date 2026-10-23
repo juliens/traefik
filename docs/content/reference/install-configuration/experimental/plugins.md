@@ -53,6 +53,10 @@ To learn more about how to add a new plugin to a Traefik instance, please refer 
 | <a id="opt-settings-envs" href="#opt-settings-envs" title="#opt-settings-envs">`settings.envs`</a> | Environment variables to forward to the wasm guest. | []string | No |
 | <a id="opt-settings-mounts" href="#opt-settings-mounts" title="#opt-settings-mounts">`settings.mounts`</a> | Directory to mount to the wasm guest. | []string | No |
 | <a id="opt-settings-useUnsafe" href="#opt-settings-useUnsafe" title="#opt-settings-useUnsafe">`settings.useUnsafe`</a> | Allow the plugin to use unsafe and syscall packages. | bool | No |
+| <a id="opt-settings-goVM" href="#opt-settings-goVM" title="#opt-settings-goVM">`settings.goVM`</a> | Options of the go-vm interpreter (Go plugins only), see [Go Plugins](#go-plugins). | object | No |
+| <a id="opt-settings-goVM-aot" href="#opt-settings-goVM-aot" title="#opt-settings-goVM-aot">`settings.goVM.aot`</a> | Run the packages compiled ahead of time into Traefik (AOT mode) instead of interpreting them. | bool | No |
+| <a id="opt-settings-goVM-stubAssembly" href="#opt-settings-goVM-stubAssembly" title="#opt-settings-goVM-stubAssembly">`settings.goVM.stubAssembly`</a> | Load a plugin that reaches functions written in assembly: a call of one of them fails at run time. | bool | No |
+| <a id="opt-settings-goVM-execMock" href="#opt-settings-goVM-execMock" title="#opt-settings-goVM-execMock">`settings.goVM.execMock`</a> | Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error. | bool | No |
 
 ## Local Plugins
 
@@ -85,6 +89,10 @@ experimental:
 | <a id="opt-settings-envs-2" href="#opt-settings-envs-2" title="#opt-settings-envs-2">`settings.envs`</a> | Environment variables to forward to the wasm guest. | []string | No |
 | <a id="opt-settings-mounts-2" href="#opt-settings-mounts-2" title="#opt-settings-mounts-2">`settings.mounts`</a> | Directory to mount to the wasm guest. | []string | No |
 | <a id="opt-settings-useUnsafe-2" href="#opt-settings-useUnsafe-2" title="#opt-settings-useUnsafe-2">`settings.useUnsafe`</a> | Allow the plugin to use unsafe and syscall packages. | bool | No |
+| <a id="opt-settings-goVM-2" href="#opt-settings-goVM-2" title="#opt-settings-goVM-2">`settings.goVM`</a> | Options of the go-vm interpreter (Go plugins only), see [Go Plugins](#go-plugins). | object | No |
+| <a id="opt-settings-goVM-aot-2" href="#opt-settings-goVM-aot-2" title="#opt-settings-goVM-aot-2">`settings.goVM.aot`</a> | Run the packages compiled ahead of time into Traefik (AOT mode) instead of interpreting them. | bool | No |
+| <a id="opt-settings-goVM-stubAssembly-2" href="#opt-settings-goVM-stubAssembly-2" title="#opt-settings-goVM-stubAssembly-2">`settings.goVM.stubAssembly`</a> | Load a plugin that reaches functions written in assembly: a call of one of them fails at run time. | bool | No |
+| <a id="opt-settings-goVM-execMock-2" href="#opt-settings-goVM-execMock-2" title="#opt-settings-goVM-execMock-2">`settings.goVM.execMock`</a> | Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error. | bool | No |
 
 ## Go Plugins
 
@@ -99,6 +107,29 @@ Traefik applies these restrictions to the Go plugins when it loads them:
   The functions that change the process or reach raw memory (`Kill`, `Exec`, `Mmap`, `Syscall`, ...) are always refused.
 - The functions that start or signal a process (`os.StartProcess`, `os.FindProcess`), change the current directory (`os.Chdir`), or change the runtime settings (`runtime/debug.Set*`) are refused.
 - `reflect.NewAt` is refused, unless `useUnsafe` is allowed.
+
+By default, go-vm interprets every package of a Go plugin, and refuses a plugin that imports `os/exec` or reaches a function written in assembly.
+The `settings.goVM` options change this for one plugin, and are all off by default:
+
+- `aot`: the packages of the plugin that Traefik has compiled ahead of time (the standard library and common libraries) run as compiled code instead of being interpreted, which is faster.
+- `stubAssembly`: a plugin that reaches functions written in assembly is loaded; a call of one of them fails at run time.
+- `execMock`: a plugin that imports `os/exec` is loaded (as client-go or OPA do); it cannot run programs, an attempt returns an error.
+
+```yaml tab="File (YAML)"
+experimental:
+  localPlugins:
+    plugin-name:
+      moduleName: "github.com/github-organization/github-repository"
+      settings:
+        goVM:
+          aot: true
+          execMock: true
+```
+
+```bash tab="CLI"
+--experimental.localplugins.plugin-name.settings.govm.aot=true
+--experimental.localplugins.plugin-name.settings.govm.execmock=true
+```
 
 A Go plugin gets a copy of the environment of Traefik, so it cannot change the environment of Traefik.
 As with Yaegi, unused variables, imports, and labels in the code of a Go plugin do not prevent Traefik from loading it.

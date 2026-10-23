@@ -227,12 +227,33 @@ func TestGoVMMiddleware_restrictions(t *testing.T) {
 		moduleName     string
 		manifestUnsafe bool
 		settingsUnsafe bool
+		goVM           GoVMSettings
 		expectedError  string
 	}{
 		{
 			desc:          "os/exec is refused",
 			moduleName:    "testpluginexec",
 			expectedError: "os/exec",
+		},
+		{
+			desc:       "os/exec is allowed with settings.goVM.execMock",
+			moduleName: "testpluginexec",
+			goVM:       GoVMSettings{ExecMock: true},
+		},
+		{
+			desc:          "a function written in assembly is refused",
+			moduleName:    "testpluginasm",
+			expectedError: "assembly",
+		},
+		{
+			desc:       "a function written in assembly is allowed with settings.goVM.stubAssembly",
+			moduleName: "testpluginasm",
+			goVM:       GoVMSettings{StubAssembly: true},
+		},
+		{
+			desc:       "a plugin runs in AOT mode with settings.goVM.aot",
+			moduleName: "testpluginsafe",
+			goVM:       GoVMSettings{AOT: true},
 		},
 		{
 			desc:          "os.StartProcess is refused",
@@ -281,7 +302,7 @@ func TestGoVMMiddleware_restrictions(t *testing.T) {
 			t.Parallel()
 
 			manifest := &Manifest{Type: typeMiddleware, Import: test.moduleName, UseUnsafe: test.manifestUnsafe}
-			settings := Settings{UseUnsafe: test.settingsUnsafe}
+			settings := Settings{UseUnsafe: test.settingsUnsafe, GoVM: test.goVM}
 
 			builder, err := newMiddlewareBuilder(t.Context(), "fixtures", false, manifest, test.moduleName, settings)
 			if test.expectedError != "" {

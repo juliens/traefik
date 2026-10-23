@@ -72,11 +72,13 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 	}
 
 	opts := vm.Options{
-		Dir:           dir,
-		Root:          root,
-		GoPath:        pluginGoPath,
-		UseUnsafe:     manifest.UseUnsafe && settings.UseUnsafe,
-		AOT:           true,
+		Dir:       dir,
+		Root:      root,
+		GoPath:    pluginGoPath,
+		UseUnsafe: manifest.UseUnsafe && settings.UseUnsafe,
+		// The options of settings.goVM, all off by default.
+		AOT:           settings.GoVM.AOT,
+		StubAssembly:  settings.GoVM.StubAssembly,
 		Budget:        goVMBudget,
 		MaxGoroutines: goVMMaxGoroutines,
 		LoadTimeout:   goVMLoadTimeout,
@@ -94,6 +96,11 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 		GoPanic: func(r any) {
 			logger.Error().Msgf("Panic in a goroutine of the plugin: %v", r)
 		},
+	}
+
+	if settings.GoVM.ExecMock {
+		// os/exec can be imported, but no program runs.
+		opts.Exec = vm.ExecMock
 	}
 
 	p, err := vm.Load(opts, manifest.Import)
