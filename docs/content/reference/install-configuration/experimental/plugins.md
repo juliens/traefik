@@ -54,7 +54,7 @@ To learn more about how to add a new plugin to a Traefik instance, please refer 
 | <a id="opt-settings-mounts" href="#opt-settings-mounts" title="#opt-settings-mounts">`settings.mounts`</a> | Directory to mount to the wasm guest. | []string | No |
 | <a id="opt-settings-useUnsafe" href="#opt-settings-useUnsafe" title="#opt-settings-useUnsafe">`settings.useUnsafe`</a> | Allow the plugin to use unsafe and syscall packages. | bool | No |
 | <a id="opt-settings-goVM" href="#opt-settings-goVM" title="#opt-settings-goVM">`settings.goVM`</a> | Options of the go-vm interpreter (Go plugins only), see [Go Plugins](#go-plugins). | object | No |
-| <a id="opt-settings-goVM-aot" href="#opt-settings-goVM-aot" title="#opt-settings-goVM-aot">`settings.goVM.aot`</a> | Run the packages compiled ahead of time into Traefik (AOT mode) instead of interpreting them. | bool | No |
+| <a id="opt-settings-goVM-disableAOT" href="#opt-settings-goVM-disableAOT" title="#opt-settings-goVM-disableAOT">`settings.goVM.disableAOT`</a> | Interpret the packages compiled ahead of time into Traefik instead of running them in AOT mode. | bool | No |
 | <a id="opt-settings-goVM-stubAssembly" href="#opt-settings-goVM-stubAssembly" title="#opt-settings-goVM-stubAssembly">`settings.goVM.stubAssembly`</a> | Load a plugin that reaches functions written in assembly: a call of one of them fails at run time. | bool | No |
 | <a id="opt-settings-goVM-execMock" href="#opt-settings-goVM-execMock" title="#opt-settings-goVM-execMock">`settings.goVM.execMock`</a> | Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error. | bool | No |
 | <a id="opt-settings-goVM-budget" href="#opt-settings-goVM-budget" title="#opt-settings-goVM-budget">`settings.goVM.budget`</a> | Execution budget of each call into the plugin, in steps (function calls and loop iterations). Default: 100000000. | int | No |
@@ -92,7 +92,7 @@ experimental:
 | <a id="opt-settings-mounts-2" href="#opt-settings-mounts-2" title="#opt-settings-mounts-2">`settings.mounts`</a> | Directory to mount to the wasm guest. | []string | No |
 | <a id="opt-settings-useUnsafe-2" href="#opt-settings-useUnsafe-2" title="#opt-settings-useUnsafe-2">`settings.useUnsafe`</a> | Allow the plugin to use unsafe and syscall packages. | bool | No |
 | <a id="opt-settings-goVM-2" href="#opt-settings-goVM-2" title="#opt-settings-goVM-2">`settings.goVM`</a> | Options of the go-vm interpreter (Go plugins only), see [Go Plugins](#go-plugins). | object | No |
-| <a id="opt-settings-goVM-aot-2" href="#opt-settings-goVM-aot-2" title="#opt-settings-goVM-aot-2">`settings.goVM.aot`</a> | Run the packages compiled ahead of time into Traefik (AOT mode) instead of interpreting them. | bool | No |
+| <a id="opt-settings-goVM-disableAOT-2" href="#opt-settings-goVM-disableAOT-2" title="#opt-settings-goVM-disableAOT-2">`settings.goVM.disableAOT`</a> | Interpret the packages compiled ahead of time into Traefik instead of running them in AOT mode. | bool | No |
 | <a id="opt-settings-goVM-stubAssembly-2" href="#opt-settings-goVM-stubAssembly-2" title="#opt-settings-goVM-stubAssembly-2">`settings.goVM.stubAssembly`</a> | Load a plugin that reaches functions written in assembly: a call of one of them fails at run time. | bool | No |
 | <a id="opt-settings-goVM-execMock-2" href="#opt-settings-goVM-execMock-2" title="#opt-settings-goVM-execMock-2">`settings.goVM.execMock`</a> | Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error. | bool | No |
 | <a id="opt-settings-goVM-budget-2" href="#opt-settings-goVM-budget-2" title="#opt-settings-goVM-budget-2">`settings.goVM.budget`</a> | Execution budget of each call into the plugin, in steps (function calls and loop iterations). Default: 100000000. | int | No |
@@ -112,10 +112,11 @@ Traefik applies these restrictions to the Go plugins when it loads them:
 - The functions that start or signal a process (`os.StartProcess`, `os.FindProcess`), change the current directory (`os.Chdir`), or change the runtime settings (`runtime/debug.Set*`) are refused.
 - `reflect.NewAt` is refused, unless `useUnsafe` is allowed.
 
-By default, go-vm interprets every package of a Go plugin, and refuses a plugin that imports `os/exec` or reaches a function written in assembly.
+By default, the packages of a Go plugin that Traefik has compiled ahead of time (the standard library and common libraries) run as compiled code (AOT mode), which is faster, and go-vm interprets the other packages.
+go-vm refuses a plugin that imports `os/exec` or reaches a function written in assembly.
 The `settings.goVM` options change this for one plugin, and are all off by default:
 
-- `aot`: the packages of the plugin that Traefik has compiled ahead of time (the standard library and common libraries) run as compiled code instead of being interpreted, which is faster.
+- `disableAOT`: go-vm interprets every package of the plugin, also the packages compiled ahead of time.
 - `stubAssembly`: a plugin that reaches functions written in assembly is loaded; a call of one of them fails at run time.
 - `execMock`: a plugin that imports `os/exec` is loaded (as client-go or OPA do); it cannot run programs, an attempt returns an error.
 
@@ -126,12 +127,12 @@ experimental:
       moduleName: "github.com/github-organization/github-repository"
       settings:
         goVM:
-          aot: true
+          disableAOT: true
           execMock: true
 ```
 
 ```bash tab="CLI"
---experimental.localplugins.plugin-name.settings.govm.aot=true
+--experimental.localplugins.plugin-name.settings.govm.disableaot=true
 --experimental.localplugins.plugin-name.settings.govm.execmock=true
 ```
 

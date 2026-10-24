@@ -343,9 +343,9 @@ func TestGoVMMiddleware_restrictions(t *testing.T) {
 			goVM:       GoVMSettings{StubAssembly: true},
 		},
 		{
-			desc:       "a plugin runs in AOT mode with settings.goVM.aot",
+			desc:       "a plugin runs without the AOT mode with settings.goVM.disableAOT",
 			moduleName: "testpluginsafe",
-			goVM:       GoVMSettings{AOT: true},
+			goVM:       GoVMSettings{DisableAOT: true},
 		},
 		{
 			desc:          "os.StartProcess is refused",

@@ -21,7 +21,7 @@ type Settings struct {
 // GoVMSettings are the options of the go-vm interpreter for one Go plugin.
 // They are all off by default, and the limits have their default value when they are zero.
 type GoVMSettings struct {
-	AOT           bool  `description:"Run the packages compiled ahead of time into Traefik (AOT mode) instead of interpreting them." json:"aot,omitempty" toml:"aot,omitempty" yaml:"aot,omitempty" export:"true"`
+	DisableAOT    bool  `description:"Interpret the packages compiled ahead of time into Traefik instead of running them in AOT mode." json:"disableAOT,omitempty" toml:"disableAOT,omitempty" yaml:"disableAOT,omitempty" export:"true"`
 	StubAssembly  bool  `description:"Load a plugin that reaches functions written in assembly: a call of one of them fails at run time." json:"stubAssembly,omitempty" toml:"stubAssembly,omitempty" yaml:"stubAssembly,omitempty" export:"true"`
 	ExecMock      bool  `description:"Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error." json:"execMock,omitempty" toml:"execMock,omitempty" yaml:"execMock,omitempty" export:"true"`
 	Budget        int64 `description:"Execution budget of each call into the plugin, in steps (function calls and loop iterations). Default: 100000000." json:"budget,omitempty" toml:"budget,omitempty" yaml:"budget,omitempty" export:"true"`

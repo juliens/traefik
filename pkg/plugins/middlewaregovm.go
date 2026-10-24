@@ -12,7 +12,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	// The AOT copies of the standard library and of common libraries, used with vm.Options.AOT.
+	// The AOT copies of the standard library and of common libraries, used unless settings.goVM.disableAOT is set.
 	_ "github.com/traefik/go-vm/aot/all"
 	// The symbols of expvar, net/http/pprof and testing/quick, which go-vm leaves out of its standard library
 	// because their init changes the state of the process: a plugin that imports expvar (the Prometheus client does)
@@ -108,8 +108,8 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 		Root:      root,
 		GoPath:    pluginGoPath,
 		UseUnsafe: manifest.UseUnsafe && settings.UseUnsafe,
-		// The options of settings.goVM, all off by default.
-		AOT:           settings.GoVM.AOT,
+		// The options of settings.goVM, all off by default: the AOT mode is on unless disabled.
+		AOT:           !settings.GoVM.DisableAOT,
 		StubAssembly:  settings.GoVM.StubAssembly,
 		Budget:        budget,
 		MaxGoroutines: maxGoroutines,
