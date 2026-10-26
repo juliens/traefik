@@ -43,7 +43,7 @@ Traefik WASM plugins can be developed using any language that compiles to WebAss
 Traefik supports two kinds of WASM plugins, and finds the kind of a plugin from its exports:
 
 - Plugins based on [http-wasm](https://http-wasm.io/), in any language with an http-wasm guest library.
-- Plugins written in Go with the [Traefik WASM Go SDK](https://github.com/traefik/wasm-go): a plugin is a `net/http` handler, and the next handler of the chain is `wasihttp.Next`.
+- Plugins written in Go with the [Traefik WASM Go SDK](https://github.com/traefik/wasm-go), which follow the `wasi:http/middleware` world: a plugin gets a request and returns a response, and can send requests to the next handler of the chain with `wasihttp.Next`.
 
 WASM plugins compile to portable binary modules that execute with near-native performance while maintaining security isolation.
 

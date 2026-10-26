@@ -9,8 +9,9 @@ import (
 	"strings"
 )
 
-// The contract with the guest mirrors github.com/traefik/wasm-go/abi, version 1.
-// It is kept here until that module is published and can be imported.
+// The contract with the guest mirrors github.com/traefik/wasm-go/abi, version 1: the wasi:http/middleware@0.3.0 world
+// with wasi:config/store and wasi:logging, on a core wasm ABI. It is kept here until that module is published and can
+// be imported.
 
 const abiVersion uint32 = 1
 
@@ -26,31 +27,39 @@ const (
 	fdListener uint32 = 3
 
 	requestFDBase  uint32 = 1000
-	requestFDCount uint32 = 8
-	clientFDBase   uint32 = 1 << 30
+	requestFDCount uint32 = 4
 
-	fdBodyIn         uint32 = 0
-	fdResponseOut    uint32 = 1
-	fdNextResponseIn uint32 = 2
-	fdNextBodyOut    uint32 = 3
-	fdCancel         uint32 = 4
+	fdBodyIn      uint32 = 0
+	fdResponseOut uint32 = 1
+	fdCancel      uint32 = 2
 
-	// maxRequestIDs bounds the request ids so that the request descriptors stay below the client ones.
-	// Ids are reused after maxRequestIDs requests on one instance.
+	callFDBase  uint32 = 1 << 30
+	callFDCount uint32 = 2
+
+	fdCallResponseIn uint32 = 0
+	fdCallBodyOut    uint32 = 1
+
+	// maxRequestIDs bounds the request ids so that the request descriptors stay below the call ones, and maxCallIDs
+	// bounds the call ids so that their descriptors fit in 32 bits. Ids are reused after that many requests or calls
+	// on one instance.
 	maxRequestIDs = 1 << 26
-
-	clientFDCount      uint32 = 2
-	fdClientResponseIn uint32 = 0
-	fdClientBodyOut    uint32 = 1
-
-	// maxClientIDs bounds the outbound request ids so that their descriptors fit in 32 bits.
-	maxClientIDs = 1 << 26
+	maxCallIDs    = 1 << 26
 )
 
+// Call targets: the imported wasi:http/handler (the next handler) and the imported wasi:http/client.
 const (
-	bodyOriginal  uint32 = 0
+	targetHandler uint32 = 0
+	targetClient  uint32 = 1
+)
+
+// noRequest is the incoming request id of a call made outside of any incoming request.
+const noRequest uint32 = 0xFFFFFFFF
+
+// Body modes of a call.
+const (
+	bodyNone      uint32 = 0
 	bodyFromGuest uint32 = 1
-	bodyNone      uint32 = 2
+	bodyIncoming  uint32 = 2
 )
 
 // Log levels, with the values of wasi:logging.
@@ -67,8 +76,17 @@ func requestFD(id, k uint32) uint32 {
 	return requestFDBase + id*requestFDCount + k
 }
 
-func clientFD(cid, k uint32) uint32 {
-	return clientFDBase + cid*clientFDCount + k
+func callFD(cid, k uint32) uint32 {
+	return callFDBase + cid*callFDCount + k
+}
+
+func parseCallFD(fd uint32) (cid, k uint32, ok bool) {
+	if fd < callFDBase {
+		return 0, 0, false
+	}
+	fd -= callFDBase
+
+	return fd / callFDCount, fd % callFDCount, true
 }
 
 // requestBlock is the request line and the headers of a request, as exchanged with the guest.
@@ -189,6 +207,11 @@ func appendHeader(dst []byte, h http.Header) []byte {
 	}
 
 	return dst
+}
+
+// appendFields encodes a fields block, as used for trailers: one "Key: value" line per value, keys sorted.
+func appendFields(h http.Header) []byte {
+	return appendHeader(nil, h)
 }
 
 func parseHeader(s string) http.Header {

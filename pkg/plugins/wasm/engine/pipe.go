@@ -187,6 +187,14 @@ func (p *Pipe) Readable() int {
 	return 0
 }
 
+// Buffered reports the bytes written and not read yet.
+func (p *Pipe) Buffered() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return len(p.buf)
+}
+
 // Writable reports whether the guest can write without blocking.
 func (p *Pipe) Writable() bool {
 	p.mu.Lock()

@@ -136,6 +136,107 @@ func TestEngine_NextBodyFromGuest(t *testing.T) {
 	assert.Equal(t, "UPSTREAM SAW POST /REWRITTEN?Q=1 UPSTREAM 4:PING", rw.Body.String())
 }
 
+func TestEngine_NextSeveralCalls(t *testing.T) {
+	t.Parallel()
+
+	eng, _ := newTestEngine(t, engine.Config{})
+
+	rw := serve(t, eng, upstream(0), http.MethodPost, "/twice", "ignored")
+
+	assert.Equal(t, http.StatusOK, rw.Code)
+	assert.Equal(t, "upstream saw GET /twice?call=0 example.com 0:|upstream saw GET /twice?call=1 example.com 0:|", rw.Body.String())
+}
+
+func TestEngine_NextWithoutRequest(t *testing.T) {
+	t.Parallel()
+
+	eng, _ := newTestEngine(t, engine.Config{})
+
+	rw := serve(t, eng, upstream(0), http.MethodGet, "/no-request", "")
+
+	assert.Equal(t, http.StatusBadGateway, rw.Code)
+	assert.Equal(t, "next needs an incoming request", rw.Body.String())
+}
+
+func TestEngine_RequestTrailers(t *testing.T) {
+	t.Parallel()
+
+	eng, _ := newTestEngine(t, engine.Config{})
+
+	rw := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "http://example.com/trailers", strings.NewReader("ping"))
+	req.Trailer = http.Header{"X-Sum": {"42"}}
+	eng.ServeHTTP(rw, req, nil)
+
+	res := rw.Result()
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "ping", rw.Body.String())
+	assert.Equal(t, http.Header{"X-Sum": {"42"}}, res.Trailer)
+}
+
+func TestEngine_NextResponseTrailers(t *testing.T) {
+	t.Parallel()
+
+	eng, _ := newTestEngine(t, engine.Config{})
+
+	next := http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
+		rw.Header().Set("Trailer", "X-Up")
+		_, _ = rw.Write([]byte("body"))
+		rw.Header().Set("X-Up", "done")
+		rw.Header().Set(http.TrailerPrefix+"X-Late", "late")
+	})
+
+	rw := serve(t, eng, next, http.MethodGet, "/next", "")
+
+	res := rw.Result()
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "body", rw.Body.String())
+	assert.Equal(t, http.Header{"X-Up": {"done"}, "X-Late": {"late"}}, res.Trailer)
+}
+
+func TestEngine_NextRequestTrailers(t *testing.T) {
+	t.Parallel()
+
+	eng, _ := newTestEngine(t, engine.Config{})
+
+	next := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		body, _ := io.ReadAll(req.Body)
+		_, _ = fmt.Fprintf(rw, "%s %d checksum=%s", body, req.ContentLength, req.Trailer.Get("X-Checksum"))
+	})
+
+	rw := serve(t, eng, next, http.MethodGet, "/next-trailers", "")
+
+	assert.Equal(t, http.StatusOK, rw.Code)
+	assert.Equal(t, "streamed -1 checksum=abc", rw.Body.String())
+}
+
+func TestEngine_Streaming(t *testing.T) {
+	t.Parallel()
+
+	eng, _ := newTestEngine(t, engine.Config{})
+
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		eng.ServeHTTP(rw, req, nil)
+	}))
+	t.Cleanup(server.Close)
+
+	start := time.Now()
+	res, err := http.Get(server.URL + "/stream")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = res.Body.Close() })
+
+	first := make([]byte, len("first;"))
+	_, err = io.ReadFull(res.Body, first)
+	require.NoError(t, err)
+	assert.Equal(t, "first;", string(first))
+	// The guest waits 300ms before the second part: the first one was flushed without waiting for it.
+	assert.Less(t, time.Since(start), 250*time.Millisecond)
+
+	rest, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "second", string(rest))
+}
+
 func TestEngine_NextPanics(t *testing.T) {
 	t.Parallel()
 
@@ -152,12 +253,30 @@ func TestEngine_NextPanics(t *testing.T) {
 func TestEngine_Config(t *testing.T) {
 	t.Parallel()
 
-	eng, _ := newTestEngine(t, engine.Config{GuestConfig: []byte(`{"a":1}`)})
+	eng, _ := newTestEngine(t, engine.Config{GuestConfig: []byte(`{"name":"demo","count":1,"list":["a","b"]}`)})
 
-	rw := serve(t, eng, nil, http.MethodGet, "/config", "")
+	testCases := []struct {
+		desc   string
+		key    string
+		status int
+		body   string
+	}{
+		{desc: "a string is given as is", key: "name", status: http.StatusOK, body: "demo"},
+		{desc: "a number is given as JSON", key: "count", status: http.StatusOK, body: "1"},
+		{desc: "a list is given as JSON", key: "list", status: http.StatusOK, body: `["a","b"]`},
+		{desc: "a missing key is reported", key: "missing", status: http.StatusNotFound, body: "missing"},
+	}
 
-	assert.Equal(t, http.StatusOK, rw.Code)
-	assert.JSONEq(t, `{"a":1}`, rw.Body.String())
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			rw := serve(t, eng, nil, http.MethodGet, "/config?key="+test.key, "")
+
+			assert.Equal(t, test.status, rw.Code)
+			assert.Equal(t, test.body, rw.Body.String())
+		})
+	}
 }
 
 func TestEngine_Log(t *testing.T) {

@@ -129,6 +129,12 @@ Such a plugin has no file system, and reads the request body as a stream: `setti
 When an instance stops (for example on `os.Exit` or when it runs out of memory), its in-flight requests get a
 `502 Bad Gateway` response and the instance is replaced.
 
+Such a plugin follows the `wasi:http/middleware` world: it works on requests and responses, with streamed bodies and
+trailers, and can call the next handler any number of times.
+It cannot take over the connection, so WebSocket and other protocol upgrades do not work through it.
+It reads its configuration by key with `wasiconfig`: each top-level key of the middleware configuration is a key, a
+string value is given as is and any other value as JSON.
+
 Such a plugin can send outbound HTTP requests with `wasihttp.DefaultClient`, for example to call an authorization
 server, once `settings.allowOutbound` is set.
 Traefik sends them on behalf of the plugin, and stops them when the instance stops.

@@ -20,20 +20,29 @@ import (
 //go:wasmimport traefik req_info
 func reqInfo(id uint32, ptr unsafe.Pointer, size uint32) uint32
 
-//go:wasmimport traefik req_set
-func reqSet(id uint32, ptr unsafe.Pointer, size uint32)
+//go:wasmimport traefik req_trailers
+func reqTrailers(id uint32, ptr unsafe.Pointer, size uint32) uint32
 
 //go:wasmimport traefik resp_set
 func respSet(id uint32, ptr unsafe.Pointer, size uint32)
 
-//go:wasmimport traefik next_start
-func nextStart(id, mode uint32)
+//go:wasmimport traefik resp_trailers
+func respTrailers(id uint32, ptr unsafe.Pointer, size uint32)
 
 //go:wasmimport traefik done
 func done(id uint32)
 
+//go:wasmimport traefik call
+func hostCall(target, id uint32, ptr unsafe.Pointer, size, mode uint32) uint32
+
+//go:wasmimport traefik call_set_trailers
+func callSetTrailers(cid uint32, ptr unsafe.Pointer, size uint32)
+
+//go:wasmimport traefik call_trailers
+func callTrailers(cid uint32, ptr unsafe.Pointer, size uint32) uint32
+
 //go:wasmimport traefik config_get
-func configGet(ptr unsafe.Pointer, size uint32) uint32
+func configGet(kptr unsafe.Pointer, klen uint32, ptr unsafe.Pointer, size uint32) int32
 
 //go:wasmimport traefik log
 func hostLog(level uint32, ptr unsafe.Pointer, size uint32)
@@ -41,18 +50,22 @@ func hostLog(level uint32, ptr unsafe.Pointer, size uint32)
 //go:wasmimport traefik log_enabled
 func logEnabled(level uint32) uint32
 
-//go:wasmimport traefik client_start
-func clientStart(ptr unsafe.Pointer, size, mode uint32) uint32
-
 const (
-	fdBodyIn         = 0
-	fdResponseOut    = 1
-	fdNextResponseIn = 2
-	fdNextBodyOut    = 3
-	fdCancel         = 4
+	fdBodyIn      = 0
+	fdResponseOut = 1
+	fdCancel      = 2
 
-	bodyOriginal  = 0
+	fdCallResponseIn = 0
+	fdCallBodyOut    = 1
+
+	targetHandler = 0
+	targetClient  = 1
+
+	noRequest = 0xFFFFFFFF
+
+	bodyNone      = 0
 	bodyFromGuest = 1
+	bodyIncoming  = 2
 
 	levelDebug = 1
 	levelInfo  = 2
@@ -79,7 +92,6 @@ func serve() {
 func main() {}
 
 type request struct {
-	id     uint32
 	method string
 	target string
 	host   string
@@ -95,36 +107,87 @@ func (r *request) path() string {
 	return p
 }
 
+func (r *request) query() string {
+	_, q, _ := strings.Cut(r.target, "?")
+
+	return q
+}
+
 func handle(id uint32) {
 	defer done(id)
 
-	r := parseRequest(id, fetch(func(ptr unsafe.Pointer, size uint32) uint32 { return reqInfo(id, ptr, size) }))
+	r := parseRequest(fetch(func(ptr unsafe.Pointer, size uint32) uint32 { return reqInfo(id, ptr, size) }))
 
 	switch r.path() {
 	case "/echo":
-		body := readAll(id, fdBodyIn)
+		body := readAll(requestFD(id, fdBodyIn))
 		respond(id, 202, []string{"X-Echo-Host: " + r.host, "X-Echo-Remote: " + r.remote, "X-Echo-Proto: " + r.proto},
 			[]byte(r.method+" "+r.target+" "+strconv.FormatInt(r.length, 10)+":"+string(body)))
 
 	case "/next":
-		setRequest(id, r.method, r.target, r.host, r.length, append(r.header, "X-Plugin: pass"))
-		nextStart(id, bodyOriginal)
-		status, header, body := readNext(id)
+		// The request goes to next with the body of the client, which the plugin does not read.
+		cid := startCall(targetHandler, id, requestBlock(r.method, r.target, r.host, "", r.length, append(r.header, "X-Plugin: pass")), bodyIncoming)
+		status, header, body, trailers := readCall(cid)
 		respond(id, status, append(header, "X-Plugin-Response: 1"), body)
+		setResponseTrailers(id, trailers)
 
 	case "/rewrite":
-		body := bytes.ToUpper(readAll(id, fdBodyIn))
-		_, query, _ := strings.Cut(r.target, "?")
-		setRequest(id, r.method, "/rewritten?"+query, "upstream", int64(len(body)), r.header)
-		nextStart(id, bodyFromGuest)
-		out := os.NewFile(uintptr(fd(id, fdNextBodyOut)), "next-body")
-		_, _ = out.Write(body)
-		_ = out.Close()
-		status, header, resp := readNext(id)
+		body := bytes.ToUpper(readAll(requestFD(id, fdBodyIn)))
+		cid := startCall(targetHandler, id, requestBlock(r.method, "/rewritten?"+r.query(), "upstream", "", int64(len(body)), r.header), bodyFromGuest)
+		writeAll(callFD(cid, fdCallBodyOut), body)
+		status, header, resp, _ := readCall(cid)
 		respond(id, status, header, bytes.ToUpper(resp))
 
+	case "/twice":
+		// Next is called twice for the same request, without body.
+		var out []byte
+		for i := range 2 {
+			cid := startCall(targetHandler, id, requestBlock("GET", "/twice?call="+strconv.Itoa(i), r.host, "", 0, nil), bodyNone)
+			_, _, body, _ := readCall(cid)
+			out = append(append(out, body...), '|')
+		}
+		respond(id, 200, nil, out)
+
+	case "/no-request":
+		// Next without an incoming request has nothing to run.
+		cid := startCall(targetHandler, noRequest, requestBlock("GET", "/", r.host, "", 0, nil), bodyNone)
+		status, header, body, _ := readCall(cid)
+		respond(id, status, header, body)
+
+	case "/trailers":
+		// The trailers of the request come back as the trailers of the response, after the body.
+		body := readAll(requestFD(id, fdBodyIn))
+		trailers := fetch(func(ptr unsafe.Pointer, size uint32) uint32 { return reqTrailers(id, ptr, size) })
+		respond(id, 200, nil, body)
+		setResponseTrailers(id, trailers)
+
+	case "/next-trailers":
+		// The plugin streams a body with trailers to next.
+		cid := startCall(targetHandler, id, requestBlock("POST", "/next-trailers", r.host, "", -1, []string{"Trailer: X-Checksum"}), bodyFromGuest)
+		trailer := []byte("X-Checksum: abc\n")
+		callSetTrailers(cid, unsafe.Pointer(&trailer[0]), uint32(len(trailer)))
+		writeAll(callFD(cid, fdCallBodyOut), []byte("streamed"))
+		status, header, body, _ := readCall(cid)
+		respond(id, status, header, body)
+
+	case "/stream":
+		// The second part comes later: the first one must reach the client before.
+		setResponse(id, 200, nil)
+		out := os.NewFile(uintptr(requestFD(id, fdResponseOut)), "response")
+		_, _ = out.Write([]byte("first;"))
+		time.Sleep(300 * time.Millisecond)
+		_, _ = out.Write([]byte("second"))
+		_ = out.Close()
+
 	case "/config":
-		respond(id, 200, nil, fetch(configGet))
+		key := []byte(strings.TrimPrefix(r.query(), "key="))
+		value, ok := config(key)
+		if !ok {
+			respond(id, 404, nil, []byte("missing"))
+
+			return
+		}
+		respond(id, 200, nil, value)
 
 	case "/log":
 		msg := []byte("hello from guest")
@@ -135,11 +198,11 @@ func handle(id uint32) {
 		respond(id, 200, nil, []byte(os.Getenv("PLUGIN_TEST")))
 
 	case "/print":
-		os.Stdout.WriteString("printed on stdout\n")
+		_, _ = os.Stdout.WriteString("printed on stdout\n")
 		respond(id, 200, nil, nil)
 
 	case "/wait":
-		cancel := os.NewFile(uintptr(fd(id, fdCancel)), "cancel")
+		cancel := os.NewFile(uintptr(requestFD(id, fdCancel)), "cancel")
 		var b [1]byte
 		_, _ = cancel.Read(b[:])
 		_ = cancel.Close()
@@ -150,24 +213,19 @@ func handle(id uint32) {
 		respond(id, 200, nil, []byte("slept"))
 
 	case "/big":
-		size, _ := strconv.Atoi(strings.TrimPrefix(r.target, "/big?size="))
+		size, _ := strconv.Atoi(strings.TrimPrefix(r.query(), "size="))
 		respond(id, 200, nil, bytes.Repeat([]byte("x"), size))
 
 	case "/outbound":
 		// The destination is the url query parameter, as scheme://host/path.
-		_, dest, _ := strings.Cut(r.target, "url=")
+		dest := strings.TrimPrefix(r.query(), "url=")
 		scheme, rest, _ := strings.Cut(dest, "://")
 		host, path, _ := strings.Cut(rest, "/")
-		body := readAll(id, fdBodyIn)
+		body := readAll(requestFD(id, fdBodyIn))
 
-		block := []byte("POST /" + path + " " + host + " " + scheme + " - - " + strconv.Itoa(len(body)) + "\nX-From-Plugin: yes\n")
-		cid := clientStart(unsafe.Pointer(&block[0]), uint32(len(block)), bodyFromGuest)
-
-		out := os.NewFile(uintptr(1<<30+cid*2+1), "client-body")
-		_, _ = out.Write(body)
-		_ = out.Close()
-
-		status, header, resp := readFramed(readAllFD(1<<30 + cid*2))
+		cid := startCall(targetClient, id, requestBlock("POST", "/"+path, host, scheme, int64(len(body)), []string{"X-From-Plugin: yes"}), bodyFromGuest)
+		writeAll(callFD(cid, fdCallBodyOut), body)
+		status, header, resp, _ := readCall(cid)
 		respond(id, status, header, resp)
 
 	case "/exit":
@@ -178,8 +236,12 @@ func handle(id uint32) {
 	}
 }
 
-func fd(id, k uint32) uint32 {
-	return 1000 + id*8 + k
+func requestFD(id, k uint32) uint32 {
+	return 1000 + id*4 + k
+}
+
+func callFD(cid, k uint32) uint32 {
+	return 1<<30 + cid*2 + k
 }
 
 func fetch(call func(ptr unsafe.Pointer, size uint32) uint32) []byte {
@@ -193,7 +255,26 @@ func fetch(call func(ptr unsafe.Pointer, size uint32) uint32) []byte {
 	}
 }
 
-func parseRequest(id uint32, block []byte) *request {
+func config(key []byte) ([]byte, bool) {
+	kptr := unsafe.Pointer(unsafe.StringData("-"))
+	if len(key) > 0 {
+		kptr = unsafe.Pointer(&key[0])
+	}
+
+	buf := make([]byte, 256)
+	for {
+		n := configGet(kptr, uint32(len(key)), unsafe.Pointer(&buf[0]), uint32(len(buf)))
+		if n < 0 {
+			return nil, false
+		}
+		if int(n) <= len(buf) {
+			return buf[:n], true
+		}
+		buf = make([]byte, n)
+	}
+}
+
+func parseRequest(block []byte) *request {
 	line, rest, _ := strings.Cut(string(block), "\n")
 	f := strings.Split(line, " ")
 	for i := range f {
@@ -203,48 +284,37 @@ func parseRequest(id uint32, block []byte) *request {
 	}
 	length, _ := strconv.ParseInt(f[6], 10, 64)
 
-	var header []string
-	for _, h := range strings.Split(rest, "\n") {
-		if h != "" {
-			header = append(header, h)
-		}
-	}
-
-	return &request{id: id, method: f[0], target: f[1], host: f[2], proto: f[4], remote: f[5], length: length, header: header}
+	return &request{method: f[0], target: f[1], host: f[2], proto: f[4], remote: f[5], length: length, header: lines(rest)}
 }
 
-func setRequest(id uint32, method, target, host string, length int64, header []string) {
-	block := method + " " + target + " " + host + " - - - " + strconv.FormatInt(length, 10) + "\n"
+func requestBlock(method, target, host, scheme string, length int64, header []string) []byte {
+	if scheme == "" {
+		scheme = "-"
+	}
+
+	block := method + " " + target + " " + host + " " + scheme + " - - " + strconv.FormatInt(length, 10) + "\n"
 	for _, h := range header {
 		block += h + "\n"
 	}
-	b := []byte(block)
-	reqSet(id, unsafe.Pointer(&b[0]), uint32(len(b)))
+
+	return []byte(block)
 }
 
-func readAll(id, k uint32) []byte {
-	return readAllFD(fd(id, k))
+func startCall(target, id uint32, block []byte, mode uint32) uint32 {
+	return hostCall(target, id, unsafe.Pointer(&block[0]), uint32(len(block)), mode)
 }
 
-func readAllFD(n uint32) []byte {
-	f := os.NewFile(uintptr(n), "in")
-	defer f.Close()
-
+// readCall reads the response of a call: a frame with the status and the headers, then the body, then the trailers.
+// A failed call becomes a 502 response with the error as body.
+func readCall(cid uint32) (int, []string, []byte, []byte) {
+	f := os.NewFile(uintptr(callFD(cid, fdCallResponseIn)), "call")
 	b, _ := io.ReadAll(f)
+	// The trailers are read before closing the response, which ends the call.
+	trailers := fetch(func(ptr unsafe.Pointer, size uint32) uint32 { return callTrailers(cid, ptr, size) })
+	_ = f.Close()
 
-	return b
-}
-
-// readNext reads the response of next.
-func readNext(id uint32) (int, []string, []byte) {
-	return readFramed(readAll(id, fdNextResponseIn))
-}
-
-// readFramed parses a response sent by the host: a frame with the status and the headers, then the body.
-// A host failure becomes a 502 response with the error as body.
-func readFramed(b []byte) (int, []string, []byte) {
 	if len(b) < 4 {
-		return 502, nil, nil
+		return 502, nil, nil, nil
 	}
 
 	size := binary.LittleEndian.Uint32(b)
@@ -253,29 +323,59 @@ func readFramed(b []byte) (int, []string, []byte) {
 	code, msg, _ := strings.Cut(line, " ")
 	status, _ := strconv.Atoi(code)
 	if status == 0 {
-		return 502, nil, []byte(msg)
+		return 502, nil, []byte(msg), nil
 	}
 
-	var header []string
-	for _, h := range strings.Split(rest, "\n") {
-		if h != "" {
-			header = append(header, h)
+	return status, lines(rest), body, trailers
+}
+
+func lines(s string) []string {
+	var out []string
+	for l := range strings.SplitSeq(s, "\n") {
+		if l != "" {
+			out = append(out, l)
 		}
 	}
 
-	return status, header, body
+	return out
 }
 
-func respond(id uint32, status int, header []string, body []byte) {
+func readAll(fd uint32) []byte {
+	f := os.NewFile(uintptr(fd), "in")
+	defer func() { _ = f.Close() }()
+
+	b, _ := io.ReadAll(f)
+
+	return b
+}
+
+func writeAll(fd uint32, b []byte) {
+	f := os.NewFile(uintptr(fd), "out")
+	_, _ = f.Write(b)
+	_ = f.Close()
+}
+
+func setResponse(id uint32, status int, header []string) {
 	block := strconv.Itoa(status) + "\n"
 	for _, h := range header {
 		block += h + "\n"
 	}
 	b := []byte(block)
 	respSet(id, unsafe.Pointer(&b[0]), uint32(len(b)))
+}
 
-	out := os.NewFile(uintptr(fd(id, fdResponseOut)), "response")
-	defer out.Close()
+func setResponseTrailers(id uint32, trailers []byte) {
+	if len(trailers) == 0 {
+		return
+	}
+	respTrailers(id, unsafe.Pointer(&trailers[0]), uint32(len(trailers)))
+}
+
+func respond(id uint32, status int, header []string, body []byte) {
+	setResponse(id, status, header)
+
+	out := os.NewFile(uintptr(requestFD(id, fdResponseOut)), "response")
+	defer func() { _ = out.Close() }()
 
 	for len(body) > 0 {
 		n := min(len(body), 4096)

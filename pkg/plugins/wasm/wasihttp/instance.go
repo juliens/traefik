@@ -27,6 +27,9 @@ type instance struct {
 	rt     wazero.Runtime
 	mod    api.Module
 
+	// store is the wasi:config/store of the guest.
+	store map[string]string
+
 	// client sends the outbound requests of the guest; ctx cancels them when the instance stops.
 	client *http.Client
 	ctx    context.Context
@@ -41,22 +44,24 @@ type instance struct {
 	// stopped is closed when traefik_serve returned.
 	stopped chan struct{}
 
-	mu           sync.Mutex
-	nextID       uint32
-	nextClientID uint32
-	reqs         map[uint32]*request
-	fds          map[uint32]*vfd
-	dead         bool
-	deadErr      error
-	closing      bool
+	mu         sync.Mutex
+	nextID     uint32
+	nextCallID uint32
+	reqs       map[uint32]*request
+	calls      map[uint32]*call
+	fds        map[uint32]*vfd
+	dead       bool
+	deadErr    error
+	closing    bool
 }
 
-func newInstance(ctx context.Context, cfg *engine.Config, client *http.Client, slot int) (*instance, error) {
+func newInstance(ctx context.Context, cfg *engine.Config, store map[string]string, client *http.Client, slot int) (*instance, error) {
 	instCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 
 	inst := &instance{
 		cfg:     cfg,
 		logger:  cfg.Logger,
+		store:   store,
 		client:  client,
 		ctx:     instCtx,
 		cancel:  cancel,
@@ -64,6 +69,7 @@ func newInstance(ctx context.Context, cfg *engine.Config, client *http.Client, s
 		closed:  make(chan struct{}),
 		stopped: make(chan struct{}),
 		reqs:    map[uint32]*request{},
+		calls:   map[uint32]*call{},
 		fds:     map[uint32]*vfd{},
 	}
 	inst.listener = engine.NewPipe(0, inst.notify)
@@ -212,14 +218,20 @@ func (inst *instance) fd(n uint32) *vfd {
 }
 
 func (inst *instance) closeFD(n uint32) {
+	if n == fdListener {
+		return
+	}
+
 	inst.mu.Lock()
 	f := inst.fds[n]
-	if n != fdListener {
-		delete(inst.fds, n)
+	delete(inst.fds, n)
+	// Closing the response of a call ends the call for the guest.
+	if cid, k, ok := parseCallFD(n); ok && k == fdCallResponseIn {
+		delete(inst.calls, cid)
 	}
 	inst.mu.Unlock()
 
-	if f != nil && n != fdListener {
+	if f != nil {
 		f.close()
 	}
 }
@@ -229,6 +241,13 @@ func (inst *instance) request(id uint32) *request {
 	defer inst.mu.Unlock()
 
 	return inst.reqs[id]
+}
+
+func (inst *instance) call(cid uint32) *call {
+	inst.mu.Lock()
+	defer inst.mu.Unlock()
+
+	return inst.calls[cid]
 }
 
 // output logs what the guest writes on its standard output and error.
@@ -256,7 +275,7 @@ func (inst *instance) register(st *request) error {
 		return engine.ErrInstanceDied
 	}
 
-	// Ids wrap so that the descriptors of a request stay below the client ones; an id still in use is skipped.
+	// Ids wrap so that the descriptors of a request stay below the call ones; an id still in use is skipped.
 	for {
 		st.id = inst.nextID
 		inst.nextID = (inst.nextID + 1) % maxRequestIDs
@@ -268,8 +287,6 @@ func (inst *instance) register(st *request) error {
 	inst.reqs[st.id] = st
 	inst.fds[requestFD(st.id, fdBodyIn)] = st.bodyIn
 	inst.fds[requestFD(st.id, fdResponseOut)] = newVFD(st.respOut)
-	inst.fds[requestFD(st.id, fdNextResponseIn)] = newVFD(st.nextRespIn)
-	inst.fds[requestFD(st.id, fdNextBodyOut)] = newVFD(st.nextBodyOut)
 	inst.fds[requestFD(st.id, fdCancel)] = newVFD(st.cancel)
 
 	return nil
@@ -307,7 +324,7 @@ func (inst *instance) serve(rw http.ResponseWriter, req *http.Request, next http
 	st.writeResponse(rw)
 
 	<-st.done
-	st.nextWG.Wait()
+	st.calls.Wait()
 
 	return nil
 }
@@ -319,31 +336,29 @@ type request struct {
 	req  *http.Request
 	next http.Handler
 
-	bodyIn      *vfd
-	respOut     *engine.Pipe
-	nextRespIn  *engine.Pipe
-	nextBodyOut *engine.Pipe
-	cancel      *engine.Pipe
+	bodyIn  *vfd
+	respOut *engine.Pipe
+	cancel  *engine.Pipe
 
-	mu          sync.Mutex
-	set         *requestBlock
-	resp        *responseBlock
-	nextStarted bool
-	ended       bool
-	done        chan struct{}
-	nextWG      sync.WaitGroup
+	mu           sync.Mutex
+	resp         *responseBlock
+	respTrailers http.Header
+	// pending are the calls made for this request and not finished yet; they are aborted when the request ends.
+	pending map[*call]struct{}
+	ended   bool
+	done    chan struct{}
+	calls   sync.WaitGroup
 }
 
 func newRequest(inst *instance, req *http.Request, next http.Handler) *request {
 	st := &request{
-		inst:        inst,
-		req:         req,
-		next:        next,
-		respOut:     engine.NewPipe(pipeSize, inst.notify),
-		nextRespIn:  engine.NewPipe(pipeSize, inst.notify),
-		nextBodyOut: engine.NewPipe(pipeSize, inst.notify),
-		cancel:      engine.NewPipe(0, inst.notify),
-		done:        make(chan struct{}),
+		inst:    inst,
+		req:     req,
+		next:    next,
+		respOut: engine.NewPipe(pipeSize, inst.notify),
+		cancel:  engine.NewPipe(0, inst.notify),
+		pending: map[*call]struct{}{},
+		done:    make(chan struct{}),
 	}
 
 	bodyIn := engine.NewPipe(pipeSize, inst.notify)
@@ -351,7 +366,7 @@ func newRequest(inst *instance, req *http.Request, next http.Handler) *request {
 	if req.Body == nil || req.Body == http.NoBody {
 		_ = bodyIn.Close()
 	} else {
-		// The body is streamed to the guest only when it reads it; until then, next can get it untouched.
+		// The body is streamed to the guest only when it reads it; until then, a call can forward it untouched.
 		st.bodyIn.onOpen = func() {
 			go func() {
 				_, err := io.Copy(bodyIn, req.Body)
@@ -372,6 +387,10 @@ func (st *request) end(err error) {
 		return
 	}
 	st.ended = true
+	pending := make([]*call, 0, len(st.pending))
+	for c := range st.pending {
+		pending = append(pending, c)
+	}
 	st.mu.Unlock()
 
 	cause := err
@@ -382,10 +401,34 @@ func (st *request) end(err error) {
 	_ = st.respOut.CloseWithError(err)
 	_ = st.cancel.Close()
 	_ = st.bodyIn.pipe.CloseWithError(cause)
-	_ = st.nextRespIn.CloseWithError(cause)
-	_ = st.nextBodyOut.CloseWithError(cause)
+
+	for _, c := range pending {
+		c.abort(cause)
+	}
 
 	close(st.done)
+}
+
+// track adds a call to the request; it reports false when the request already ended.
+func (st *request) track(c *call) bool {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
+	if st.ended {
+		return false
+	}
+	st.pending[c] = struct{}{}
+	st.calls.Add(1)
+
+	return true
+}
+
+func (st *request) untrack(c *call) {
+	st.mu.Lock()
+	delete(st.pending, c)
+	st.mu.Unlock()
+
+	st.calls.Done()
 }
 
 // watchCancel tells the guest when the client goes away.
@@ -398,7 +441,8 @@ func (st *request) watchCancel() {
 }
 
 // writeResponse copies the response of the guest to rw: the status and the headers at the first byte of the body or
-// when the guest is done, then the body as it comes.
+// when the guest is done, then the body as it comes, flushed whenever the guest has nothing more for now, then the
+// trailers.
 func (st *request) writeResponse(rw http.ResponseWriter) {
 	ctx := context.WithoutCancel(st.req.Context())
 	headerSent := false
@@ -423,6 +467,7 @@ func (st *request) writeResponse(rw http.ResponseWriter) {
 		rw.WriteHeader(resp.Status)
 	}
 
+	rc := http.NewResponseController(rw)
 	buf := make([]byte, 32*1024)
 	for {
 		n, err := st.respOut.Read(ctx, buf)
@@ -431,6 +476,8 @@ func (st *request) writeResponse(rw http.ResponseWriter) {
 			if _, werr := rw.Write(buf[:n]); werr != nil {
 				// The client is gone: make the writes of the guest fail instead of blocking on a full pipe.
 				_ = st.respOut.CloseWithError(werr)
+			} else if st.respOut.Buffered() == 0 {
+				_ = rc.Flush()
 			}
 		}
 		if err != nil {
@@ -440,101 +487,12 @@ func (st *request) writeResponse(rw http.ResponseWriter) {
 
 	<-st.done
 	sendHeader()
-}
 
-// startNext runs next on its own goroutine, with the request as the guest set it; the guest reads the response on
-// its next response descriptor.
-func (st *request) startNext(mode uint32) {
 	st.mu.Lock()
-	if st.nextStarted || st.ended {
-		st.mu.Unlock()
-		st.inst.logger.Error().Msg("Wasm guest called next twice for the same request")
-
-		return
+	for k, v := range st.respTrailers {
+		rw.Header()[http.TrailerPrefix+k] = v
 	}
-	st.nextStarted = true
-	set := st.set
 	st.mu.Unlock()
-
-	req := st.req.Clone(st.req.Context())
-	if set != nil {
-		req.Method = set.Method
-		if u, err := req.URL.Parse(set.Target); err == nil {
-			req.URL = u
-			req.RequestURI = set.Target
-		}
-		req.Host = set.Host
-		req.Header = set.Header
-	}
-
-	switch mode {
-	case bodyFromGuest:
-		req.Body = io.NopCloser(pipeReader{ctx: req.Context(), pipe: st.nextBodyOut})
-		req.ContentLength = -1
-		if set != nil {
-			req.ContentLength = set.ContentLength
-		}
-	case bodyNone:
-		req.Body = http.NoBody
-		req.ContentLength = 0
-	default:
-		// The guest did not read the body: next gets it as the client sent it.
-	}
-
-	st.nextWG.Go(func() {
-		w := &nextWriter{pipe: st.nextRespIn, header: http.Header{}}
-		defer func() {
-			if r := recover(); r != nil {
-				if r == http.ErrAbortHandler { //nolint:errorlint // Sentinel compared by identity, as net/http does.
-					w.fail("next aborted the response")
-				} else {
-					st.inst.logger.Error().Interface("panic", r).Msg("Next handler panicked")
-					w.fail(fmt.Sprintf("next panicked: %v", r))
-				}
-			}
-			w.WriteHeader(http.StatusOK)
-			_ = st.nextRespIn.Close()
-		}()
-
-		st.next.ServeHTTP(w, req)
-	})
-}
-
-// nextWriter is the ResponseWriter given to next: the status and the headers go to the guest as a frame, the body
-// right after.
-type nextWriter struct {
-	pipe   *engine.Pipe
-	header http.Header
-	sent   bool
-}
-
-func (w *nextWriter) Header() http.Header {
-	return w.header
-}
-
-func (w *nextWriter) WriteHeader(code int) {
-	if w.sent {
-		return
-	}
-	w.sent = true
-
-	block := appendResponse(responseBlock{Status: code, Header: w.header.Clone()})
-	_, _ = w.pipe.Write(appendFrame(block))
-}
-
-func (w *nextWriter) Write(b []byte) (int, error) {
-	w.WriteHeader(http.StatusOK)
-
-	return w.pipe.Write(b)
-}
-
-func (w *nextWriter) fail(msg string) {
-	if w.sent {
-		return
-	}
-	w.sent = true
-
-	_, _ = w.pipe.Write(appendFrame(appendResponse(responseBlock{Error: msg})))
 }
 
 // instantiateHost exposes the imports of the traefik module, all bound to this instance.
@@ -542,7 +500,7 @@ func (inst *instance) instantiateHost(ctx context.Context) error {
 	read := func(m api.Module, ptr, size uint32) []byte {
 		b, _ := m.Memory().Read(ptr, size)
 
-		return b
+		return bytes.Clone(b)
 	}
 	// put writes block at ptr when it fits in size bytes, and returns its size in any case.
 	put := func(m api.Module, ptr, size uint32, block []byte) uint32 {
@@ -564,23 +522,15 @@ func (inst *instance) instantiateHost(ctx context.Context) error {
 		return put(m, ptr, size, appendRequest(requestInfo(st.req)))
 	}).Export("req_info")
 
-	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, id, ptr, size uint32) {
+	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, id, ptr, size uint32) uint32 {
 		st := inst.request(id)
 		if st == nil {
-			return
+			return 0
 		}
 
-		set, err := parseRequest(read(m, ptr, size))
-		if err != nil {
-			inst.logger.Error().Err(err).Msg("Invalid request from the wasm guest")
-
-			return
-		}
-
-		st.mu.Lock()
-		st.set = &set
-		st.mu.Unlock()
-	}).Export("req_set")
+		// net/http fills the trailers when the body ends, which the guest waits for before asking.
+		return put(m, ptr, size, appendFields(st.req.Trailer))
+	}).Export("req_trailers")
 
 	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, id, ptr, size uint32) {
 		st := inst.request(id)
@@ -604,11 +554,18 @@ func (inst *instance) instantiateHost(ctx context.Context) error {
 		st.mu.Unlock()
 	}).Export("resp_set")
 
-	b.NewFunctionBuilder().WithFunc(func(_ context.Context, _ api.Module, id, mode uint32) {
-		if st := inst.request(id); st != nil {
-			st.startNext(mode)
+	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, id, ptr, size uint32) {
+		st := inst.request(id)
+		if st == nil {
+			return
 		}
-	}).Export("next_start")
+
+		trailers := parseHeader(string(read(m, ptr, size)))
+
+		st.mu.Lock()
+		st.respTrailers = trailers
+		st.mu.Unlock()
+	}).Export("resp_trailers")
 
 	b.NewFunctionBuilder().WithFunc(func(_ context.Context, _ api.Module, id uint32) {
 		if st := inst.request(id); st != nil {
@@ -616,8 +573,42 @@ func (inst *instance) instantiateHost(ctx context.Context) error {
 		}
 	}).Export("done")
 
-	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, ptr, size uint32) uint32 {
-		return put(m, ptr, size, inst.cfg.GuestConfig)
+	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, target, id, ptr, size, mode uint32) uint32 {
+		return inst.startCall(target, id, read(m, ptr, size), mode)
+	}).Export("call")
+
+	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, cid, ptr, size uint32) {
+		c := inst.call(cid)
+		if c == nil {
+			return
+		}
+
+		trailers := parseHeader(string(read(m, ptr, size)))
+
+		c.mu.Lock()
+		c.reqTrailers = trailers
+		c.mu.Unlock()
+	}).Export("call_set_trailers")
+
+	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, cid, ptr, size uint32) uint32 {
+		c := inst.call(cid)
+		if c == nil {
+			return 0
+		}
+
+		c.mu.Lock()
+		defer c.mu.Unlock()
+
+		return put(m, ptr, size, appendFields(c.respTrailers))
+	}).Export("call_trailers")
+
+	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, kptr, klen, ptr, size uint32) int32 {
+		v, ok := inst.store[string(read(m, kptr, klen))]
+		if !ok {
+			return -1
+		}
+
+		return int32(put(m, ptr, size, []byte(v)))
 	}).Export("config_get")
 
 	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, level, ptr, size uint32) {
@@ -633,10 +624,6 @@ func (inst *instance) instantiateHost(ctx context.Context) error {
 		return 0
 	}).Export("log_enabled")
 
-	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, ptr, size, mode uint32) uint32 {
-		return inst.startClient(bytes.Clone(read(m, ptr, size)), mode)
-	}).Export("client_start")
-
 	_, err := b.Instantiate(ctx)
 
 	return err
@@ -648,6 +635,15 @@ func requestInfo(req *http.Request) requestBlock {
 		scheme = "https"
 	}
 
+	// net/http moves the Trailer header to Request.Trailer: the guest gets it back, as it announces the trailers.
+	header := req.Header
+	if len(req.Trailer) > 0 {
+		header = header.Clone()
+		for k := range req.Trailer {
+			header.Add("Trailer", k)
+		}
+	}
+
 	// The request target of the client may be in absolute form: the guest always gets the path and the query.
 	return requestBlock{
 		Method:        req.Method,
@@ -657,7 +653,7 @@ func requestInfo(req *http.Request) requestBlock {
 		Proto:         req.Proto,
 		RemoteAddr:    req.RemoteAddr,
 		ContentLength: req.ContentLength,
-		Header:        req.Header,
+		Header:        header,
 	}
 }
 

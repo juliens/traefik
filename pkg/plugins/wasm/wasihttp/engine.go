@@ -1,8 +1,11 @@
 package wasihttp
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/traefik/traefik/v3/pkg/plugins/wasm/engine"
@@ -41,13 +44,19 @@ func New(ctx context.Context, cfg engine.Config) (engine.Engine, error) {
 		return nil, err
 	}
 
+	store, err := configStore(cfg.GuestConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	e := &wasiHTTP{cfg: cfg}
 	if cfg.AllowOutbound {
 		e.client = newOutboundClient()
 	}
 
-	pool, err := engine.NewPool(ctx, cfg.InstanceCount(), func(ctx context.Context, slot int) (engine.Instance, error) {
-		return newInstance(ctx, &e.cfg, e.client, slot)
+	var pool *engine.Pool
+	pool, err = engine.NewPool(ctx, cfg.InstanceCount(), func(ctx context.Context, slot int) (engine.Instance, error) {
+		return newInstance(ctx, &e.cfg, store, e.client, slot)
 	}, cfg.Logger)
 	if err != nil {
 		return nil, err
@@ -113,4 +122,30 @@ func (e *wasiHTTP) Close(ctx context.Context) error {
 	}
 
 	return err
+}
+
+// configStore builds the wasi:config/store of the guest from the middleware configuration: each top-level key is a
+// key, with a string value as is and any other value as JSON.
+func configStore(config []byte) (map[string]string, error) {
+	store := map[string]string{}
+	if len(bytes.TrimSpace(config)) == 0 {
+		return store, nil
+	}
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(config, &raw); err != nil {
+		return nil, fmt.Errorf("decoding the plugin configuration: %w", err)
+	}
+
+	for k, v := range raw {
+		var s string
+		if err := json.Unmarshal(v, &s); err == nil {
+			store[k] = s
+
+			continue
+		}
+		store[k] = string(v)
+	}
+
+	return store, nil
 }

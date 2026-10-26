@@ -74,7 +74,8 @@ func (s *WasmPluginSuite) TestPlugins() {
 	err = try.Request(req, 5*time.Second, try.StatusCodeIs(http.StatusOK), try.BodyContains("body=ping"))
 	require.NoError(s.T(), err)
 
-	err = try.GetRequest("http://127.0.0.1:8000/config", 5*time.Second, try.BodyContains(`{"value":"1"}`))
+	err = try.GetRequest("http://127.0.0.1:8000/config?key=value", 5*time.Second,
+		try.StatusCodeIs(http.StatusOK), try.BodyContains("1"))
 	require.NoError(s.T(), err)
 
 	// An http-wasm plugin built with TinyGo.
@@ -88,7 +89,8 @@ func (s *WasmPluginSuite) TestPlugins() {
 	err = try.GetRequest("http://127.0.0.1:8000/tinygo", 30*time.Second, try.BodyContains("backend saw X-Plugin=b"))
 	require.NoError(s.T(), err)
 
-	err = try.GetRequest("http://127.0.0.1:8000/config", 5*time.Second, try.BodyContains(`{"value":"2"}`))
+	err = try.GetRequest("http://127.0.0.1:8000/config?key=value", 5*time.Second,
+		try.StatusCodeIs(http.StatusOK), try.BodyContains("2"))
 	require.NoError(s.T(), err)
 }
 

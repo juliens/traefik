@@ -1,9 +1,9 @@
 package wasihttp
 
 import (
-	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 
 	"github.com/traefik/traefik/v3/pkg/plugins/wasm/engine"
 )
@@ -28,8 +28,9 @@ type vfd struct {
 	pipe *engine.Pipe
 
 	// onOpen runs once, at the first read of the guest, to start a lazy producer.
-	onOpen func()
-	once   sync.Once
+	onOpen  func()
+	once    sync.Once
+	wasRead atomic.Bool
 }
 
 func newVFD(pipe *engine.Pipe) *vfd {
@@ -37,6 +38,7 @@ func newVFD(pipe *engine.Pipe) *vfd {
 }
 
 func (f *vfd) read(p []byte) (int, uint32) {
+	f.wasRead.Store(true)
 	if f.onOpen != nil {
 		f.once.Do(f.onOpen)
 	}
@@ -70,20 +72,15 @@ func (f *vfd) readable() int {
 	return f.pipe.Readable()
 }
 
+// opened reports whether the guest read the descriptor at least once.
+func (f *vfd) opened() bool {
+	return f.wasRead.Load()
+}
+
 func (f *vfd) writable() bool {
 	return f.pipe.Writable()
 }
 
 func (f *vfd) close() {
 	_ = f.pipe.Close()
-}
-
-// pipeReader reads the host side of a pipe as an io.Reader.
-type pipeReader struct {
-	ctx  context.Context
-	pipe *engine.Pipe
-}
-
-func (r pipeReader) Read(p []byte) (int, error) {
-	return r.pipe.Read(r.ctx, p)
 }

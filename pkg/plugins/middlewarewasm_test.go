@@ -153,8 +153,9 @@ func TestWasmMiddleware_WasiHTTP(t *testing.T) {
 	assert.Equal(t, "pass", rw.Header().Get("X-Next-Saw-Plugin"))
 
 	rw = httptest.NewRecorder()
-	h.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/config", http.NoBody))
-	assert.JSONEq(t, `{"a":1}`, rw.Body.String())
+	h.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/config?key=a", http.NoBody))
+	assert.Equal(t, http.StatusOK, rw.Code)
+	assert.Equal(t, "1", rw.Body.String())
 }
 
 func TestNewWasmMiddlewareBuilder_Errors(t *testing.T) {

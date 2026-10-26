@@ -27,11 +27,13 @@ func TestPipe_GuestRead(t *testing.T) {
 	_, err = p.Write([]byte("hello"))
 	require.NoError(t, err)
 	assert.Equal(t, 5, p.Readable())
+	assert.Equal(t, 5, p.Buffered())
 	assert.Equal(t, 1, events)
 
 	n, err = p.GuestRead(buf)
 	require.NoError(t, err)
 	assert.Equal(t, "hello", string(buf[:n]))
+	assert.Equal(t, 0, p.Buffered())
 
 	require.NoError(t, p.Close())
 	assert.Equal(t, 1, p.Readable())
