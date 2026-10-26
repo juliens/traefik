@@ -58,6 +58,34 @@ func TestWasmMiddleware(t *testing.T) {
 	assert.Len(t, builder.engines, 2)
 }
 
+func TestWasmMiddleware_WasiHTTP(t *testing.T) {
+	t.Parallel()
+
+	ctx := log.Logger.WithContext(t.Context())
+
+	builder, err := newWasmMiddlewareBuilderFromPath(ctx, "./fixtures/wasihttp/plugin.wasm", Settings{Instances: 1})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = builder.Close(context.Background()) })
+
+	m, err := builder.newMiddleware(map[string]any{"a": 1}, "test")
+	require.NoError(t, err)
+
+	h, err := m.NewHandler(ctx, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("X-Next-Saw-Plugin", req.Header.Get("X-Plugin"))
+		rw.WriteHeader(http.StatusTeapot)
+	}))
+	require.NoError(t, err)
+
+	rw := httptest.NewRecorder()
+	h.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/next", http.NoBody))
+	assert.Equal(t, http.StatusTeapot, rw.Code)
+	assert.Equal(t, "pass", rw.Header().Get("X-Next-Saw-Plugin"))
+
+	rw = httptest.NewRecorder()
+	h.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/config", http.NoBody))
+	assert.JSONEq(t, `{"a":1}`, rw.Body.String())
+}
+
 func TestNewWasmMiddlewareBuilder_Errors(t *testing.T) {
 	t.Parallel()
 
@@ -83,6 +111,18 @@ func TestNewWasmMiddlewareBuilder_Errors(t *testing.T) {
 			path:     "./fixtures/withnext/plugin.wasm",
 			settings: Settings{MemoryLimit: -1},
 			err:      "settings.memoryLimit must be positive",
+		},
+		{
+			desc:     "mounts with a wasm-go plugin",
+			path:     "./fixtures/wasihttp/plugin.wasm",
+			settings: Settings{Mounts: []string{"/tmp"}},
+			err:      "settings.mounts is not supported by plugins built with github.com/traefik/wasm-go",
+		},
+		{
+			desc:     "exclusive with a wasm-go plugin",
+			path:     "./fixtures/wasihttp/plugin.wasm",
+			settings: Settings{Exclusive: true},
+			err:      "settings.exclusive is only supported by http-wasm plugins",
 		},
 	}
 

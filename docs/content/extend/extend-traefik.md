@@ -39,7 +39,11 @@ This approach eliminates the need for compilation and a complex toolchain, makin
 
 ### WebAssembly (WASM) Plugin System
 
-Traefik WASM plugins can be developed using any language that compiles to WebAssembly (WASM). This method is based on [http-wasm](https://http-wasm.io/).
+Traefik WASM plugins can be developed using any language that compiles to WebAssembly (WASM).
+Traefik supports two kinds of WASM plugins, and finds the kind of a plugin from its exports:
+
+- Plugins based on [http-wasm](https://http-wasm.io/), in any language with an http-wasm guest library.
+- Plugins written in Go with the [Traefik WASM Go SDK](https://github.com/traefik/wasm-go): a plugin is a `net/http` handler, and the next handler of the chain is `wasihttp.Next`.
 
 WASM plugins compile to portable binary modules that execute with near-native performance while maintaining security isolation.
 
@@ -59,6 +63,14 @@ A request is handled by one instance, but the instance is free while the rest of
 memory of a WASM middleware does not grow with the number of concurrent requests.
 The number of instances, their memory limit, and the per-request exclusive mode are set in the
 [plugin settings](../reference/install-configuration/experimental/plugins.md#wasm-plugin-execution).
+
+A plugin built with the Go SDK serves each request in its own goroutine, inside one instance: any number of requests
+run at the same time in one memory, as in a regular Go server.
+It is built with the standard Go toolchain (Go 1.24 or later):
+
+```bash
+GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -trimpath -ldflags="-s -w" -o plugin.wasm .
+```
 
 ## Build Your Own Plugins
 

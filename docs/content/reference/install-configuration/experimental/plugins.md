@@ -106,3 +106,9 @@ calls, a plugin must keep its per-request state behind the request context it re
 as the http-wasm ABI requires.
 A plugin that keeps per-request state in global variables can set `settings.exclusive` to get a dedicated
 instance per in-flight request, at the cost of one instance memory per concurrent request.
+
+A plugin built with the [Traefik WASM Go SDK](https://github.com/traefik/wasm-go) serves every request in its own
+goroutine, inside one instance, so its global state must be synchronized as in any Go server.
+Such a plugin has no file system: `settings.mounts` and `settings.exclusive` are refused.
+When an instance stops (for example on `os.Exit` or when it runs out of memory), its in-flight requests get a
+`502 Bad Gateway` response and the instance is replaced.

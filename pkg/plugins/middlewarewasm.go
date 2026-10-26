@@ -14,6 +14,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/middlewares"
 	"github.com/traefik/traefik/v3/pkg/plugins/wasm/engine"
 	"github.com/traefik/traefik/v3/pkg/plugins/wasm/httpwasm"
+	"github.com/traefik/traefik/v3/pkg/plugins/wasm/wasihttp"
 )
 
 // wasmMiddlewareBuilder holds what is shared by every middleware of a wasm plugin: the compiled guest and its
@@ -53,8 +54,10 @@ func newWasmMiddlewareBuilderFromPath(ctx context.Context, path string, settings
 		return nil, fmt.Errorf("detecting guest ABI: %w", err)
 	}
 
-	if mode != engine.ModeHTTPWasm {
-		return nil, fmt.Errorf("unsupported guest ABI %q", mode)
+	if mode == engine.ModeWasiHTTP {
+		if err := wasihttp.ValidateSettings(settings.Mounts, settings.Exclusive); err != nil {
+			return nil, err
+		}
 	}
 
 	if settings.Instances < 0 {
@@ -138,6 +141,8 @@ func (b *wasmMiddlewareBuilder) engineFor(ctx context.Context, middlewareName st
 	switch b.mode {
 	case engine.ModeHTTPWasm:
 		eng, err = httpwasm.New(ctx, cfg)
+	case engine.ModeWasiHTTP:
+		eng, err = wasihttp.New(ctx, cfg)
 	default:
 		err = fmt.Errorf("unsupported guest ABI %q", b.mode)
 	}
