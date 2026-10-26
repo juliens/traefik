@@ -1,0 +1,7 @@
+The files hostfuncs.go, state.go, cstring.go and nethttp.go of this package are derived from
+github.com/http-wasm/http-wasm-host-go v0.7.0 (packages handler and handler/nethttp),
+Copyright 2022 the http-wasm Authors, licensed under the Apache License, Version 2.0:
+https://github.com/http-wasm/http-wasm-host-go/blob/v0.7.0/LICENSE
+
+Changes: the host functions are bound to an engine instead of a middleware, the guest pool and the
+middleware lifecycle were removed, and the request state of both upstream packages was merged.

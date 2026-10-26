@@ -53,6 +53,9 @@ To learn more about how to add a new plugin to a Traefik instance, please refer 
 | <a id="opt-settings-envs" href="#opt-settings-envs" title="#opt-settings-envs">`settings.envs`</a> | Environment variables to forward to the wasm guest. | []string | No |
 | <a id="opt-settings-mounts" href="#opt-settings-mounts" title="#opt-settings-mounts">`settings.mounts`</a> | Directory to mount to the wasm guest. | []string | No |
 | <a id="opt-settings-useUnsafe" href="#opt-settings-useUnsafe" title="#opt-settings-useUnsafe">`settings.useUnsafe`</a> | Allow the plugin to use unsafe and syscall packages. | bool | No |
+| <a id="opt-settings-instances" href="#opt-settings-instances" title="#opt-settings-instances">`settings.instances`</a> | Number of wasm instances per middleware. Defaults to the number of CPUs, with a maximum of 8. | int | No |
+| <a id="opt-settings-memoryLimit" href="#opt-settings-memoryLimit" title="#opt-settings-memoryLimit">`settings.memoryLimit`</a> | Maximum linear memory of a wasm instance, in bytes. Defaults to 4GiB. | int | No |
+| <a id="opt-settings-exclusive" href="#opt-settings-exclusive" title="#opt-settings-exclusive">`settings.exclusive`</a> | Dedicate a wasm instance to each in-flight request instead of sharing the instances between requests. See [wasm plugin execution](#wasm-plugin-execution). | bool | No |
 
 ## Local Plugins
 
@@ -85,3 +88,21 @@ experimental:
 | <a id="opt-settings-envs-2" href="#opt-settings-envs-2" title="#opt-settings-envs-2">`settings.envs`</a> | Environment variables to forward to the wasm guest. | []string | No |
 | <a id="opt-settings-mounts-2" href="#opt-settings-mounts-2" title="#opt-settings-mounts-2">`settings.mounts`</a> | Directory to mount to the wasm guest. | []string | No |
 | <a id="opt-settings-useUnsafe-2" href="#opt-settings-useUnsafe-2" title="#opt-settings-useUnsafe-2">`settings.useUnsafe`</a> | Allow the plugin to use unsafe and syscall packages. | bool | No |
+| <a id="opt-settings-instances-2" href="#opt-settings-instances-2" title="#opt-settings-instances-2">`settings.instances`</a> | Number of wasm instances per middleware. Defaults to the number of CPUs, with a maximum of 8. | int | No |
+| <a id="opt-settings-memoryLimit-2" href="#opt-settings-memoryLimit-2" title="#opt-settings-memoryLimit-2">`settings.memoryLimit`</a> | Maximum linear memory of a wasm instance, in bytes. Defaults to 4GiB. | int | No |
+| <a id="opt-settings-exclusive-2" href="#opt-settings-exclusive-2" title="#opt-settings-exclusive-2">`settings.exclusive`</a> | Dedicate a wasm instance to each in-flight request instead of sharing the instances between requests. See [wasm plugin execution](#wasm-plugin-execution). | bool | No |
+
+## Wasm Plugin Execution
+
+A wasm middleware runs on a fixed number of guest instances (`settings.instances`), shared by all the requests and
+all the routers that use the same middleware configuration.
+A request is pinned to one instance for its `handle_request` and `handle_response` calls, but the instance is free
+while the next handler of the chain runs: a slow upstream does not hold an instance.
+The memory of a wasm middleware is therefore bounded by `settings.instances` times the memory of one instance,
+whatever the number of in-flight requests.
+
+Because several requests are handled by the same instance between their `handle_request` and `handle_response`
+calls, a plugin must keep its per-request state behind the request context it returns from `handle_request`,
+as the http-wasm ABI requires.
+A plugin that keeps per-request state in global variables can set `settings.exclusive` to get a dedicated
+instance per in-flight request, at the cost of one instance memory per concurrent request.

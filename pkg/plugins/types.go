@@ -10,10 +10,14 @@ const (
 	typeProvider   = "provider"
 )
 
+// Settings are the static settings of a plugin.
 type Settings struct {
-	Envs      []string `description:"Environment variables to forward to the wasm guest." json:"envs,omitempty" toml:"envs,omitempty" yaml:"envs,omitempty"`
-	Mounts    []string `description:"Directory to mount to the wasm guest." json:"mounts,omitempty" toml:"mounts,omitempty" yaml:"mounts,omitempty"`
-	UseUnsafe bool     `description:"Allow the plugin to use unsafe and syscall packages." json:"useUnsafe,omitempty" toml:"useUnsafe,omitempty" yaml:"useUnsafe,omitempty"`
+	Envs        []string `description:"Environment variables to forward to the wasm guest." json:"envs,omitempty" toml:"envs,omitempty" yaml:"envs,omitempty"`
+	Mounts      []string `description:"Directory to mount to the wasm guest." json:"mounts,omitempty" toml:"mounts,omitempty" yaml:"mounts,omitempty"`
+	UseUnsafe   bool     `description:"Allow the plugin to use unsafe and syscall packages." json:"useUnsafe,omitempty" toml:"useUnsafe,omitempty" yaml:"useUnsafe,omitempty"`
+	Instances   int      `description:"Number of wasm instances per middleware (default: GOMAXPROCS, at most 8)." json:"instances,omitempty" toml:"instances,omitempty" yaml:"instances,omitempty" export:"true"`
+	MemoryLimit int64    `description:"Maximum linear memory of a wasm instance, in bytes (default: 4GiB)." json:"memoryLimit,omitempty" toml:"memoryLimit,omitempty" yaml:"memoryLimit,omitempty" export:"true"`
+	Exclusive   bool     `description:"Dedicate a wasm instance to each in-flight request instead of sharing the instances (http-wasm plugins only)." json:"exclusive,omitempty" toml:"exclusive,omitempty" yaml:"exclusive,omitempty" export:"true"`
 }
 
 // Descriptor The static part of a plugin configuration.

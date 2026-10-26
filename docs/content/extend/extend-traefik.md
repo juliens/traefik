@@ -51,6 +51,15 @@ WASM plugins compile to portable binary modules that execute with near-native pe
 - Strong security isolation
 - Currently supports middleware only
 
+#### Execution model
+
+A WASM middleware runs on a fixed number of guest instances, shared by all the requests and by every router that
+uses the same middleware configuration.
+A request is handled by one instance, but the instance is free while the rest of the middleware chain runs, so the
+memory of a WASM middleware does not grow with the number of concurrent requests.
+The number of instances, their memory limit, and the per-request exclusive mode are set in the
+[plugin settings](../reference/install-configuration/experimental/plugins.md#wasm-plugin-execution).
+
 ## Build Your Own Plugins
 
 Traefik users can create their own plugins and share them with the community using the [Plugin Catalog](https://plugins.traefik.io/). To learn more about Traefik plugin creation, please refer to the [developer documentation](https://plugins.traefik.io/create).

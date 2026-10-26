@@ -136,7 +136,7 @@ func newMiddlewareBuilder(ctx context.Context, goPath string, manifest *Manifest
 			return nil, fmt.Errorf("wasm path: %w", err)
 		}
 
-		return newWasmMiddlewareBuilder(goPath, moduleName, wasmPath, settings)
+		return newWasmMiddlewareBuilder(ctx, goPath, moduleName, wasmPath, settings)
 
 	case runtimeYaegi, "":
 		i, err := newInterpreter(ctx, goPath, manifest, settings)

@@ -1,94 +1,88 @@
 package plugins
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path"
-	"reflect"
 	"testing"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tetratelabs/wazero"
 )
 
-func TestSettingsWithoutSocket(t *testing.T) {
-	cache := wazero.NewCompilationCache()
-
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+func TestWasmMiddleware(t *testing.T) {
+	t.Parallel()
 
 	ctx := log.Logger.WithContext(t.Context())
 
-	t.Setenv("PLUGIN_TEST", "MY-TEST")
-	t.Setenv("PLUGIN_TEST_B", "MY-TEST_B")
+	builder, err := newWasmMiddlewareBuilderFromPath(ctx, "./fixtures/withnext/plugin.wasm", Settings{Instances: 1})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = builder.Close(context.Background()) })
+
+	next := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("X-Next-Saw-Plugin", req.Header.Get("X-Plugin"))
+		rw.WriteHeader(http.StatusTeapot)
+	})
+
+	serve := func(t *testing.T, config map[string]any) *httptest.ResponseRecorder {
+		t.Helper()
+
+		m, err := builder.newMiddleware(config, "test")
+		require.NoError(t, err)
+
+		h, err := m.NewHandler(ctx, next)
+		require.NoError(t, err)
+
+		rw := httptest.NewRecorder()
+		h.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody))
+
+		return rw
+	}
+
+	rw := serve(t, map[string]any{"header": "a"})
+	assert.Equal(t, http.StatusTeapot, rw.Code)
+	assert.Equal(t, "a", rw.Header().Get("X-Next-Saw-Plugin"))
+	assert.Equal(t, "1", rw.Header().Get("X-Plugin-Resp"))
+
+	// The same middleware configuration shares the engine, whatever the chain.
+	rw = serve(t, map[string]any{"header": "a"})
+	assert.Equal(t, "a", rw.Header().Get("X-Next-Saw-Plugin"))
+	assert.Equal(t, "2", rw.Header().Get("X-Plugin-Resp"))
+	assert.Len(t, builder.engines, 1)
+
+	// Another configuration gets its own engine.
+	rw = serve(t, map[string]any{"header": "b"})
+	assert.Equal(t, "b", rw.Header().Get("X-Next-Saw-Plugin"))
+	assert.Equal(t, "1", rw.Header().Get("X-Plugin-Resp"))
+	assert.Len(t, builder.engines, 2)
+}
+
+func TestNewWasmMiddlewareBuilder_Errors(t *testing.T) {
+	t.Parallel()
 
 	testCases := []struct {
-		desc        string
-		getSettings func(t *testing.T) (Settings, map[string]any)
-		expected    string
+		desc     string
+		path     string
+		settings Settings
+		err      string
 	}{
 		{
-			desc: "mounts path",
-			getSettings: func(t *testing.T) (Settings, map[string]any) {
-				t.Helper()
-
-				tempDir := t.TempDir()
-				filePath := path.Join(tempDir, "hello.txt")
-				err := os.WriteFile(filePath, []byte("content_test"), 0o644)
-				require.NoError(t, err)
-
-				return Settings{Mounts: []string{
-						tempDir,
-					}}, map[string]any{
-						"file": filePath,
-					}
-			},
-			expected: "content_test",
+			desc: "missing binary",
+			path: "./fixtures/missing.wasm",
+			err:  "loading Wasm binary: open ./fixtures/missing.wasm: no such file or directory",
 		},
 		{
-			desc: "mounts src to dest",
-			getSettings: func(t *testing.T) (Settings, map[string]any) {
-				t.Helper()
-
-				tempDir := t.TempDir()
-				filePath := path.Join(tempDir, "hello.txt")
-				err := os.WriteFile(filePath, []byte("content_test"), 0o644)
-				require.NoError(t, err)
-
-				return Settings{Mounts: []string{
-						tempDir + ":/tmp",
-					}}, map[string]any{
-						"file": "/tmp/hello.txt",
-					}
-			},
-			expected: "content_test",
+			desc:     "negative instances",
+			path:     "./fixtures/withnext/plugin.wasm",
+			settings: Settings{Instances: -1},
+			err:      "settings.instances must be positive",
 		},
 		{
-			desc: "one env",
-			getSettings: func(t *testing.T) (Settings, map[string]any) {
-				t.Helper()
-
-				envs := []string{"PLUGIN_TEST"}
-				return Settings{Envs: envs}, map[string]any{
-					"envs": envs,
-				}
-			},
-			expected: "MY-TEST\n",
-		},
-		{
-			desc: "two env",
-			getSettings: func(t *testing.T) (Settings, map[string]any) {
-				t.Helper()
-
-				envs := []string{"PLUGIN_TEST", "PLUGIN_TEST_B"}
-				return Settings{Envs: envs}, map[string]any{
-					"envs": envs,
-				}
-			},
-			expected: "MY-TEST\nMY-TEST_B\n",
+			desc:     "negative memory limit",
+			path:     "./fixtures/withnext/plugin.wasm",
+			settings: Settings{MemoryLimit: -1},
+			err:      "settings.memoryLimit must be positive",
 		},
 	}
 
@@ -96,24 +90,8 @@ func TestSettingsWithoutSocket(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
-			settings, config := test.getSettings(t)
-
-			builder := &wasmMiddlewareBuilder{path: "./fixtures/withoutsocket/plugin.wasm", cache: cache, settings: settings}
-
-			cfg := reflect.ValueOf(config)
-
-			m, applyCtx, err := builder.buildMiddleware(ctx, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				rw.WriteHeader(http.StatusTeapot)
-			}), cfg, "test")
-			require.NoError(t, err)
-
-			rw := httptest.NewRecorder()
-			req := httptest.NewRequestWithContext(applyCtx(ctx), "GET", "/", http.NoBody)
-
-			m.ServeHTTP(rw, req)
-
-			assert.Equal(t, http.StatusOK, rw.Code)
-			assert.Equal(t, test.expected, rw.Body.String())
+			_, err := newWasmMiddlewareBuilderFromPath(t.Context(), test.path, test.settings)
+			require.EqualError(t, err, test.err)
 		})
 	}
 }

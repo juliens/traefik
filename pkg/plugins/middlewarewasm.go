@@ -3,162 +3,170 @@ package plugins
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
-	"reflect"
-	"runtime"
-	"strings"
+	"sync"
 
-	"github.com/http-wasm/http-wasm-host-go/handler"
-	wasm "github.com/http-wasm/http-wasm-host-go/handler/nethttp"
 	"github.com/tetratelabs/wazero"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
-	"github.com/traefik/traefik/v3/pkg/observability/logs"
+	"github.com/traefik/traefik/v3/pkg/plugins/wasm/engine"
+	"github.com/traefik/traefik/v3/pkg/plugins/wasm/httpwasm"
 )
 
+// wasmMiddlewareBuilder holds what is shared by every middleware of a wasm plugin: the compiled guest and its
+// settings, and the engines, one per middleware configuration.
 type wasmMiddlewareBuilder struct {
-	path     string
+	code     []byte
+	mode     engine.Mode
 	cache    wazero.CompilationCache
 	settings Settings
+
+	mu      sync.Mutex
+	engines map[string]engine.Engine
 }
 
-func newWasmMiddlewareBuilder(goPath, moduleName, wasmPath string, settings Settings) (*wasmMiddlewareBuilder, error) {
-	ctx := context.Background()
-	path := filepath.Join(goPath, "src", moduleName, wasmPath)
-	cache := wazero.NewCompilationCache()
+func newWasmMiddlewareBuilder(ctx context.Context, goPath, moduleName, wasmPath string, settings Settings) (*wasmMiddlewareBuilder, error) {
+	return newWasmMiddlewareBuilderFromPath(ctx, filepath.Join(goPath, "src", moduleName, wasmPath), settings)
+}
 
+func newWasmMiddlewareBuilderFromPath(ctx context.Context, path string, settings Settings) (*wasmMiddlewareBuilder, error) {
 	code, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("loading Wasm binary: %w", err)
 	}
 
+	cache := wazero.NewCompilationCache()
+
 	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().WithCompilationCache(cache))
-	if _, err = rt.CompileModule(ctx, code); err != nil {
+	defer func() { _ = rt.Close(ctx) }()
+
+	compiled, err := rt.CompileModule(ctx, code)
+	if err != nil {
 		return nil, fmt.Errorf("compiling guest module: %w", err)
 	}
 
-	return &wasmMiddlewareBuilder{path: path, cache: cache, settings: settings}, nil
+	mode, err := engine.DetectMode(compiled)
+	if err != nil {
+		return nil, fmt.Errorf("detecting guest ABI: %w", err)
+	}
+
+	if mode != engine.ModeHTTPWasm {
+		return nil, fmt.Errorf("unsupported guest ABI %q", mode)
+	}
+
+	if settings.Instances < 0 {
+		return nil, errors.New("settings.instances must be positive")
+	}
+
+	if settings.MemoryLimit < 0 {
+		return nil, errors.New("settings.memoryLimit must be positive")
+	}
+
+	return &wasmMiddlewareBuilder{
+		code:     code,
+		mode:     mode,
+		cache:    cache,
+		settings: settings,
+		engines:  map[string]engine.Engine{},
+	}, nil
 }
 
-func (b wasmMiddlewareBuilder) newMiddleware(config map[string]any, middlewareName string) (pluginMiddleware, error) {
+// Close closes every engine of the plugin.
+func (b *wasmMiddlewareBuilder) Close(ctx context.Context) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	var errs []error
+	for key, eng := range b.engines {
+		if err := eng.Close(ctx); err != nil {
+			errs = append(errs, err)
+		}
+		delete(b.engines, key)
+	}
+
+	return errors.Join(errs...)
+}
+
+func (b *wasmMiddlewareBuilder) newMiddleware(config map[string]any, middlewareName string) (pluginMiddleware, error) {
+	// encoding/json sorts map keys, so the same configuration always gives the same bytes.
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling config: %w", err)
+	}
+
 	return &WasmMiddleware{
 		middlewareName: middlewareName,
-		config:         reflect.ValueOf(config),
+		config:         data,
 		builder:        b,
 	}, nil
 }
 
-func (b wasmMiddlewareBuilder) newHandler(ctx context.Context, next http.Handler, cfg reflect.Value, middlewareName string) (http.Handler, error) {
-	h, applyCtx, err := b.buildMiddleware(ctx, next, cfg, middlewareName)
-	if err != nil {
-		return nil, fmt.Errorf("building Wasm middleware: %w", err)
-	}
+// engineFor returns the engine of a middleware configuration, creating it on first use.
+// One middleware configuration may be referenced by several router chains: they all share the engine.
+func (b *wasmMiddlewareBuilder) engineFor(ctx context.Context, middlewareName string, config []byte) (engine.Engine, error) {
+	key := middlewareName + "\x00" + string(config)
 
-	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		h.ServeHTTP(rw, req.WithContext(applyCtx(req.Context())))
-	}), nil
-}
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
-func (b *wasmMiddlewareBuilder) buildMiddleware(ctx context.Context, next http.Handler, cfg reflect.Value, middlewareName string) (http.Handler, func(ctx context.Context) context.Context, error) {
-	code, err := os.ReadFile(b.path)
-	if err != nil {
-		return nil, nil, fmt.Errorf("loading binary: %w", err)
-	}
-
-	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().WithCompilationCache(b.cache))
-
-	guestModule, err := rt.CompileModule(ctx, code)
-	if err != nil {
-		return nil, nil, fmt.Errorf("compiling guest module: %w", err)
-	}
-
-	applyCtx, err := InstantiateHost(ctx, rt, guestModule, b.settings)
-	if err != nil {
-		return nil, nil, fmt.Errorf("instantiating host module: %w", err)
+	if eng, ok := b.engines[key]; ok {
+		return eng, nil
 	}
 
 	logger := middlewares.GetLogger(ctx, middlewareName, "wasm")
 
-	config := wazero.NewModuleConfig().WithSysWalltime().WithStartFunctions("_start", "_initialize")
-	for _, env := range b.settings.Envs {
-		config = config.WithEnv(env, os.Getenv(env))
+	cfg := engine.Config{
+		Name:        middlewareName,
+		Code:        b.code,
+		Cache:       b.cache,
+		Instances:   b.settings.Instances,
+		MemoryLimit: b.settings.MemoryLimit,
+		Exclusive:   b.settings.Exclusive,
+		Envs:        b.settings.Envs,
+		Mounts:      b.settings.Mounts,
+		GuestConfig: config,
+		Logger:      logger,
 	}
 
-	if len(b.settings.Mounts) > 0 {
-		fsConfig := wazero.NewFSConfig()
-		for _, mount := range b.settings.Mounts {
-			withDir := fsConfig.WithDirMount
-			prefix, readOnly := strings.CutSuffix(mount, ":ro")
-			if readOnly {
-				withDir = fsConfig.WithReadOnlyDirMount
-			}
-			parts := strings.Split(prefix, ":")
-			switch {
-			case len(parts) == 1:
-				fsConfig = withDir(parts[0], parts[0])
-			case len(parts) == 2:
-				fsConfig = withDir(parts[0], parts[1])
-			default:
-				return nil, nil, fmt.Errorf("invalid directory %q", mount)
-			}
-		}
-		config = config.WithFSConfig(fsConfig)
+	var (
+		eng engine.Engine
+		err error
+	)
+	switch b.mode {
+	case engine.ModeHTTPWasm:
+		eng, err = httpwasm.New(ctx, cfg)
+	default:
+		err = fmt.Errorf("unsupported guest ABI %q", b.mode)
 	}
-
-	opts := []handler.Option{
-		handler.ModuleConfig(config),
-		handler.Logger(logs.NewWasmLogger(logger)),
-	}
-
-	i := cfg.Interface()
-	if i != nil {
-		config, ok := i.(map[string]any)
-		if !ok {
-			return nil, nil, fmt.Errorf("could not type assert config: %T", i)
-		}
-
-		data, err := json.Marshal(config)
-		if err != nil {
-			return nil, nil, fmt.Errorf("marshaling config: %w", err)
-		}
-
-		opts = append(opts, handler.GuestConfig(data))
-	}
-
-	opts = append(opts, handler.Runtime(func(ctx context.Context) (wazero.Runtime, error) {
-		return rt, nil
-	}))
-
-	mw, err := wasm.NewMiddleware(applyCtx(ctx), code, opts...)
 	if err != nil {
-		return nil, nil, fmt.Errorf("creating middleware: %w", err)
+		return nil, fmt.Errorf("creating wasm engine: %w", err)
 	}
 
-	h := mw.NewHandler(ctx, next)
+	logger.Debug().Str("mode", string(b.mode)).Int("instances", cfg.InstanceCount()).Msg("Wasm engine created")
 
-	// Traefik does not Close the middleware when creating a new instance on a configuration change.
-	// When the middleware is marked to be GC, we need to close it so the wasm instance is properly closed.
-	// Reference: https://github.com/traefik/traefik/issues/11119
-	runtime.SetFinalizer(h, func(_ http.Handler) {
-		if err := mw.Close(ctx); err != nil {
-			logger.Err(err).Msg("[wasm] middleware Close failed")
-		} else {
-			logger.Debug().Msg("[wasm] middleware Close ok")
-		}
-	})
-	return h, applyCtx, nil
+	b.engines[key] = eng
+
+	return eng, nil
 }
 
 // WasmMiddleware is an HTTP handler plugin wrapper.
 type WasmMiddleware struct {
 	middlewareName string
-	config         reflect.Value
-	builder        wasmMiddlewareBuilder
+	config         []byte
+	builder        *wasmMiddlewareBuilder
 }
 
 // NewHandler creates a new HTTP handler.
-func (m WasmMiddleware) NewHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
-	return m.builder.newHandler(ctx, next, m.config, m.middlewareName)
+func (m *WasmMiddleware) NewHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
+	eng, err := m.builder.engineFor(ctx, m.middlewareName, m.config)
+	if err != nil {
+		return nil, fmt.Errorf("building Wasm middleware: %w", err)
+	}
+
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		eng.ServeHTTP(rw, req, next)
+	}), nil
 }

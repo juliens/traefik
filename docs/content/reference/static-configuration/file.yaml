@@ -673,6 +673,9 @@ experimental:
           - foobar
           - foobar
         useUnsafe: true
+        instances: 42
+        memoryLimit: 42
+        exclusive: true
     Descriptor1:
       moduleName: foobar
       version: foobar
@@ -684,6 +687,9 @@ experimental:
           - foobar
           - foobar
         useUnsafe: true
+        instances: 42
+        memoryLimit: 42
+        exclusive: true
   localPlugins:
     LocalDescriptor0:
       moduleName: foobar
@@ -695,6 +701,9 @@ experimental:
           - foobar
           - foobar
         useUnsafe: true
+        instances: 42
+        memoryLimit: 42
+        exclusive: true
     LocalDescriptor1:
       moduleName: foobar
       settings:
@@ -705,6 +714,9 @@ experimental:
           - foobar
           - foobar
         useUnsafe: true
+        instances: 42
+        memoryLimit: 42
+        exclusive: true
   abortOnPluginFailure: true
   fastProxy:
     debug: true

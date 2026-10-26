@@ -334,10 +334,6 @@ linters:
         text: "Function 'loadConfigurationFromCRD' has too many statements"
         linters:
           - funlen
-      - path: pkg/plugins/middlewarewasm.go
-        text: 'the methods of "wasmMiddlewareBuilder" use pointer receiver and non-pointer receiver.'
-        linters:
-          - recvcheck
       - path: pkg/proxy/httputil/bufferpool.go
         text: 'SA6002: argument should be pointer-like to avoid allocations'
       - path: integration/integration_test.go
