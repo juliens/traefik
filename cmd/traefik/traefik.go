@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/coreos/go-systemd/v22/daemon"
-	"github.com/go-acme/lego/v5/challenge"
 	gokitmetrics "github.com/go-kit/kit/metrics"
 	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
@@ -35,7 +34,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/observability/metrics"
 	"github.com/traefik/traefik/v3/pkg/observability/tracing"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
-	"github.com/traefik/traefik/v3/pkg/provider/acme"
+	"github.com/traefik/traefik/v3/pkg/plugins"
 	"github.com/traefik/traefik/v3/pkg/provider/aggregator"
 	"github.com/traefik/traefik/v3/pkg/provider/tailscale"
 	"github.com/traefik/traefik/v3/pkg/provider/traefik"
@@ -184,26 +183,10 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	ctx := context.Background()
 	routinesPool := safe.NewPool(ctx)
 
-	// adds internal provider
-	err := providerAggregator.AddProvider(traefik.New(*staticConfiguration))
-	if err != nil {
-		return nil, err
-	}
-
-	// ACME
+	// TLS
 
 	tlsManager := traefiktls.NewManager(staticConfiguration.OCSP)
 	routinesPool.GoCtx(tlsManager.Run)
-
-	httpChallengeProvider := acme.NewChallengeHTTP()
-
-	tlsChallengeProvider := acme.NewChallengeTLSALPN()
-	err = providerAggregator.AddProvider(tlsChallengeProvider)
-	if err != nil {
-		return nil, err
-	}
-
-	acmeProviders := initACMEProvider(staticConfiguration, providerAggregator, tlsManager, httpChallengeProvider, tlsChallengeProvider, routinesPool)
 
 	// Tailscale
 
@@ -214,6 +197,7 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	metricRegistries := registerMetricClients(staticConfiguration.Metrics)
 	var semConvMetricRegistry *metrics.SemConvMetricsRegistry
 	if staticConfiguration.Metrics != nil && staticConfiguration.Metrics.OTLP != nil {
+		var err error
 		semConvMetricRegistry, err = metrics.NewSemConvMetricRegistry(ctx, staticConfiguration.Metrics.OTLP)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create SemConv metric registry: %w", err)
@@ -264,6 +248,11 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 
 	// Providers plugins
 
+	setPluginsHost(staticConfiguration, tlsManager)
+
+	pluginHandlers := map[string]http.Handler{}
+	var internalPluginHandlers []traefik.PluginHandler
+	var pluginListeners []func(dynamic.Configuration)
 	for name, conf := range staticConfiguration.Providers.Plugin {
 		if pluginBuilder == nil {
 			break
@@ -278,6 +267,21 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		if err != nil {
 			return nil, fmt.Errorf("plugin: failed to add provider: %w", err)
 		}
+
+		if hp, ok := p.(plugins.HandlerProvider); ok {
+			pluginHandlers[hp.Name()] = hp
+			internalPluginHandlers = append(internalPluginHandlers, traefik.PluginHandler{Name: hp.Name(), Rule: hp.InternalRule()})
+		}
+
+		if listener, ok := plugins.ConfigurationListener(p); ok {
+			pluginListeners = append(pluginListeners, listener)
+		}
+	}
+
+	// The internal provider comes after the provider plugins, as it routes to the services of the plugins.
+	err = providerAggregator.AddProvider(traefik.New(*staticConfiguration, internalPluginHandlers))
+	if err != nil {
+		return nil, err
 	}
 
 	// Service manager factory
@@ -309,8 +313,7 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	}
 
 	dialerManager := tcp.NewDialerManager(spiffeX509Source)
-	acmeHTTPHandler := getHTTPChallengeHandler(acmeProviders, httpChallengeProvider)
-	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, observabilityMgr, transportManager, proxyBuilder, acmeHTTPHandler, tlsManager)
+	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, observabilityMgr, transportManager, proxyBuilder, pluginHandlers, tlsManager)
 
 	// Router factory
 
@@ -367,17 +370,17 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		})
 	}
 
-	// TLS challenge
-	watcher.AddListener(tlsChallengeProvider.ListenConfiguration)
+	// Provider plugins listening to the configuration, like the ACME provider.
+	for _, listener := range pluginListeners {
+		watcher.AddListener(listener)
+	}
 
 	// Certificate Resolvers
 
+	// The ACME resolvers are provider plugins: a router uses the name of the plugin as certificate resolver.
 	resolverNames := map[string]struct{}{}
-
-	// ACME
-	for _, p := range acmeProviders {
-		resolverNames[p.ResolverName] = struct{}{}
-		watcher.AddListener(p.ListenConfiguration)
+	for name := range staticConfiguration.Providers.Plugin {
+		resolverNames[name] = struct{}{}
 	}
 
 	// Tailscale
@@ -401,17 +404,6 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	})
 
 	return server.NewServer(routinesPool, serverEntryPointsTCP, serverEntryPointsUDP, watcher, observabilityMgr), nil
-}
-
-func getHTTPChallengeHandler(acmeProviders []*acme.Provider, httpChallengeProvider http.Handler) http.Handler {
-	var acmeHTTPHandler http.Handler
-	for _, p := range acmeProviders {
-		if p != nil && p.HTTPChallenge != nil {
-			acmeHTTPHandler = httpChallengeProvider
-			break
-		}
-	}
-	return acmeHTTPHandler
 }
 
 func getDefaultsEntrypoints(staticConfiguration *static.Configuration) []string {
@@ -457,43 +449,6 @@ func switchRouter(routerFactory *server.RouterFactory, serverEntryPointsTCP serv
 		serverEntryPointsTCP.Switch(routers)
 		serverEntryPointsUDP.Switch(udpRouters)
 	}
-}
-
-// initACMEProvider creates and registers acme.Provider instances corresponding to the configured ACME certificate resolvers.
-func initACMEProvider(c *static.Configuration, providerAggregator *aggregator.ProviderAggregator, tlsManager *traefiktls.Manager, httpChallengeProvider, tlsChallengeProvider challenge.Provider, routinesPool *safe.Pool) []*acme.Provider {
-	localStores := map[string]*acme.LocalStore{}
-
-	var resolvers []*acme.Provider
-	for name, resolver := range c.CertificatesResolvers {
-		if resolver.ACME == nil {
-			continue
-		}
-
-		if localStores[resolver.ACME.Storage] == nil {
-			localStores[resolver.ACME.Storage] = acme.NewLocalStore(resolver.ACME.Storage, routinesPool)
-		}
-
-		p := &acme.Provider{
-			Configuration:         resolver.ACME,
-			Store:                 localStores[resolver.ACME.Storage],
-			ResolverName:          name,
-			HTTPChallengeProvider: httpChallengeProvider,
-			TLSChallengeProvider:  tlsChallengeProvider,
-		}
-
-		if err := providerAggregator.AddProvider(p); err != nil {
-			log.Error().Err(err).Str("resolver", name).Msg("The ACME resolve is skipped from the resolvers list")
-			continue
-		}
-
-		p.SetTLSManager(tlsManager)
-
-		p.SetConfigListenerChan(make(chan dynamic.Configuration))
-
-		resolvers = append(resolvers, p)
-	}
-
-	return resolvers
 }
 
 // initTailscaleProviders creates and registers tailscale.Provider instances corresponding to the configured Tailscale certificate resolvers.

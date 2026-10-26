@@ -17,7 +17,6 @@ import (
 func TestProviderAggregator_Provide(t *testing.T) {
 	aggregator := ProviderAggregator{
 		internalProvider: &providerMock{"internal"},
-		fileProvider:     &providerMock{"file"},
 		providers: []provider.Provider{
 			&providerMock{"salad"},
 			&providerMock{"tomato"},
@@ -34,9 +33,6 @@ func TestProviderAggregator_Provide(t *testing.T) {
 	go func() {
 		errCh <- aggregator.Provide(cfgCh, pool)
 	}()
-
-	// Make sure the file provider is always called first.
-	requireReceivedMessageFromProviders(t, cfgCh, []string{"file"})
 
 	// Check if all providers have been called, the order doesn't matter.
 	requireReceivedMessageFromProviders(t, cfgCh, []string{"salad", "tomato", "onion", "internal"})

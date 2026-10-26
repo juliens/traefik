@@ -1,0 +1,5 @@
+displayName: Docker provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/docker
+summary: The Docker provider of Traefik, as a plugin.
+testData: {}

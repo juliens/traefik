@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/traefik/traefik/v3/pkg/config/static"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
+	"github.com/traefik/traefik/v3/pkg/observability/otellog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -49,7 +50,7 @@ func setupLogger(ctx context.Context, staticConfiguration *static.Configuration)
 
 	if staticConfiguration.Log != nil && staticConfiguration.Log.OTLP != nil {
 		var err error
-		log.Logger, err = logs.SetupOTelLogger(ctx, log.Logger, staticConfiguration.Log.OTLP)
+		log.Logger, err = otellog.SetupOTelLogger(ctx, log.Logger, staticConfiguration.Log.OTLP)
 		if err != nil {
 			return fmt.Errorf("setting up OpenTelemetry logger: %w", err)
 		}

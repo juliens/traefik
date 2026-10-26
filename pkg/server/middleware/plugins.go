@@ -14,6 +14,8 @@ const typeName = "Plugin"
 // PluginsBuilder the plugin's builder interface.
 type PluginsBuilder interface {
 	Build(pName string, config map[string]any, middlewareName string) (plugins.Constructor, error)
+	// BuildTyped builds the middleware plugin implementing an option of the dynamic configuration (headers, stripPrefix, ...).
+	BuildTyped(option string, config any, middlewareName string) (plugins.Constructor, error)
 }
 
 func findPluginConfig(rawConfig map[string]dynamic.PluginConf) (string, map[string]any, error) {
@@ -37,17 +39,18 @@ func findPluginConfig(rawConfig map[string]dynamic.PluginConf) (string, map[stri
 }
 
 type traceablePlugin struct {
-	name string
-	h    http.Handler
+	name     string
+	typeName string
+	h        http.Handler
 }
 
-func newTraceablePlugin(ctx context.Context, name string, plug plugins.Constructor, next http.Handler) (*traceablePlugin, error) {
+func newTraceablePlugin(ctx context.Context, name, typeName string, plug plugins.Constructor, next http.Handler) (*traceablePlugin, error) {
 	h, err := plug(ctx, next)
 	if err != nil {
 		return nil, err
 	}
 
-	return &traceablePlugin{name: name, h: h}, nil
+	return &traceablePlugin{name: name, typeName: typeName, h: h}, nil
 }
 
 func (s *traceablePlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -55,5 +58,5 @@ func (s *traceablePlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (s *traceablePlugin) GetTracingInformation() (string, string) {
-	return s.name, typeName
+	return s.name, s.typeName
 }

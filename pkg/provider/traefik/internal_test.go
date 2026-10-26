@@ -12,8 +12,6 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/static"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	"github.com/traefik/traefik/v3/pkg/ping"
-	acmeprovider "github.com/traefik/traefik/v3/pkg/provider/acme"
-	"github.com/traefik/traefik/v3/pkg/provider/rest"
 	"github.com/traefik/traefik/v3/pkg/types"
 )
 
@@ -21,8 +19,9 @@ var updateExpected = flag.Bool("update_expected", false, "Update expected files 
 
 func Test_createConfiguration(t *testing.T) {
 	testCases := []struct {
-		desc      string
-		staticCfg static.Configuration
+		desc           string
+		staticCfg      static.Configuration
+		pluginHandlers []PluginHandler
 	}{
 		{
 			desc: "full_configuration.json",
@@ -36,11 +35,6 @@ func Test_createConfiguration(t *testing.T) {
 					EntryPoint:    "test",
 					ManualRouting: false,
 				},
-				Providers: &static.Providers{
-					Rest: &rest.Provider{
-						Insecure: true,
-					},
-				},
 				Metrics: &otypes.Metrics{
 					Prometheus: &otypes.Prometheus{
 						EntryPoint:    "test",
@@ -48,6 +42,7 @@ func Test_createConfiguration(t *testing.T) {
 					},
 				},
 			},
+			pluginHandlers: []PluginHandler{{Name: "rest", Rule: "PathPrefix(`/api/providers`)"}},
 		},
 		{
 			desc: "full_configuration_secure.json",
@@ -60,11 +55,6 @@ func Test_createConfiguration(t *testing.T) {
 					EntryPoint:    "test",
 					ManualRouting: true,
 				},
-				Providers: &static.Providers{
-					Rest: &rest.Provider{
-						Insecure: false,
-					},
-				},
 				Metrics: &otypes.Metrics{
 					Prometheus: &otypes.Prometheus{
 						EntryPoint:    "test",
@@ -72,6 +62,7 @@ func Test_createConfiguration(t *testing.T) {
 					},
 				},
 			},
+			pluginHandlers: []PluginHandler{{Name: "rest"}},
 		},
 		{
 			desc: "api_insecure_with_dashboard.json",
@@ -128,24 +119,12 @@ func Test_createConfiguration(t *testing.T) {
 			},
 		},
 		{
-			desc: "rest_insecure.json",
-			staticCfg: static.Configuration{
-				Providers: &static.Providers{
-					Rest: &rest.Provider{
-						Insecure: true,
-					},
-				},
-			},
+			desc:           "rest_insecure.json",
+			pluginHandlers: []PluginHandler{{Name: "rest", Rule: "PathPrefix(`/api/providers`)"}},
 		},
 		{
-			desc: "rest_secure.json",
-			staticCfg: static.Configuration{
-				Providers: &static.Providers{
-					Rest: &rest.Provider{
-						Insecure: false,
-					},
-				},
-			},
+			desc:           "rest_secure.json",
+			pluginHandlers: []PluginHandler{{Name: "rest"}},
 		},
 		{
 			desc: "prometheus_simple.json",
@@ -303,15 +282,6 @@ func Test_createConfiguration(t *testing.T) {
 						Address: ":443",
 					},
 				},
-				CertificatesResolvers: map[string]static.CertificateResolver{
-					"default": {
-						ACME: &acmeprovider.Configuration{
-							HTTPChallenge: &acmeprovider.HTTPChallenge{
-								EntryPoint: "web",
-							},
-						},
-					},
-				},
 			},
 		},
 	}
@@ -320,7 +290,7 @@ func Test_createConfiguration(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
-			provider := Provider{staticCfg: test.staticCfg}
+			provider := Provider{staticCfg: test.staticCfg, pluginHandlers: test.pluginHandlers}
 
 			cfg := provider.createConfiguration(t.Context())
 

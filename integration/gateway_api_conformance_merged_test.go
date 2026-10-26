@@ -19,7 +19,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/k3s"
 	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/traefik/traefik/v3/integration/try"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/gateway"
+	"github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

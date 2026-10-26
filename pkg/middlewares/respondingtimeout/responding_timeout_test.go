@@ -20,7 +20,6 @@ import (
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/middlewares/capture"
-	"github.com/traefik/traefik/v3/pkg/middlewares/compress"
 	"github.com/traefik/traefik/v3/pkg/middlewares/respondingtimeout"
 	"github.com/traefik/traefik/v3/pkg/proxy/httputil"
 )
@@ -794,7 +793,7 @@ func TestFlushWriteDeadline(t *testing.T) {
 	}
 }
 
-func TestFlushPropagatesThroughCompress(t *testing.T) {
+func TestFlushPropagatesThroughStatusRewriter(t *testing.T) {
 	t.Parallel()
 
 	firstChunk := strings.Repeat("a", 2048)
@@ -811,24 +810,18 @@ func TestFlushPropagatesThroughCompress(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	// Compress flushes through http.ResponseController: the flush must reach the client through the statusRewriter.
-	compressHandler, err := compress.New(t.Context(), next, dynamic.Compress{Encodings: []string{"gzip"}}, "compress")
-	require.NoError(t, err)
-
-	ts := httptest.NewServer(wrap(t, time.Hour, compressHandler))
+	// A handler flushing through http.ResponseController: the flush must reach the client through the statusRewriter.
+	ts := httptest.NewServer(wrap(t, time.Hour, next))
 	t.Cleanup(ts.Close)
 
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, ts.URL, http.NoBody)
 	require.NoError(t, err)
-	req.Header.Set("Accept-Encoding", "gzip")
 
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = res.Body.Close() })
 
-	require.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
-
-	// The first compressed bytes must arrive while the handler is still blocked.
+	// The first bytes must arrive while the handler is still blocked.
 	buf := make([]byte, 1)
 	_, err = res.Body.Read(buf)
 	assert.NoError(t, err)

@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/tcp"
@@ -400,7 +401,7 @@ func Test_addTCPRouteV2(t *testing.T) {
 		},
 		{
 			desc:     "Invalid ALPN rule matching ACME-TLS/1",
-			rule:     fmt.Sprintf("ALPN(`%s`)", tlsalpn01.ACMETLS1Protocol),
+			rule:     fmt.Sprintf("ALPN(`%s`)", traefiktls.ACMETLS1Protocol),
 			protos:   []string{"foo"},
 			routeErr: true,
 		},
@@ -412,7 +413,7 @@ func Test_addTCPRouteV2(t *testing.T) {
 		{
 			desc:     "Valid ALPN rule matching ACME-TLS/1 protocol",
 			rule:     "ALPN(`foo`)",
-			protos:   []string{tlsalpn01.ACMETLS1Protocol},
+			protos:   []string{traefiktls.ACMETLS1Protocol},
 			matchErr: true,
 		},
 		{
@@ -946,7 +947,7 @@ func Test_ALPNV2(t *testing.T) {
 		},
 		{
 			desc:           "ACME TLS proto",
-			ruleALPNProtos: []string{tlsalpn01.ACMETLS1Protocol},
+			ruleALPNProtos: []string{traefiktls.ACMETLS1Protocol},
 			buildErr:       true,
 		},
 		{

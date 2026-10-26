@@ -1,0 +1,6 @@
+displayName: ForwardAuth middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/forwardauth
+implements: forwardAuth
+summary: The forwardAuth middleware of Traefik, as a plugin.
+testData: {}

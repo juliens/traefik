@@ -1,0 +1,5 @@
+displayName: REST provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/rest
+summary: The REST provider of Traefik, as a plugin.
+testData: {}

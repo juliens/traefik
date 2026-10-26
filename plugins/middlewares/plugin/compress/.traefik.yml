@@ -1,0 +1,6 @@
+displayName: Compress middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/compress
+implements: compress
+summary: The compress middleware of Traefik, as a plugin.
+testData: {}

@@ -59,7 +59,7 @@ func TestReuseService(t *testing.T) {
 
 	dialerManager := tcp.NewDialerManager(nil)
 	dialerManager.Update(map[string]*dynamic.TCPServersTransport{"default@internal": {}})
-	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, nil, dialerManager)
+	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, th.MiddlewarePlugins{}, dialerManager)
 	require.NoError(t, err)
 
 	entryPointsHandlers, _ := factory.CreateRouters(runtime.NewConfig(dynamic.Configuration{HTTP: dynamicConfigs}))
@@ -186,7 +186,7 @@ func TestServerResponseEmptyBackend(t *testing.T) {
 			dialerManager := tcp.NewDialerManager(nil)
 			dialerManager.Update(map[string]*dynamic.TCPServersTransport{"default@internal": {}})
 			observabiltyMgr := middleware.NewObservabilityMgr(staticConfig, nil, nil, nil, nil, nil)
-			factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, observabiltyMgr, nil, dialerManager)
+			factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, observabiltyMgr, th.MiddlewarePlugins{}, dialerManager)
 			require.NoError(t, err)
 
 			entryPointsHandlers, _ := factory.CreateRouters(runtime.NewConfig(dynamic.Configuration{HTTP: test.config(testServer.URL)}))
@@ -231,7 +231,7 @@ func TestInternalServices(t *testing.T) {
 
 	dialerManager := tcp.NewDialerManager(nil)
 	dialerManager.Update(map[string]*dynamic.TCPServersTransport{"default@internal": {}})
-	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, nil, dialerManager)
+	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, th.MiddlewarePlugins{}, dialerManager)
 	require.NoError(t, err)
 
 	entryPointsHandlers, _ := factory.CreateRouters(runtime.NewConfig(dynamic.Configuration{HTTP: dynamicConfigs}))
@@ -280,7 +280,7 @@ func TestRecursionService(t *testing.T) {
 
 	dialerManager := tcp.NewDialerManager(nil)
 	dialerManager.Update(map[string]*dynamic.TCPServersTransport{"default@internal": {}})
-	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, nil, dialerManager)
+	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, th.MiddlewarePlugins{}, dialerManager)
 	require.NoError(t, err)
 
 	rtConf := runtime.NewConfig(dynamic.Configuration{HTTP: dynamicConfigs})

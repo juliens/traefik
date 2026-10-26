@@ -1,0 +1,5 @@
+displayName: Knative provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative
+summary: The Knative provider of Traefik, as a plugin.
+testData: {}

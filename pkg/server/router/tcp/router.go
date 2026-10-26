@@ -12,7 +12,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
 	"github.com/rs/zerolog/log"
 	tcpmuxer "github.com/traefik/traefik/v3/pkg/muxer/tcp"
 	"github.com/traefik/traefik/v3/pkg/tcp"
@@ -192,7 +191,7 @@ func (r *Router) ServeTCP(conn tcp.WriteCloser) {
 	}
 
 	// Handling ACME-TLS/1 challenges.
-	if !r.acmeTLSPassthrough && slices.Contains(hello.protos, tlsalpn01.ACMETLS1Protocol) {
+	if !r.acmeTLSPassthrough && slices.Contains(hello.protos, traefiktls.ACMETLS1Protocol) {
 		r.acmeTLSALPNHandler().ServeTCP(pConn)
 		return
 	}

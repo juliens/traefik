@@ -331,7 +331,7 @@ func TestRouterManager_Get(t *testing.T) {
 			transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
 
 			serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, proxyBuilderMock{})
-			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
+			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, testhelpers.MiddlewarePlugins{})
 			tlsManager := traefiktls.NewManager(nil)
 
 			parser, err := httpmuxer.NewSyntaxParser()
@@ -749,7 +749,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
 
 			serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, proxyBuilderMock{})
-			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
+			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, testhelpers.MiddlewarePlugins{})
 			tlsManager := traefiktls.NewManager(nil)
 			tlsManager.UpdateConfigs(t.Context(), nil, test.tlsOptions, nil)
 
@@ -831,7 +831,7 @@ func TestProviderOnMiddlewares(t *testing.T) {
 	transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
 
 	serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, nil)
-	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
+	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, testhelpers.MiddlewarePlugins{})
 	tlsManager := traefiktls.NewManager(nil)
 
 	parser, err := httpmuxer.NewSyntaxParser()
@@ -886,7 +886,7 @@ func BenchmarkRouterServe(b *testing.B) {
 	})
 
 	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticTransportManager{res}, nil)
-	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
+	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, testhelpers.MiddlewarePlugins{})
 	tlsManager := traefiktls.NewManager(nil)
 
 	parser, err := httpmuxer.NewSyntaxParser()
@@ -1071,7 +1071,7 @@ func TestProvidersPrecedence(t *testing.T) {
 			transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
 
 			serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, labellingProxyBuilder{})
-			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
+			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, testhelpers.MiddlewarePlugins{})
 			tlsManager := traefiktls.NewManager(nil)
 
 			parser, err := httpmuxer.NewSyntaxParser()
@@ -2398,7 +2398,7 @@ func TestRouterManager_RespondingTimeouts(t *testing.T) {
 			transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
 
 			serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, slowProxyBuilder{delay: 200 * time.Millisecond})
-			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
+			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, testhelpers.MiddlewarePlugins{})
 			tlsManager := traefiktls.NewManager(nil)
 
 			parser, err := httpmuxer.NewSyntaxParser()

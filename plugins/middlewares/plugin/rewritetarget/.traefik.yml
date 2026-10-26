@@ -1,0 +1,6 @@
+displayName: RewriteTarget middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/rewritetarget
+implements: rewriteTarget
+summary: The rewriteTarget middleware of Traefik, as a plugin.
+testData: {}

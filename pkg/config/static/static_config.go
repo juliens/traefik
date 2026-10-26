@@ -3,35 +3,14 @@ package static
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
 
-	legolog "github.com/go-acme/lego/v5/log"
 	"github.com/rs/zerolog/log"
-	slogzerolog "github.com/samber/slog-zerolog/v2"
 	ptypes "github.com/traefik/paerser/types"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	"github.com/traefik/traefik/v3/pkg/ping"
-	acmeprovider "github.com/traefik/traefik/v3/pkg/provider/acme"
-	"github.com/traefik/traefik/v3/pkg/provider/consulcatalog"
-	"github.com/traefik/traefik/v3/pkg/provider/docker"
-	"github.com/traefik/traefik/v3/pkg/provider/ecs"
-	"github.com/traefik/traefik/v3/pkg/provider/file"
-	"github.com/traefik/traefik/v3/pkg/provider/http"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/crd"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/gateway"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/ingress"
-	ingressnginx "github.com/traefik/traefik/v3/pkg/provider/kubernetes/ingress-nginx"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/knative"
-	"github.com/traefik/traefik/v3/pkg/provider/kv/consul"
-	"github.com/traefik/traefik/v3/pkg/provider/kv/etcd"
-	"github.com/traefik/traefik/v3/pkg/provider/kv/redis"
-	"github.com/traefik/traefik/v3/pkg/provider/kv/zk"
-	"github.com/traefik/traefik/v3/pkg/provider/nomad"
-	"github.com/traefik/traefik/v3/pkg/provider/rest"
 	"github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
 )
@@ -50,33 +29,31 @@ const (
 	// DefaultReadTimeout defines the default maximum duration for reading the entire request, including the body.
 	DefaultReadTimeout = 60 * time.Second
 
-	// DefaultAcmeCAServer is the default ACME API endpoint.
-	DefaultAcmeCAServer = "https://acme-v02.api.letsencrypt.org/directory"
-
 	// DefaultUDPTimeout defines how long to wait by default on an idle session,
 	// before releasing all resources related to that session.
 	DefaultUDPTimeout = 3 * time.Second
 )
 
-// providerNames is the ordered list of the Traefik provider names.
+// providerNames is the default routing precedence between the providers: the names of the providers of Traefik,
+// which are now plugins that keep their name.
 var providerNames = []string{
-	gateway.ProviderName,
-	crd.ProviderName,
-	ingress.ProviderName,
-	ingressnginx.ProviderName,
-	docker.SwarmName,
-	docker.DockerName,
-	file.ProviderName,
-	redis.ProviderName,
-	knative.ProviderName,
-	consul.ProviderName,
-	consulcatalog.ProviderName,
-	nomad.ProviderName,
-	etcd.ProviderName,
-	ecs.ProviderName,
-	http.ProviderName,
-	zk.ProviderName,
-	rest.ProviderName,
+	"kubernetesgateway",
+	"kubernetescrd",
+	"kubernetes",
+	"kubernetesingressnginx",
+	"swarm",
+	"docker",
+	"file",
+	"redis",
+	"knative",
+	"consul",
+	"consulcatalog",
+	"nomad",
+	"etcd",
+	"ecs",
+	"http",
+	"zookeeper",
+	"rest",
 }
 
 // Allowed characters in URL following RFC 3986 (https://www.rfc-editor.org/rfc/rfc3986#section-2)
@@ -131,9 +108,9 @@ type SpiffeClientConfig struct {
 }
 
 // CertificateResolver contains the configuration for the different types of certificates resolver.
+// The ACME resolvers are provider plugins: a router uses the name of the plugin as certificate resolver.
 type CertificateResolver struct {
-	ACME      *acmeprovider.Configuration `description:"Enables ACME (Let's Encrypt) automatic SSL." json:"acme,omitempty" toml:"acme,omitempty" yaml:"acme,omitempty" export:"true"`
-	Tailscale *struct{}                   `description:"Enables Tailscale certificate resolution." json:"tailscale,omitempty" toml:"tailscale,omitempty" yaml:"tailscale,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Tailscale *struct{} `description:"Enables Tailscale certificate resolution." json:"tailscale,omitempty" toml:"tailscale,omitempty" yaml:"tailscale,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
 }
 
 // Global holds the global configuration.
@@ -237,52 +214,15 @@ func (a *LifeCycle) SetDefaults() {
 }
 
 // Tracing holds the tracing configuration.
-type Tracing struct {
-	ServiceName             string              `description:"Defines the service name resource attribute." json:"serviceName,omitempty" toml:"serviceName,omitempty" yaml:"serviceName,omitempty" export:"true"`
-	ResourceAttributes      map[string]string   `description:"Defines additional resource attributes (key:value)." json:"resourceAttributes,omitempty" toml:"resourceAttributes,omitempty" yaml:"resourceAttributes,omitempty" export:"true"`
-	CapturedRequestHeaders  []string            `description:"Request headers to add as attributes for server and client spans." json:"capturedRequestHeaders,omitempty" toml:"capturedRequestHeaders,omitempty" yaml:"capturedRequestHeaders,omitempty" export:"true"`
-	CapturedResponseHeaders []string            `description:"Response headers to add as attributes for server and client spans." json:"capturedResponseHeaders,omitempty" toml:"capturedResponseHeaders,omitempty" yaml:"capturedResponseHeaders,omitempty" export:"true"`
-	SafeQueryParams         []string            `description:"Query params to not redact." json:"safeQueryParams,omitempty" toml:"safeQueryParams,omitempty" yaml:"safeQueryParams,omitempty" export:"true"`
-	SampleRate              float64             `description:"Sets the rate between 0.0 and 1.0 of requests to trace." json:"sampleRate,omitempty" toml:"sampleRate,omitempty" yaml:"sampleRate,omitempty" export:"true"`
-	AddInternals            bool                `description:"Enables tracing for internal services (ping, dashboard, etc...)." json:"addInternals,omitempty" toml:"addInternals,omitempty" yaml:"addInternals,omitempty" export:"true"`
-	OTLP                    *otypes.OTelTracing `description:"Settings for OpenTelemetry." json:"otlp,omitempty" toml:"otlp,omitempty" yaml:"otlp,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-
-	// Deprecated: please use ResourceAttributes instead.
-	GlobalAttributes map[string]string `description:"(Deprecated) Defines additional resource attributes (key:value)." json:"globalAttributes,omitempty" toml:"globalAttributes,omitempty" yaml:"globalAttributes,omitempty" export:"true"`
-}
-
-// SetDefaults sets the default values.
-func (t *Tracing) SetDefaults() {
-	t.ServiceName = "traefik"
-	t.SampleRate = 1.0
-
-	t.OTLP = &otypes.OTelTracing{}
-	t.OTLP.SetDefaults()
-}
+// The type is in pkg/observability/types: the tracing helpers, which the middleware plugins use, do not need the static configuration.
+type Tracing = otypes.Tracing
 
 // Providers contains providers configuration.
 type Providers struct {
 	ProvidersThrottleDuration ptypes.Duration `description:"Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time." json:"providersThrottleDuration,omitempty" toml:"providersThrottleDuration,omitempty" yaml:"providersThrottleDuration,omitempty" export:"true"`
 	Precedence                []string        `description:"Defines the routing precedence between providers." json:"precedence,omitempty" toml:"precedence,omitempty" yaml:"precedence,omitempty" export:"true"`
 
-	Docker                 *docker.Provider               `description:"Enables Docker provider." json:"docker,omitempty" toml:"docker,omitempty" yaml:"docker,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	Swarm                  *docker.SwarmProvider          `description:"Enables Docker Swarm provider." json:"swarm,omitempty" toml:"swarm,omitempty" yaml:"swarm,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	File                   *file.Provider                 `description:"Enables File provider." json:"file,omitempty" toml:"file,omitempty" yaml:"file,omitempty" export:"true"`
-	KubernetesIngress      *ingress.Provider              `description:"Enables Kubernetes Ingress provider." json:"kubernetesIngress,omitempty" toml:"kubernetesIngress,omitempty" yaml:"kubernetesIngress,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	KubernetesIngressNGINX *ingressnginx.Provider         `description:"Enables Kubernetes Ingress NGINX provider." json:"kubernetesIngressNGINX,omitempty" toml:"kubernetesIngressNGINX,omitempty" yaml:"kubernetesIngressNGINX,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	KubernetesCRD          *crd.Provider                  `description:"Enables Kubernetes CRD provider." json:"kubernetesCRD,omitempty" toml:"kubernetesCRD,omitempty" yaml:"kubernetesCRD,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	KubernetesGateway      *gateway.Provider              `description:"Enables Kubernetes Gateway API provider." json:"kubernetesGateway,omitempty" toml:"kubernetesGateway,omitempty" yaml:"kubernetesGateway,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	Knative                *knative.Provider              `description:"Enables Knative provider." json:"knative,omitempty" toml:"knative,omitempty" yaml:"knative,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	Rest                   *rest.Provider                 `description:"Enables Rest provider." json:"rest,omitempty" toml:"rest,omitempty" yaml:"rest,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	ConsulCatalog          *consulcatalog.ProviderBuilder `description:"Enables Consul Catalog provider." json:"consulCatalog,omitempty" toml:"consulCatalog,omitempty" yaml:"consulCatalog,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	Nomad                  *nomad.ProviderBuilder         `description:"Enables Nomad provider." json:"nomad,omitempty" toml:"nomad,omitempty" yaml:"nomad,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	Ecs                    *ecs.Provider                  `description:"Enables AWS ECS provider." json:"ecs,omitempty" toml:"ecs,omitempty" yaml:"ecs,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	Consul                 *consul.ProviderBuilder        `description:"Enables Consul provider." json:"consul,omitempty" toml:"consul,omitempty" yaml:"consul,omitempty" label:"allowEmpty" file:"allowEmpty"  export:"true"`
-	Etcd                   *etcd.Provider                 `description:"Enables Etcd provider." json:"etcd,omitempty" toml:"etcd,omitempty" yaml:"etcd,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	ZooKeeper              *zk.Provider                   `description:"Enables ZooKeeper provider." json:"zooKeeper,omitempty" toml:"zooKeeper,omitempty" yaml:"zooKeeper,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	Redis                  *redis.Provider                `description:"Enables Redis provider." json:"redis,omitempty" toml:"redis,omitempty" yaml:"redis,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-	HTTP                   *http.Provider                 `description:"Enables HTTP provider." json:"http,omitempty" toml:"http,omitempty" yaml:"http,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
-
+	// Plugin holds the provider plugins: the providers of Traefik (file, docker, kubernetesCRD, ...) are plugins.
 	Plugin map[string]PluginConf `description:"Plugins configuration." json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty"`
 }
 
@@ -308,8 +248,7 @@ func (c *Configuration) SetEffectiveConfiguration() {
 	// Creates the internal traefik entry point if needed
 	if (c.API != nil && c.API.Insecure) ||
 		(c.Ping != nil && !c.Ping.ManualRouting && c.Ping.EntryPoint == DefaultInternalEntryPointName) ||
-		(c.Metrics != nil && c.Metrics.Prometheus != nil && !c.Metrics.Prometheus.ManualRouting && c.Metrics.Prometheus.EntryPoint == DefaultInternalEntryPointName) ||
-		(c.Providers != nil && c.Providers.Rest != nil && c.Providers.Rest.Insecure) {
+		(c.Metrics != nil && c.Metrics.Prometheus != nil && !c.Metrics.Prometheus.ManualRouting && c.Metrics.Prometheus.EntryPoint == DefaultInternalEntryPointName) {
 		if _, ok := c.EntryPoints[DefaultInternalEntryPointName]; !ok {
 			ep := &EntryPoint{Address: ":8080"}
 			ep.SetDefaults()
@@ -330,139 +269,10 @@ func (c *Configuration) SetEffectiveConfiguration() {
 	for i, providerName := range c.Providers.Precedence {
 		c.Providers.Precedence[i] = strings.ToLower(providerName)
 	}
-
-	if c.Providers.Docker != nil {
-		if c.Providers.Docker.HTTPClientTimeout < 0 {
-			c.Providers.Docker.HTTPClientTimeout = 0
-		}
-	}
-
-	if c.Providers.Swarm != nil {
-		if c.Providers.Swarm.RefreshSeconds <= 0 {
-			c.Providers.Swarm.RefreshSeconds = ptypes.Duration(15 * time.Second)
-		}
-
-		if c.Providers.Swarm.HTTPClientTimeout < 0 {
-			c.Providers.Swarm.HTTPClientTimeout = 0
-		}
-	}
-
-	// Configure Gateway API provider
-	if c.Providers.KubernetesGateway != nil {
-		entryPoints := make(map[string]gateway.Entrypoint)
-		for epName, entryPoint := range c.EntryPoints {
-			entryPoints[epName] = gateway.Entrypoint{Address: entryPoint.GetAddress(), HasHTTPTLSConf: entryPoint.HTTP.TLS != nil}
-		}
-
-		if c.Providers.KubernetesCRD != nil {
-			c.Providers.KubernetesCRD.FillExtensionBuilderRegistry(c.Providers.KubernetesGateway)
-		}
-
-		c.Providers.KubernetesGateway.EntryPoints = entryPoints
-	}
-
-	// Configure Ingress NGINX provider.
-	if c.Providers.KubernetesIngressNGINX != nil && !c.Providers.KubernetesIngressNGINX.DisableNonTLSRouters {
-		var hasDefinedDefaults bool
-		for _, entryPoint := range c.EntryPoints {
-			if entryPoint.AsDefault {
-				hasDefinedDefaults = true
-				break
-			}
-		}
-
-		var nonTLSEntryPoints []string
-		for epName, entryPoint := range c.EntryPoints {
-			if hasDefinedDefaults && !entryPoint.AsDefault {
-				continue
-			}
-			// Skip internal entrypoint.
-			if epName == DefaultInternalEntryPointName {
-				continue
-			}
-			if entryPoint.HTTP.TLS == nil {
-				nonTLSEntryPoints = append(nonTLSEntryPoints, epName)
-			}
-		}
-
-		c.Providers.KubernetesIngressNGINX.NonTLSEntryPoints = nonTLSEntryPoints
-	}
-
-	// Defines the default rule syntax for the Kubernetes Ingress Provider.
-	// This allows the provider to adapt the matcher syntax to the desired rule syntax version.
-	if c.Core != nil && c.Providers.KubernetesIngress != nil {
-		c.Providers.KubernetesIngress.DefaultRuleSyntax = c.Core.DefaultRuleSyntax
-	}
-
-	for _, resolver := range c.CertificatesResolvers {
-		if resolver.ACME == nil {
-			continue
-		}
-
-		if resolver.ACME.DNSChallenge == nil {
-			continue
-		}
-
-		switch resolver.ACME.DNSChallenge.Provider {
-		case "googledomains", "cloudxns", "brandit":
-			log.Warn().Msgf("%s DNS provider is deprecated.", resolver.ACME.DNSChallenge.Provider)
-		case "dnspod":
-			log.Warn().Msgf("%s provider is deprecated, please use 'tencentcloud' provider instead.", resolver.ACME.DNSChallenge.Provider)
-		case "azure":
-			log.Warn().Msgf("%s provider is deprecated, please use 'azuredns' provider instead.", resolver.ACME.DNSChallenge.Provider)
-		}
-
-		if resolver.ACME.DNSChallenge.DisablePropagationCheck {
-			log.Warn().Msgf("disablePropagationCheck is now deprecated, please use propagation.disableChecks instead.")
-
-			resolver.ACME.DNSChallenge.Propagation.DisableChecks = true
-		}
-
-		if resolver.ACME.DNSChallenge.DelayBeforeCheck > 0 {
-			log.Warn().Msgf("delayBeforeCheck is now deprecated, please use propagation.delayBeforeChecks instead.")
-
-			resolver.ACME.DNSChallenge.Propagation.DelayBeforeChecks = resolver.ACME.DNSChallenge.DelayBeforeCheck
-		}
-	}
-
-	for _, resolver := range c.CertificatesResolvers {
-		if resolver.ACME == nil {
-			continue
-		}
-
-		if resolver.ACME.DNSChallenge == nil {
-			continue
-		}
-
-		switch resolver.ACME.DNSChallenge.Provider {
-		case "googledomains", "cloudxns", "brandit":
-			log.Warn().Msgf("%s DNS provider is deprecated.", resolver.ACME.DNSChallenge.Provider)
-		case "dnspod":
-			log.Warn().Msgf("%s provider is deprecated, please use 'tencentcloud' provider instead.", resolver.ACME.DNSChallenge.Provider)
-		case "azure":
-			log.Warn().Msgf("%s provider is deprecated, please use 'azuredns' provider instead.", resolver.ACME.DNSChallenge.Provider)
-		}
-	}
-
-	c.initACMEProvider()
 }
 
 // ValidateConfiguration validate that configuration is coherent.
 func (c *Configuration) ValidateConfiguration() error {
-	for name, resolver := range c.CertificatesResolvers {
-		if resolver.ACME != nil && resolver.Tailscale != nil {
-			return fmt.Errorf("unable to initialize certificates resolver %q, as ACME and Tailscale providers are mutually exclusive", name)
-		}
-
-		if resolver.ACME == nil {
-			continue
-		}
-
-		if len(resolver.ACME.Storage) == 0 {
-			return fmt.Errorf("unable to initialize certificates resolver %q with no storage location for the certificates", name)
-		}
-	}
-
 	if c.Core != nil {
 		switch c.Core.DefaultRuleSyntax {
 		case "v3": // NOOP
@@ -483,21 +293,9 @@ func (c *Configuration) ValidateConfiguration() error {
 
 	if c.Providers != nil {
 		for _, providerName := range c.Providers.Precedence {
-			if !slices.Contains(providerNames, providerName) {
+			if providerName == "" {
 				return fmt.Errorf("provider %q is not a valid provider name", providerName)
 			}
-		}
-	}
-
-	if c.Providers != nil && c.Providers.KubernetesIngressNGINX != nil {
-		if c.Providers.KubernetesIngressNGINX.WatchNamespace != "" && c.Providers.KubernetesIngressNGINX.WatchNamespaceSelector != "" {
-			return errors.New("watchNamespace and watchNamespaceSelector options are mutually exclusive")
-		}
-	}
-
-	if c.Providers != nil && c.Providers.Knative != nil {
-		if c.Experimental == nil || !c.Experimental.Knative {
-			return errors.New("the experimental Knative feature must be enabled to use the Knative provider")
 		}
 	}
 
@@ -594,40 +392,4 @@ func (c *Configuration) HasDeniedEncodedCharacters() bool {
 
 func (c *Configuration) hasUserDefinedEntrypoint() bool {
 	return len(c.EntryPoints) != 0
-}
-
-func (c *Configuration) initACMEProvider() {
-	for _, resolver := range c.CertificatesResolvers {
-		if resolver.ACME != nil {
-			resolver.ACME.CAServer = getSafeACMECAServer(resolver.ACME.CAServer)
-		}
-	}
-
-	legolog.SetDefault(
-		slog.New(
-			slogzerolog.Option{Logger: &log.Logger}.
-				NewZerologHandler().
-				WithAttrs([]slog.Attr{slog.String("lib", "lego")}),
-		),
-	)
-}
-
-func getSafeACMECAServer(caServerSrc string) string {
-	if len(caServerSrc) == 0 {
-		return DefaultAcmeCAServer
-	}
-
-	if strings.HasPrefix(caServerSrc, "https://acme-v01.api.letsencrypt.org") {
-		caServer := strings.Replace(caServerSrc, "v01", "v02", 1)
-		log.Warn().Msgf("The CA server %[1]q refers to a v01 endpoint of the ACME API, please change to %[2]q. Fallback to %[2]q.", caServerSrc, caServer)
-		return caServer
-	}
-
-	if strings.HasPrefix(caServerSrc, "https://acme-staging.api.letsencrypt.org") {
-		caServer := strings.Replace(caServerSrc, "https://acme-staging.api.letsencrypt.org", "https://acme-staging-v02.api.letsencrypt.org", 1)
-		log.Warn().Msgf("The CA server %[1]q refers to a v01 endpoint of the ACME API, please change to %[2]q. Fallback to %[2]q.", caServerSrc, caServer)
-		return caServer
-	}
-
-	return caServerSrc
 }

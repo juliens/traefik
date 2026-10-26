@@ -1,0 +1,5 @@
+displayName: Consul provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/kv/consul
+summary: The Consul provider of Traefik, as a plugin.
+testData: {}

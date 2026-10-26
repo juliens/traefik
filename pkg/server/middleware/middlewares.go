@@ -6,42 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
+
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/plugins/host"
 
 	"github.com/containous/alice"
-	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
-	"github.com/traefik/traefik/v3/pkg/middlewares/addprefix"
-	"github.com/traefik/traefik/v3/pkg/middlewares/auth"
-	"github.com/traefik/traefik/v3/pkg/middlewares/buffering"
 	"github.com/traefik/traefik/v3/pkg/middlewares/chain"
-	"github.com/traefik/traefik/v3/pkg/middlewares/circuitbreaker"
-	"github.com/traefik/traefik/v3/pkg/middlewares/compress"
-	"github.com/traefik/traefik/v3/pkg/middlewares/contenttype"
-	"github.com/traefik/traefik/v3/pkg/middlewares/customerrors"
-	"github.com/traefik/traefik/v3/pkg/middlewares/encodedcharacters"
-	"github.com/traefik/traefik/v3/pkg/middlewares/gatewayapi/headermodifier"
-	gapiredirect "github.com/traefik/traefik/v3/pkg/middlewares/gatewayapi/redirect"
-	"github.com/traefik/traefik/v3/pkg/middlewares/gatewayapi/urlrewrite"
-	"github.com/traefik/traefik/v3/pkg/middlewares/grpcweb"
-	"github.com/traefik/traefik/v3/pkg/middlewares/headers"
-	"github.com/traefik/traefik/v3/pkg/middlewares/inflightreq"
-	"github.com/traefik/traefik/v3/pkg/middlewares/ingressnginx/approot"
-	"github.com/traefik/traefik/v3/pkg/middlewares/ingressnginx/authtlspasscertificatetoupstream"
-	"github.com/traefik/traefik/v3/pkg/middlewares/ingressnginx/rewritetarget"
-	"github.com/traefik/traefik/v3/pkg/middlewares/ingressnginx/snippet"
-	"github.com/traefik/traefik/v3/pkg/middlewares/ingressnginx/upstreamvhost"
-	"github.com/traefik/traefik/v3/pkg/middlewares/ipallowlist"
-	"github.com/traefik/traefik/v3/pkg/middlewares/ipwhitelist"
 	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
-	"github.com/traefik/traefik/v3/pkg/middlewares/passtlsclientcert"
-	"github.com/traefik/traefik/v3/pkg/middlewares/ratelimiter"
-	"github.com/traefik/traefik/v3/pkg/middlewares/redirect"
-	"github.com/traefik/traefik/v3/pkg/middlewares/replacepath"
-	"github.com/traefik/traefik/v3/pkg/middlewares/replacepathregex"
-	"github.com/traefik/traefik/v3/pkg/middlewares/retry"
-	"github.com/traefik/traefik/v3/pkg/middlewares/stripprefix"
-	"github.com/traefik/traefik/v3/pkg/middlewares/stripprefixregex"
-	"github.com/traefik/traefik/v3/pkg/middlewares/tap"
 	"github.com/traefik/traefik/v3/pkg/server/provider"
 	"github.com/traefik/traefik/v3/pkg/server/recursion"
 )
@@ -113,39 +86,13 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 	var middleware alice.Constructor
 	badConf := errors.New("cannot create middleware: multi-types middleware not supported, consider declaring two different pieces of middleware instead")
 
-	// AddPrefix
-	if config.AddPrefix != nil {
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return addprefix.New(ctx, next, *config.AddPrefix, middlewareName)
-		}
-	}
-
-	// BasicAuth
-	if config.BasicAuth != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return auth.NewBasic(ctx, next, *config.BasicAuth, middlewareName)
-		}
-	}
-
-	// Buffering
-	if config.Buffering != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return buffering.New(ctx, next, *config.Buffering, middlewareName)
-		}
+	options := typedOptions(config)
+	if len(options) > 1 || (len(options) == 1 && (config.Chain != nil || config.Plugin != nil)) || (config.Chain != nil && config.Plugin != nil) {
+		return nil, badConf
 	}
 
 	// Chain
 	if config.Chain != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-
 		var qualifiedNames []string
 		for _, name := range config.Chain.Middlewares {
 			qualifiedNames = append(qualifiedNames, provider.GetQualifiedName(ctx, name))
@@ -156,276 +103,37 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 		}
 	}
 
-	// CircuitBreaker
-	if config.CircuitBreaker != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return circuitbreaker.New(ctx, next, *config.CircuitBreaker, middlewareName)
-		}
-	}
+	pluginsEnabled := !isNilBuilder(b.pluginBuilder)
 
-	// Compress
-	if config.Compress != nil {
-		if middleware != nil {
-			return nil, badConf
+	// The other middlewares of Traefik are plugins implementing an option of the dynamic configuration (headers, stripPrefix, ...).
+	if len(options) == 1 {
+		option := options[0]
+		if !pluginsEnabled {
+			return nil, fmt.Errorf("the %q middleware is a plugin, and the plugins are disabled", option.name)
 		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return compress.New(ctx, next, *config.Compress, middlewareName)
-		}
-	}
 
-	// ContentType
-	if config.ContentType != nil {
-		if middleware != nil {
-			return nil, badConf
+		plug, err := b.pluginBuilder.BuildTyped(option.name, option.value, middlewareName)
+		if err != nil {
+			return nil, info.RedactURNRefs(err)
 		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return contenttype.New(ctx, next, *config.ContentType, middlewareName)
-		}
-	}
 
-	// EncodedCharacters
-	if config.EncodedCharacters != nil {
-		if middleware != nil {
-			return nil, badConf
+		pluginCtx := ctx
+		if b.serviceBuilder != nil {
+			pluginCtx = host.WithServiceBuilder(ctx, b.serviceBuilder.BuildHTTP)
 		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return encodedcharacters.NewEncodedCharacters(ctx, next, *config.EncodedCharacters, middlewareName), nil
-		}
-	}
 
-	// CustomErrors
-	if config.Errors != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
 		middleware = func(next http.Handler) (http.Handler, error) {
-			return customerrors.New(ctx, next, *config.Errors, b.serviceBuilder, middlewareName)
-		}
-	}
+			handler, err := newTraceablePlugin(pluginCtx, middlewareName, option.typeName, plug, next)
+			if err != nil {
+				return nil, info.RedactURNRefs(err)
+			}
 
-	// DigestAuth
-	if config.DigestAuth != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return auth.NewDigest(ctx, next, *config.DigestAuth, middlewareName)
-		}
-	}
-
-	// ForwardAuth
-	if config.ForwardAuth != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return auth.NewForward(ctx, next, *config.ForwardAuth, middlewareName)
-		}
-	}
-
-	// GrpcWeb
-	if config.GrpcWeb != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return grpcweb.New(ctx, next, *config.GrpcWeb, middlewareName), nil
-		}
-	}
-
-	// Headers
-	if config.Headers != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return headers.New(ctx, next, *config.Headers, middlewareName)
-		}
-	}
-
-	// IPWhiteList
-	if config.IPWhiteList != nil {
-		qualifiedName := provider.GetQualifiedName(ctx, middlewareName)
-		log.Warn().Msgf("Middleware %q of type IPWhiteList is deprecated, please use IPAllowList instead.", qualifiedName)
-
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return ipwhitelist.New(ctx, next, *config.IPWhiteList, middlewareName)
-		}
-	}
-
-	// IPAllowList
-	if config.IPAllowList != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return ipallowlist.New(ctx, next, *config.IPAllowList, middlewareName)
-		}
-	}
-
-	// InFlightReq
-	if config.InFlightReq != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return inflightreq.New(ctx, next, *config.InFlightReq, middlewareName)
-		}
-	}
-
-	// PassTLSClientCert
-	if config.PassTLSClientCert != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return passtlsclientcert.New(ctx, next, *config.PassTLSClientCert, middlewareName)
-		}
-	}
-
-	// AuthTLSPassCertificateToUpstream
-	if config.AuthTLSPassCertificateToUpstream != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return authtlspasscertificatetoupstream.NewAuthTLSPassCertificateToUpstream(ctx, next, *config.AuthTLSPassCertificateToUpstream, middlewareName)
-		}
-	}
-
-	// RateLimit
-	if config.RateLimit != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return ratelimiter.New(ctx, next, *config.RateLimit, middlewareName)
-		}
-	}
-
-	// RedirectRegex
-	if config.RedirectRegex != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return redirect.NewRedirectRegex(ctx, next, *config.RedirectRegex, middlewareName)
-		}
-	}
-
-	// RedirectScheme
-	if config.RedirectScheme != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return redirect.NewRedirectScheme(ctx, next, *config.RedirectScheme, middlewareName)
-		}
-	}
-
-	// ReplacePath
-	if config.ReplacePath != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return replacepath.New(ctx, next, *config.ReplacePath, middlewareName)
-		}
-	}
-
-	// ReplacePathRegex
-	if config.ReplacePathRegex != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return replacepathregex.New(ctx, next, *config.ReplacePathRegex, middlewareName)
-		}
-	}
-
-	// RewriteTarget
-	if config.RewriteTarget != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return rewritetarget.New(ctx, next, *config.RewriteTarget, middlewareName)
-		}
-	}
-
-	// AppRoot
-	if config.AppRoot != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return approot.New(ctx, next, *config.AppRoot, middlewareName)
-		}
-	}
-
-	// UpstreamVHost
-	if config.UpstreamVHost != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return upstreamvhost.New(ctx, next, *config.UpstreamVHost, middlewareName)
-		}
-	}
-
-	// Retry
-	if config.Retry != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			// TODO missing metrics / accessLog
-			return retry.New(ctx, next, *config.Retry, retry.Listeners{}, middlewareName)
-		}
-	}
-
-	// StripPrefix
-	if config.StripPrefix != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return stripprefix.New(ctx, next, *config.StripPrefix, middlewareName)
-		}
-	}
-
-	// StripPrefixRegex
-	if config.StripPrefixRegex != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return stripprefixregex.New(ctx, next, *config.StripPrefixRegex, middlewareName)
-		}
-	}
-
-	// Tap
-	if config.Tap != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return tap.New(ctx, next, *config.Tap, b.serviceBuilder, middlewareName)
+			return handler, nil
 		}
 	}
 
 	// Plugin
-	if config.Plugin != nil && !reflect.ValueOf(b.pluginBuilder).IsNil() { // Using "reflect" because "b.pluginBuilder" is an interface.
-		if middleware != nil {
-			return nil, badConf
-		}
-
+	if config.Plugin != nil && pluginsEnabled {
 		pluginType, rawPluginConfig, err := findPluginConfig(config.Plugin)
 		if err != nil {
 			return nil, fmt.Errorf("plugin: %w", err)
@@ -438,7 +146,7 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 		}
 
 		middleware = func(next http.Handler) (http.Handler, error) {
-			handler, err := newTraceablePlugin(ctx, middlewareName, plug, next)
+			handler, err := newTraceablePlugin(ctx, middlewareName, typeName, plug, next)
 			if err != nil {
 				return nil, info.RedactURNRefs(err)
 			}
@@ -447,56 +155,50 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 		}
 	}
 
-	// Gateway API HTTPRoute filters middlewares.
-	if config.RequestHeaderModifier != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return headermodifier.NewRequestHeaderModifier(ctx, next, *config.RequestHeaderModifier, middlewareName), nil
-		}
-	}
-
-	if config.ResponseHeaderModifier != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return headermodifier.NewResponseHeaderModifier(ctx, next, *config.ResponseHeaderModifier, middlewareName), nil
-		}
-	}
-
-	if config.RequestRedirect != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return gapiredirect.NewRequestRedirect(ctx, next, *config.RequestRedirect, middlewareName)
-		}
-	}
-
-	if config.URLRewrite != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return urlrewrite.NewURLRewrite(ctx, next, *config.URLRewrite, middlewareName), nil
-		}
-	}
-
-	// ingress-nginx middlewares.
-	if config.Snippet != nil {
-		if middleware != nil {
-			return nil, badConf
-		}
-		middleware = func(next http.Handler) (http.Handler, error) {
-			return snippet.New(ctx, next, config.Snippet, middlewareName)
-		}
-	}
-
 	if middleware == nil {
 		return nil, fmt.Errorf("invalid middleware %q configuration: invalid middleware type or middleware does not exist", middlewareName)
 	}
 
 	return observability.WrapMiddleware(ctx, middleware), nil
+}
+
+// typedOption is an option of the dynamic configuration of a middleware, implemented by a plugin.
+type typedOption struct {
+	// name is the name of the option in the configuration (headers, stripPrefix, ...).
+	name string
+	// typeName is the type of the middleware in the traces (Headers, StripPrefix, ...).
+	typeName string
+	value    any
+}
+
+// typedOptions returns the options of the configuration implemented by the middleware plugins: the options other than chain and plugin.
+func typedOptions(config *dynamic.Middleware) []typedOption {
+	var options []typedOption
+
+	val := reflect.ValueOf(config).Elem()
+	for i := range val.NumField() {
+		field := val.Type().Field(i)
+		if field.Type.Kind() != reflect.Pointer || field.Type.Elem().Kind() != reflect.Struct || val.Field(i).IsNil() {
+			continue
+		}
+
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		if name == "chain" {
+			continue
+		}
+
+		options = append(options, typedOption{name: name, typeName: field.Name, value: val.Field(i).Interface()})
+	}
+
+	return options
+}
+
+// isNilBuilder reports whether the plugins builder is nil, including a nil pointer in the interface.
+func isNilBuilder(builder PluginsBuilder) bool {
+	if builder == nil {
+		return true
+	}
+
+	val := reflect.ValueOf(builder)
+	return val.Kind() == reflect.Pointer && val.IsNil()
 }

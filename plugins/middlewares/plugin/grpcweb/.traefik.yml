@@ -1,0 +1,6 @@
+displayName: GrpcWeb middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/grpcweb
+implements: grpcWeb
+summary: The grpcWeb middleware of Traefik, as a plugin.
+testData: {}

@@ -4,6 +4,8 @@ go 1.27.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/Masterminds/goutils v1.1.1
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/abbot/go-http-auth v0.0.0-00010101000000-000000000000 // No tag on the repo.
 	github.com/andybalholm/brotli v1.2.2
@@ -16,6 +18,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.56.13
 	github.com/aws/smithy-go v1.28.1
 	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/containerd/errdefs v1.0.0
 	github.com/containous/alice v0.0.0-20181107144136-d83ebdd94cbd // No tag on the repo.
 	github.com/coreos/go-systemd/v22 v22.7.0
@@ -24,10 +27,13 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-acme/lego/v5 v5.5.2
+	github.com/go-jose/go-jose/v4 v4.1.5
 	github.com/go-kit/kit v0.13.0
 	github.com/go-kit/log v0.2.1
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-github/v90 v90.0.0
+	github.com/google/go-querystring v1.2.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // No tag on the repo.
 	github.com/hashicorp/consul/api v1.26.1
@@ -37,6 +43,7 @@ require (
 	github.com/hashicorp/nomad/api v0.0.0-20231213195942-64e3dca9274b // No tag on the repo.
 	github.com/http-wasm/http-wasm-host-go v0.7.0
 	github.com/huandu/xstrings v1.5.0
+	github.com/imdario/mergo v0.3.16
 	github.com/influxdata/influxdb-client-go/v2 v2.7.0
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab // No tag on the repo.
 	// TODO: pin a released version once https://github.com/klauspost/compress/pull/1272 is part of a release.
@@ -46,10 +53,13 @@ require (
 	github.com/kvtools/redis v1.2.1
 	github.com/kvtools/valkeyrie v1.0.0
 	github.com/kvtools/zookeeper v1.0.2
+	github.com/mattn/go-colorable v0.1.14
+	github.com/mattn/go-isatty v0.0.24
 	github.com/miekg/dns v1.1.73
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c // No tag on the repo.
+	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/moby/moby/api v1.56.0
 	github.com/moby/moby/client v0.6.0
 	github.com/opencontainers/image-spec v1.1.1
@@ -62,7 +72,9 @@ require (
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/slog-zerolog/v2 v2.9.2
+	github.com/shopspring/decimal v1.4.0
 	github.com/sirupsen/logrus v1.10.2
+	github.com/spf13/cast v1.10.0
 	github.com/spiffe/go-spiffe/v2 v2.7.0
 	github.com/stealthrocket/wasi-go v0.8.0
 	github.com/stealthrocket/wazergo v0.19.1
@@ -125,6 +137,7 @@ require (
 	sigs.k8s.io/gateway-api/conformance v1.6.3
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0
 	sigs.k8s.io/yaml v1.6.0
+	software.sslmate.com/src/go-pkcs12 v0.7.3
 )
 
 require (
@@ -142,8 +155,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.8.0 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.4.0 // indirect
-	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Myra-Security-GmbH/myrasec-go/v2 v2.59.0 // indirect
 	github.com/Myra-Security-GmbH/signature v1.1.0 // indirect
@@ -177,7 +188,6 @@ require (
 	github.com/bodgit/gssapi v0.0.4 // indirect
 	github.com/bodgit/tsig v1.3.1 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
-	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
@@ -207,7 +217,6 @@ require (
 	github.com/go-acme/tencentclouddnspod v1.3.131 // indirect
 	github.com/go-acme/tencentedgdeone v1.3.170 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -242,9 +251,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.20 // indirect
 	github.com/googleapis/gax-go/v2 v2.24.0 // indirect
 	github.com/gophercloud/gophercloud v1.14.1 // indirect
@@ -263,7 +270,6 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
 	github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.1.215 // indirect
-	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839 // indirect
 	github.com/infobloxopen/infoblox-go-client/v2 v2.12.0 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
@@ -285,12 +291,9 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20250317134145-8bc96cf8fc35 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mailgun/multibuf v0.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mimuret/golang-iij-dpf v0.9.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
-	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
@@ -343,13 +346,11 @@ require (
 	github.com/selectel/domains-go v1.1.0 // indirect
 	github.com/selectel/go-selvpcclient/v4 v4.2.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.26.3 // indirect
-	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/softlayer/softlayer-go v1.2.1 // indirect
 	github.com/softlayer/xmlrpc v0.0.0-20200409220501-5f089df7cb7e // indirect
 	github.com/sony/gobreaker/v2 v2.4.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
-	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
@@ -360,6 +361,7 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
+	github.com/traefik/traefik/v3/plugins v0.0.0-00010101000000-000000000000 // indirect
 	github.com/transip/gotransip/v6 v6.28.0 // indirect
 	github.com/ucloud/ucloud-sdk-go v0.22.123 // indirect
 	github.com/ultradns/ultradns-go-sdk v1.8.2-20260507133303-3f324c7 // indirect
@@ -409,11 +411,13 @@ require (
 	k8s.io/streaming v0.36.3 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	software.sslmate.com/src/go-pkcs12 v0.7.3 // indirect
 )
 
 // Dynamic config extension.
 replace github.com/traefik/traefik/dynamic/ext => ./pkg/config/dynamic/ext
+
+// The providers of Traefik are plugins of this module: the integration tests use them.
+replace github.com/traefik/traefik/v3/plugins => ./plugins
 
 // Containous forks
 replace (

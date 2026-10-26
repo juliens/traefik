@@ -15,7 +15,6 @@ import (
 	wasm "github.com/http-wasm/http-wasm-host-go/handler/nethttp"
 	"github.com/tetratelabs/wazero"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
-	"github.com/traefik/traefik/v3/pkg/observability/logs"
 )
 
 type wasmMiddlewareBuilder struct {
@@ -111,7 +110,7 @@ func (b *wasmMiddlewareBuilder) buildMiddleware(ctx context.Context, next http.H
 
 	opts := []handler.Option{
 		handler.ModuleConfig(config),
-		handler.Logger(logs.NewWasmLogger(logger)),
+		handler.Logger(NewWasmLogger(logger)),
 	}
 
 	i := cfg.Interface()

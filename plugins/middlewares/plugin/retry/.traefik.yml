@@ -1,0 +1,6 @@
+displayName: Retry middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/retry
+implements: retry
+summary: The retry middleware of Traefik, as a plugin.
+testData: {}

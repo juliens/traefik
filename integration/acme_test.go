@@ -17,10 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/traefik/traefik/v3/integration/try"
-	"github.com/traefik/traefik/v3/pkg/config/static"
-	"github.com/traefik/traefik/v3/pkg/provider/acme"
 	"github.com/traefik/traefik/v3/pkg/testhelpers"
 	"github.com/traefik/traefik/v3/pkg/types"
+	"github.com/traefik/traefik/v3/plugins/providers/acme"
 	"k8s.io/utils/strings/slices"
 )
 
@@ -53,7 +52,12 @@ type templateModel struct {
 	Domains   []types.Domain
 	PortHTTP  string
 	PortHTTPS string
-	Acme      map[string]static.CertificateResolver
+	Acme      map[string]acmeResolver
+}
+
+// acmeResolver is the configuration of an ACME provider plugin in the templates.
+type acmeResolver struct {
+	ACME *acme.Configuration
 }
 
 const (
@@ -147,7 +151,7 @@ func (s *AcmeSuite) TestHTTP01Domains() {
 			Domains: []types.Domain{{
 				Main: "traefik.acme.wtf",
 			}},
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 				}},
@@ -170,7 +174,7 @@ func (s *AcmeSuite) TestHTTP01StoreDomains() {
 			Domain: types.Domain{
 				Main: "traefik.acme.wtf",
 			},
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 				}},
@@ -194,7 +198,7 @@ func (s *AcmeSuite) TestHTTP01DomainsInSAN() {
 				Main: "acme.wtf",
 				SANs: []string{"traefik.acme.wtf"},
 			}},
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 				}},
@@ -214,7 +218,7 @@ func (s *AcmeSuite) TestHTTP01OnHostRule() {
 			expectedAlgorithm: x509.RSA,
 		}},
 		template: templateModel{
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 				}},
@@ -241,7 +245,7 @@ func (s *AcmeSuite) TestMultipleResolver() {
 			},
 		},
 		template: templateModel{
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 				}},
@@ -265,7 +269,7 @@ func (s *AcmeSuite) TestHTTP01OnHostRuleECDSA() {
 			expectedAlgorithm: x509.ECDSA,
 		}},
 		template: templateModel{
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 					KeyType:       "EC384",
@@ -286,7 +290,7 @@ func (s *AcmeSuite) TestHTTP01OnHostRuleInvalidAlgo() {
 			expectedAlgorithm: x509.RSA,
 		}},
 		template: templateModel{
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 					KeyType:       "INVALID",
@@ -308,7 +312,7 @@ func (s *AcmeSuite) TestHTTP01OnHostRuleDefaultDynamicCertificatesWithWildcard()
 			expectedAlgorithm: x509.RSA,
 		}},
 		template: templateModel{
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 				}},
@@ -329,7 +333,7 @@ func (s *AcmeSuite) TestHTTP01OnHostRuleDynamicCertificatesWithWildcard() {
 			expectedAlgorithm: x509.RSA,
 		}},
 		template: templateModel{
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
 				}},
@@ -349,7 +353,7 @@ func (s *AcmeSuite) TestTLSALPN01OnHostRuleTCP() {
 			expectedAlgorithm: x509.RSA,
 		}},
 		template: templateModel{
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					TLSChallenge: &acme.TLSChallenge{},
 				}},
@@ -369,7 +373,7 @@ func (s *AcmeSuite) TestTLSALPN01OnHostRule() {
 			expectedAlgorithm: x509.RSA,
 		}},
 		template: templateModel{
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					TLSChallenge: &acme.TLSChallenge{},
 				}},
@@ -392,7 +396,7 @@ func (s *AcmeSuite) TestTLSALPN01Domains() {
 			Domains: []types.Domain{{
 				Main: "traefik.acme.wtf",
 			}},
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					TLSChallenge: &acme.TLSChallenge{},
 				}},
@@ -416,7 +420,7 @@ func (s *AcmeSuite) TestTLSALPN01DomainsInSAN() {
 				Main: "acme.wtf",
 				SANs: []string{"traefik.acme.wtf"},
 			}},
-			Acme: map[string]static.CertificateResolver{
+			Acme: map[string]acmeResolver{
 				"default": {ACME: &acme.Configuration{
 					TLSChallenge: &acme.TLSChallenge{},
 				}},
@@ -430,7 +434,7 @@ func (s *AcmeSuite) TestTLSALPN01DomainsInSAN() {
 // Test Let's encrypt down.
 func (s *AcmeSuite) TestNoValidLetsEncryptServer() {
 	file := s.adaptFile("fixtures/acme/acme_base.toml", templateModel{
-		Acme: map[string]static.CertificateResolver{
+		Acme: map[string]acmeResolver{
 			"default": {ACME: &acme.Configuration{
 				CAServer:      "http://wrongurl:4001/directory",
 				HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},

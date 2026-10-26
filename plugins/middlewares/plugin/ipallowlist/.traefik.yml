@@ -1,0 +1,6 @@
+displayName: IPAllowList middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist
+implements: ipAllowList
+summary: The ipAllowList middleware of Traefik, as a plugin.
+testData: {}

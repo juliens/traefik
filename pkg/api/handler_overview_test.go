@@ -14,11 +14,6 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
 	"github.com/traefik/traefik/v3/pkg/config/static"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
-	"github.com/traefik/traefik/v3/pkg/provider/docker"
-	"github.com/traefik/traefik/v3/pkg/provider/file"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/crd"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/ingress"
-	"github.com/traefik/traefik/v3/pkg/provider/rest"
 )
 
 func TestHandler_Overview(t *testing.T) {
@@ -232,15 +227,11 @@ func TestHandler_Overview(t *testing.T) {
 				Global: &static.Global{},
 				API:    &static.API{},
 				Providers: &static.Providers{
-					Precedence:        []string{"foo"},
-					Docker:            &docker.Provider{},
-					Swarm:             &docker.SwarmProvider{},
-					File:              &file.Provider{},
-					KubernetesIngress: &ingress.Provider{},
-					KubernetesCRD:     &crd.Provider{},
-					Rest:              &rest.Provider{},
+					Precedence: []string{"foo"},
 					Plugin: map[string]static.PluginConf{
-						"test": map[string]any{},
+						"file":   map[string]any{},
+						"docker": map[string]any{},
+						"test":   map[string]any{},
 					},
 				},
 			},

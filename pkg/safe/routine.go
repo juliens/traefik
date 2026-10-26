@@ -2,15 +2,11 @@ package safe
 
 import (
 	"context"
-	"fmt"
 	"runtime/debug"
 	"sync"
 
-	"github.com/cenkalti/backoff/v4"
 	"github.com/rs/zerolog/log"
 )
-
-type routineCtx func(ctx context.Context)
 
 // Pool is a pool of go routines.
 type Pool struct {
@@ -29,7 +25,8 @@ func NewPool(parentCtx context.Context) *Pool {
 }
 
 // GoCtx starts a recoverable goroutine with a context.
-func (p *Pool) GoCtx(goroutine routineCtx) {
+// The goroutine is a plain func type: the provider plugins call GoCtx, and go-vm only passes the exported types to Traefik.
+func (p *Pool) GoCtx(goroutine func(ctx context.Context)) {
 	p.waitGroup.Add(1)
 	Go(func() {
 		defer p.waitGroup.Done()
@@ -63,17 +60,4 @@ func GoWithRecover(goroutine func(), customRecover func(err any)) {
 func defaultRecoverGoroutine(err any) {
 	log.Error().Interface("error", err).Msg("Error in Go routine")
 	log.Error().Msgf("Stack: %s", debug.Stack())
-}
-
-// OperationWithRecover wrap a backoff operation in a Recover.
-func OperationWithRecover(operation backoff.Operation) backoff.Operation {
-	return func() (err error) {
-		defer func() {
-			if res := recover(); res != nil {
-				defaultRecoverGoroutine(res)
-				err = fmt.Errorf("panic in operation: %w", err)
-			}
-		}()
-		return operation()
-	}
 }

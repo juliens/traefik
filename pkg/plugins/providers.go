@@ -31,7 +31,7 @@ func (b Builder) BuildProvider(pName string, config map[string]any) (provider.Pr
 		return nil, fmt.Errorf("unknown plugin type: %s", pName)
 	}
 
-	return newGoVMProvider(builder.plugin, config, "plugin-"+pName)
+	return newGoVMProvider(builder.plugin, config, pName)
 }
 
 type providerBuilder struct {

@@ -1,0 +1,6 @@
+displayName: InFlightReq middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/inflightreq
+implements: inFlightReq
+summary: The inFlightReq middleware of Traefik, as a plugin.
+testData: {}

@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog/log"
-	"github.com/traefik/traefik/v3/pkg/config/static"
 	"github.com/traefik/traefik/v3/pkg/observability"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	"go.opentelemetry.io/contrib/propagators/autoprop"
@@ -39,7 +38,7 @@ type Tracer struct {
 }
 
 // NewTracing Creates a Tracing.
-func NewTracing(ctx context.Context, conf *static.Tracing) (*Tracer, io.Closer, error) {
+func NewTracing(ctx context.Context, conf *otypes.Tracing) (*Tracer, io.Closer, error) {
 	var backend Backend
 
 	if conf.OTLP != nil {

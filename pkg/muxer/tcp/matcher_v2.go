@@ -9,7 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
+
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/ip"
 )
@@ -52,7 +53,7 @@ func alpnV2(tree *matchersTree, protos ...string) error {
 	}
 
 	for _, proto := range protos {
-		if proto == tlsalpn01.ACMETLS1Protocol {
+		if proto == traefiktls.ACMETLS1Protocol {
 			return fmt.Errorf("invalid protocol value for \"ALPN\" matcher, %q is not allowed", proto)
 		}
 	}

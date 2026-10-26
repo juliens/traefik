@@ -6,8 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/ping"
-	"github.com/traefik/traefik/v3/pkg/provider/acme"
-	ingressnginx "github.com/traefik/traefik/v3/pkg/provider/kubernetes/ingress-nginx"
 )
 
 func TestHasEntrypoint(t *testing.T) {
@@ -240,247 +238,6 @@ func TestConfiguration_SetEffectiveConfiguration(t *testing.T) {
 			},
 		},
 		{
-			desc: "ACME simple",
-			conf: &Configuration{
-				Providers: &Providers{Precedence: providerNames},
-				CertificatesResolvers: map[string]CertificateResolver{
-					"foo": {
-						ACME: &acme.Configuration{
-							DNSChallenge: &acme.DNSChallenge{
-								Provider: "bar",
-							},
-						},
-					},
-				},
-			},
-			expected: &Configuration{
-				EntryPoints: EntryPoints{"http": &EntryPoint{
-					Address:         ":80",
-					AllowACMEByPass: false,
-					ReusePort:       false,
-					AsDefault:       false,
-					Transport: &EntryPointsTransport{
-						LifeCycle: &LifeCycle{
-							GraceTimeOut: 10000000000,
-						},
-						RespondingTimeouts: &RespondingTimeouts{
-							ReadTimeout: 60000000000,
-							IdleTimeout: 180000000000,
-						},
-					},
-					ProxyProtocol:    nil,
-					ForwardedHeaders: &ForwardedHeaders{},
-					HTTP: HTTPConfig{
-						SanitizePath:        new(true),
-						MaxHeaderBytes:      1048576,
-						MaxHeaderValueCount: 500,
-					},
-					HTTP2: &HTTP2Config{
-						MaxConcurrentStreams:      250,
-						MaxDecoderHeaderTableSize: 4096,
-						MaxEncoderHeaderTableSize: 4096,
-					},
-					HTTP3: nil,
-					UDP: &UDPConfig{
-						Timeout: 3000000000,
-					},
-				}},
-				Providers: &Providers{Precedence: providerNames},
-				CertificatesResolvers: map[string]CertificateResolver{
-					"foo": {
-						ACME: &acme.Configuration{
-							CAServer: "https://acme-v02.api.letsencrypt.org/directory",
-							DNSChallenge: &acme.DNSChallenge{
-								Provider: "bar",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			desc: "ACME deprecation DelayBeforeCheck",
-			conf: &Configuration{
-				Providers: &Providers{Precedence: providerNames},
-				CertificatesResolvers: map[string]CertificateResolver{
-					"foo": {
-						ACME: &acme.Configuration{
-							DNSChallenge: &acme.DNSChallenge{
-								Provider:         "bar",
-								DelayBeforeCheck: 123,
-							},
-						},
-					},
-				},
-			},
-			expected: &Configuration{
-				EntryPoints: EntryPoints{"http": &EntryPoint{
-					Address:         ":80",
-					AllowACMEByPass: false,
-					ReusePort:       false,
-					AsDefault:       false,
-					Transport: &EntryPointsTransport{
-						LifeCycle: &LifeCycle{
-							GraceTimeOut: 10000000000,
-						},
-						RespondingTimeouts: &RespondingTimeouts{
-							ReadTimeout: 60000000000,
-							IdleTimeout: 180000000000,
-						},
-					},
-					ProxyProtocol:    nil,
-					ForwardedHeaders: &ForwardedHeaders{},
-					HTTP: HTTPConfig{
-						SanitizePath:        new(true),
-						MaxHeaderBytes:      1048576,
-						MaxHeaderValueCount: 500,
-					},
-					HTTP2: &HTTP2Config{
-						MaxConcurrentStreams:      250,
-						MaxDecoderHeaderTableSize: 4096,
-						MaxEncoderHeaderTableSize: 4096,
-					},
-					HTTP3: nil,
-					UDP: &UDPConfig{
-						Timeout: 3000000000,
-					},
-				}},
-				Providers: &Providers{Precedence: providerNames},
-				CertificatesResolvers: map[string]CertificateResolver{
-					"foo": {
-						ACME: &acme.Configuration{
-							CAServer: "https://acme-v02.api.letsencrypt.org/directory",
-							DNSChallenge: &acme.DNSChallenge{
-								Provider:         "bar",
-								DelayBeforeCheck: 123,
-								Propagation: acme.Propagation{
-									DelayBeforeChecks: 123,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			desc: "ACME deprecation DisablePropagationCheck",
-			conf: &Configuration{
-				Providers: &Providers{Precedence: providerNames},
-				CertificatesResolvers: map[string]CertificateResolver{
-					"foo": {
-						ACME: &acme.Configuration{
-							DNSChallenge: &acme.DNSChallenge{
-								Provider:                "bar",
-								DisablePropagationCheck: true,
-							},
-						},
-					},
-				},
-			},
-			expected: &Configuration{
-				EntryPoints: EntryPoints{"http": &EntryPoint{
-					Address:         ":80",
-					AllowACMEByPass: false,
-					ReusePort:       false,
-					AsDefault:       false,
-					Transport: &EntryPointsTransport{
-						LifeCycle: &LifeCycle{
-							GraceTimeOut: 10000000000,
-						},
-						RespondingTimeouts: &RespondingTimeouts{
-							ReadTimeout: 60000000000,
-							IdleTimeout: 180000000000,
-						},
-					},
-					ProxyProtocol:    nil,
-					ForwardedHeaders: &ForwardedHeaders{},
-					HTTP: HTTPConfig{
-						SanitizePath:        new(true),
-						MaxHeaderBytes:      1048576,
-						MaxHeaderValueCount: 500,
-					},
-					HTTP2: &HTTP2Config{
-						MaxConcurrentStreams:      250,
-						MaxDecoderHeaderTableSize: 4096,
-						MaxEncoderHeaderTableSize: 4096,
-					},
-					HTTP3: nil,
-					UDP: &UDPConfig{
-						Timeout: 3000000000,
-					},
-				}},
-				Providers: &Providers{Precedence: providerNames},
-				CertificatesResolvers: map[string]CertificateResolver{
-					"foo": {
-						ACME: &acme.Configuration{
-							CAServer: "https://acme-v02.api.letsencrypt.org/directory",
-							DNSChallenge: &acme.DNSChallenge{
-								Provider:                "bar",
-								DisablePropagationCheck: true,
-								Propagation: acme.Propagation{
-									DisableChecks: true,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			desc: "Ingress NGINX provider, no asDefault, all non-TLS non-internal entrypoints included",
-			conf: &Configuration{
-				Providers: &Providers{
-					KubernetesIngressNGINX: &ingressnginx.Provider{},
-				},
-				EntryPoints: EntryPoints{
-					"web":       {Address: ":80"},
-					"admin":     {Address: ":8081"},
-					"traefik":   {Address: ":8080"},
-					"websecure": {Address: ":443", HTTP: HTTPConfig{TLS: &TLSConfig{}}},
-				},
-			},
-			expected: &Configuration{
-				Providers: &Providers{
-					KubernetesIngressNGINX: &ingressnginx.Provider{
-						NonTLSEntryPoints: []string{"admin", "web"},
-					},
-				},
-				EntryPoints: EntryPoints{
-					"web":       {Address: ":80"},
-					"admin":     {Address: ":8081"},
-					"traefik":   {Address: ":8080"},
-					"websecure": {Address: ":443", HTTP: HTTPConfig{TLS: &TLSConfig{}}},
-				},
-			},
-		},
-		{
-			desc: "Ingress NGINX provider, asDefault set, only marked entrypoint included",
-			conf: &Configuration{
-				Providers: &Providers{
-					KubernetesIngressNGINX: &ingressnginx.Provider{},
-				},
-				EntryPoints: EntryPoints{
-					"web":       {Address: ":80", AsDefault: true},
-					"admin":     {Address: ":8081"},
-					"traefik":   {Address: ":8080"},
-					"websecure": {Address: ":443", HTTP: HTTPConfig{TLS: &TLSConfig{}}},
-				},
-			},
-			expected: &Configuration{
-				Providers: &Providers{
-					KubernetesIngressNGINX: &ingressnginx.Provider{
-						NonTLSEntryPoints: []string{"web"},
-					},
-				},
-				EntryPoints: EntryPoints{
-					"web":       {Address: ":80", AsDefault: true},
-					"admin":     {Address: ":8081"},
-					"traefik":   {Address: ":8080"},
-					"websecure": {Address: ":443", HTTP: HTTPConfig{TLS: &TLSConfig{}}},
-				},
-			},
-		},
-		{
 			desc: "Internal entrypoint, missing, created with defaults",
 			conf: &Configuration{
 				Providers: &Providers{},
@@ -585,43 +342,9 @@ func TestConfiguration_SetEffectiveConfiguration(t *testing.T) {
 
 			test.conf.SetEffectiveConfiguration()
 
-			// NonTLSEntryPoints is built from a map iteration, so its order isn't deterministic.
-			if p := test.conf.Providers.KubernetesIngressNGINX; p != nil {
-				assert.ElementsMatch(t, test.expected.Providers.KubernetesIngressNGINX.NonTLSEntryPoints, p.NonTLSEntryPoints)
-				p.NonTLSEntryPoints = nil
-				test.expected.Providers.KubernetesIngressNGINX.NonTLSEntryPoints = nil
-			}
-
 			assert.Equal(t, test.expected, test.conf)
 		})
 	}
-}
-
-func TestSetEffectiveConfiguration_DisableNonTLSRouters(t *testing.T) {
-	conf := &Configuration{
-		EntryPoints: EntryPoints{
-			"web": {
-				Address: ":80",
-				HTTP:    HTTPConfig{},
-			},
-			"websecure": {
-				Address: ":443",
-				HTTP: HTTPConfig{
-					TLS: &TLSConfig{},
-				},
-			},
-		},
-		Providers: &Providers{
-			Precedence: providerNames,
-			KubernetesIngressNGINX: &ingressnginx.Provider{
-				DisableNonTLSRouters: true,
-			},
-		},
-	}
-
-	conf.SetEffectiveConfiguration()
-
-	assert.Empty(t, conf.Providers.KubernetesIngressNGINX.NonTLSEntryPoints)
 }
 
 func TestValidateConfiguration_BasePath(t *testing.T) {
@@ -737,10 +460,10 @@ func TestProvidersPrecedence(t *testing.T) {
 			expected: providerNames,
 		},
 		{
-			desc: "Precedence with non existing provider",
+			desc: "Precedence with empty provider name",
 			cfg: &Configuration{
 				Providers: &Providers{
-					Precedence: []string{"unknown"},
+					Precedence: []string{""},
 				},
 			},
 			expectedError: true,

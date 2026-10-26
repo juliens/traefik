@@ -9,7 +9,6 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/config/static"
 	"github.com/traefik/traefik/v3/pkg/provider"
-	"github.com/traefik/traefik/v3/pkg/provider/file"
 	"github.com/traefik/traefik/v3/pkg/provider/traefik"
 	"github.com/traefik/traefik/v3/pkg/redactor"
 	"github.com/traefik/traefik/v3/pkg/safe"
@@ -31,7 +30,8 @@ type throttled interface {
 // provider implements the throttled interface.
 func maybeThrottledProvide(prd provider.Provider, defaultDuration time.Duration) func(chan<- dynamic.Message, *safe.Pool) error {
 	providerThrottleDuration := defaultDuration
-	if throttled, ok := prd.(throttled); ok {
+	// A negative duration stands for the providersThrottleDuration option (a provider plugin without throttle duration).
+	if throttled, ok := prd.(throttled); ok && throttled.ThrottleDuration() >= 0 {
 		// per-provider throttling
 		providerThrottleDuration = throttled.ThrottleDuration()
 	}
@@ -62,92 +62,16 @@ func maybeThrottledProvide(prd provider.Provider, defaultDuration time.Duration)
 // ProviderAggregator aggregates providers.
 type ProviderAggregator struct {
 	internalProvider          provider.Provider
-	fileProvider              provider.Provider
 	providers                 []provider.Provider
 	providersThrottleDuration time.Duration
 }
 
-// NewProviderAggregator returns an aggregate of all the providers configured in the static configuration.
+// NewProviderAggregator returns an aggregate of the providers.
+// The providers are plugins (see the providers.plugin option), and Traefik adds them with AddProvider.
 func NewProviderAggregator(conf static.Providers) *ProviderAggregator {
-	p := &ProviderAggregator{
+	return &ProviderAggregator{
 		providersThrottleDuration: time.Duration(conf.ProvidersThrottleDuration),
 	}
-
-	if conf.File != nil {
-		p.quietAddProvider(conf.File)
-	}
-
-	if conf.Docker != nil {
-		p.quietAddProvider(conf.Docker)
-	}
-
-	if conf.Swarm != nil {
-		p.quietAddProvider(conf.Swarm)
-	}
-
-	if conf.Rest != nil {
-		p.quietAddProvider(conf.Rest)
-	}
-
-	if conf.KubernetesIngress != nil {
-		p.quietAddProvider(conf.KubernetesIngress)
-	}
-
-	if conf.KubernetesIngressNGINX != nil {
-		p.quietAddProvider(conf.KubernetesIngressNGINX)
-	}
-
-	if conf.KubernetesCRD != nil {
-		p.quietAddProvider(conf.KubernetesCRD)
-	}
-
-	if conf.Knative != nil {
-		p.quietAddProvider(conf.Knative)
-	}
-
-	if conf.KubernetesGateway != nil {
-		p.quietAddProvider(conf.KubernetesGateway)
-	}
-
-	if conf.Ecs != nil {
-		p.quietAddProvider(conf.Ecs)
-	}
-
-	if conf.ConsulCatalog != nil {
-		for _, pvd := range conf.ConsulCatalog.BuildProviders() {
-			p.quietAddProvider(pvd)
-		}
-	}
-
-	if conf.Nomad != nil {
-		for _, pvd := range conf.Nomad.BuildProviders() {
-			p.quietAddProvider(pvd)
-		}
-	}
-
-	if conf.Consul != nil {
-		for _, pvd := range conf.Consul.BuildProviders() {
-			p.quietAddProvider(pvd)
-		}
-	}
-
-	if conf.Etcd != nil {
-		p.quietAddProvider(conf.Etcd)
-	}
-
-	if conf.ZooKeeper != nil {
-		p.quietAddProvider(conf.ZooKeeper)
-	}
-
-	if conf.Redis != nil {
-		p.quietAddProvider(conf.Redis)
-	}
-
-	if conf.HTTP != nil {
-		p.quietAddProvider(conf.HTTP)
-	}
-
-	return p
 }
 
 // AddProvider adds a provider in the providers map.
@@ -158,8 +82,6 @@ func (p *ProviderAggregator) AddProvider(provider provider.Provider) error {
 	}
 
 	switch provider.(type) {
-	case *file.Provider:
-		p.fileProvider = provider
 	case *traefik.Provider:
 		p.internalProvider = provider
 	default:
@@ -176,10 +98,6 @@ func (p *ProviderAggregator) Init() error {
 
 // Provide calls the provide method of every providers.
 func (p *ProviderAggregator) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
-	if p.fileProvider != nil {
-		p.launchProvider(configurationChan, pool, p.fileProvider)
-	}
-
 	for _, prd := range p.providers {
 		safe.Go(func() {
 			p.launchProvider(configurationChan, pool, prd)

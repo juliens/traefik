@@ -14,8 +14,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-acme/lego/v5/challenge/dns01"
-	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
 	"github.com/traefik/traefik/v3/pkg/tls/generate"
@@ -28,12 +26,14 @@ const (
 	// DefaultTLSStoreName is the name of the default store of TLS certificates.
 	// Note that it actually is the only usable one for now.
 	DefaultTLSStoreName = "default"
+	// ACMETLS1Protocol is the ALPN protocol of the ACME TLS-ALPN challenges (RFC 8737), and the name of the store of their certificates.
+	ACMETLS1Protocol = "acme-tls/1"
 )
 
 // DefaultTLSOptions the default TLS options.
 var DefaultTLSOptions = Options{
 	// ensure http2 enabled
-	ALPNProtocols: []string{"h2", "http/1.1", tlsalpn01.ACMETLS1Protocol},
+	ALPNProtocols: []string{"h2", "http/1.1", ACMETLS1Protocol},
 	MinVersion:    "VersionTLS12",
 	CipherSuites:  getCipherSuites(),
 }
@@ -113,8 +113,8 @@ func (m *Manager) UpdateConfigs(ctx context.Context, stores map[string]Store, co
 		m.storesConfig[DefaultTLSStoreName] = Store{}
 	}
 
-	if _, ok := m.storesConfig[tlsalpn01.ACMETLS1Protocol]; !ok {
-		m.storesConfig[tlsalpn01.ACMETLS1Protocol] = Store{}
+	if _, ok := m.storesConfig[ACMETLS1Protocol]; !ok {
+		m.storesConfig[ACMETLS1Protocol] = Store{}
 	}
 
 	storesCertificates := make(map[string]map[string]*CertificateData)
@@ -184,7 +184,7 @@ func (m *Manager) UpdateConfigs(ctx context.Context, stores map[string]Store, co
 		}
 
 		// a default cert for the ACME store does not make any sense, so generating one is a waste.
-		if storeName == tlsalpn01.ACMETLS1Protocol {
+		if storeName == ACMETLS1Protocol {
 			continue
 		}
 
@@ -216,11 +216,26 @@ func sanitizeDomains(domain types.Domain) ([]string, error) {
 	var cleanDomains []string
 	for _, domain := range domains {
 		canonicalDomain := types.CanonicalDomain(domain)
-		cleanDomain := dns01.UnFqdn(canonicalDomain)
+		cleanDomain := strings.TrimSuffix(canonicalDomain, ".")
 		cleanDomains = append(cleanDomains, cleanDomain)
 	}
 
 	return cleanDomains, nil
+}
+
+// HasACMETLSCertificates reports whether the store of the ACME TLS-ALPN challenges has certificates:
+// a challenge is in progress, and the ACME-TLS/1 connections are for Traefik.
+func (m *Manager) HasACMETLSCertificates() bool {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	store := m.getStore(ACMETLS1Protocol)
+	if store == nil || store.DynamicCerts == nil {
+		return false
+	}
+
+	certs, _ := store.DynamicCerts.Get().(map[string]*CertificateData)
+	return len(certs) > 0
 }
 
 // Get gets the TLS configuration to use for a given store / configuration.
@@ -244,15 +259,15 @@ func (m *Manager) Get(storeName, configName string) (*tls.Config, error) {
 	if store == nil {
 		err = fmt.Errorf("TLS store %s not found", storeName)
 	}
-	acmeTLSStore := m.getStore(tlsalpn01.ACMETLS1Protocol)
+	acmeTLSStore := m.getStore(ACMETLS1Protocol)
 	if acmeTLSStore == nil && err == nil {
-		err = fmt.Errorf("ACME TLS store %s not found", tlsalpn01.ACMETLS1Protocol)
+		err = fmt.Errorf("ACME TLS store %s not found", ACMETLS1Protocol)
 	}
 
 	tlsConfig.GetCertificate = func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		domainToCheck := types.CanonicalDomain(clientHello.ServerName)
 
-		if slices.Contains(clientHello.SupportedProtos, tlsalpn01.ACMETLS1Protocol) {
+		if slices.Contains(clientHello.SupportedProtos, ACMETLS1Protocol) {
 			certificate := acmeTLSStore.GetBestCertificate(clientHello)
 			if certificate == nil {
 				log.Debug().Msgf("TLS: no certificate for TLSALPN challenge: %s", domainToCheck)

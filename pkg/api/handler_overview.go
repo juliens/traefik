@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"maps"
 	"net/http"
 	"reflect"
+	"slices"
 
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
@@ -221,28 +223,13 @@ func getUDPServiceSection(services map[string]*runtime.UDPServiceInfo) *section 
 	}
 }
 
+// getProviders returns the names of the provider plugins: Traefik has no other providers.
 func getProviders(conf static.Configuration) []string {
 	if conf.Providers == nil {
 		return nil
 	}
 
-	var providers []string
-
-	v := reflect.ValueOf(conf.Providers).Elem()
-	for i := range v.NumField() {
-		field := v.Field(i)
-		if field.Kind() == reflect.Pointer && field.Elem().Kind() == reflect.Struct {
-			if !field.IsNil() {
-				providers = append(providers, v.Type().Field(i).Name)
-			}
-		} else if field.Kind() == reflect.Map && field.Type().Elem() == reflect.TypeFor[static.PluginConf]() {
-			for _, value := range field.MapKeys() {
-				providers = append(providers, "plugin-"+value.String())
-			}
-		}
-	}
-
-	return providers
+	return slices.Sorted(maps.Keys(conf.Providers.Plugin))
 }
 
 func getFeatures(conf static.Configuration) features {

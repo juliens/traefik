@@ -1,0 +1,6 @@
+displayName: RequestHeaderModifier middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/requestheadermodifier
+implements: requestHeaderModifier
+summary: The requestHeaderModifier middleware of Traefik, as a plugin.
+testData: {}

@@ -1,0 +1,6 @@
+displayName: Headers middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers
+implements: headers
+summary: The headers middleware of Traefik, as a plugin.
+testData: {}

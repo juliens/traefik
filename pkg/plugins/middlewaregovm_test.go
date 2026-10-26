@@ -412,3 +412,22 @@ func TestGoVMMiddleware_restrictions(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodePluginConfig_emptyValue(t *testing.T) {
+	type challenge struct {
+		Delay string
+	}
+
+	var result struct {
+		TLSChallenge *challenge
+		Labels       map[string]string
+		Name         string
+	}
+
+	err := decodePluginConfig(map[string]any{"tlsChallenge": "", "labels": "", "name": ""}, &result)
+	require.NoError(t, err)
+
+	assert.Equal(t, &challenge{}, result.TLSChallenge)
+	assert.Empty(t, result.Labels)
+	assert.Empty(t, result.Name)
+}

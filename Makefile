@@ -93,6 +93,7 @@ test: test-ui-unit test-unit test-integration
 #? test-unit: Run the unit tests
 test-unit:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./pkg/... ./cmd/...
+	cd plugins && GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./...
 
 .PHONY: test-integration
 #? test-integration: Run the integration tests
@@ -141,6 +142,7 @@ pull-images:
 #? lint: Run golangci-lint
 lint:
 	golangci-lint run
+	cd plugins && golangci-lint run --config ../.golangci.yml
 
 .PHONY: validate-files
 #? validate-files: Validate code and docs

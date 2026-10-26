@@ -1,0 +1,6 @@
+displayName: StripPrefixRegex middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefixregex
+implements: stripPrefixRegex
+summary: The stripPrefixRegex middleware of Traefik, as a plugin.
+testData: {}

@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	httpmuxer "github.com/traefik/traefik/v3/pkg/muxer/http"
@@ -128,7 +127,7 @@ func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoint
 
 		if configuration.TLS != nil {
 			for _, cert := range configuration.TLS.Certificates {
-				if slices.Contains(cert.Stores, tlsalpn01.ACMETLS1Protocol) && pvd != "tlsalpn.acme" {
+				if slices.Contains(cert.Stores, traefiktls.ACMETLS1Protocol) && !isTLSALPNProvider(pvd) {
 					continue
 				}
 
@@ -495,3 +494,11 @@ func applyDefaultObservabilityModel(cfg dynamic.Configuration) {
 		}
 	}
 }
+
+// isTLSALPNProvider reports whether the provider sends the certificates of the ACME TLS-ALPN challenges:
+// the ACME provider plugins name it <resolver>.tlsalpn.acme.
+func isTLSALPNProvider(name string) bool {
+	return name == tlsALPNProviderName || strings.HasSuffix(name, "."+tlsALPNProviderName)
+}
+
+const tlsALPNProviderName = "tlsalpn.acme"

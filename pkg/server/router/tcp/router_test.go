@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
@@ -135,7 +134,7 @@ func Test_Routing(t *testing.T) {
 	tlsManager.UpdateConfigs(
 		t.Context(),
 		map[string]traefiktls.Store{
-			tlsalpn01.ACMETLS1Protocol: {},
+			traefiktls.ACMETLS1Protocol: {},
 		},
 		map[string]traefiktls.Options{
 			"default": {
@@ -153,7 +152,7 @@ func Test_Routing(t *testing.T) {
 		},
 		[]*traefiktls.CertAndStores{{
 			CertFile: types.FileOrContent(certPEM), KeyFile: types.FileOrContent(keyPEM),
-			Stores: []string{tlsalpn01.ACMETLS1Protocol},
+			Stores: []string{traefiktls.ACMETLS1Protocol},
 		}})
 
 	middlewaresBuilder := tcpmiddleware.NewBuilder(conf.TCPMiddlewares)
@@ -1093,7 +1092,7 @@ func checkACMETLS(addr string, _ time.Duration) (err error) {
 		InsecureSkipVerify: true,
 		ServerName:         "foo.bar",
 		MinVersion:         tls.VersionTLS10,
-		NextProtos:         []string{tlsalpn01.ACMETLS1Protocol},
+		NextProtos:         []string{traefiktls.ACMETLS1Protocol},
 	}
 	conn, err := tls.Dial("tcp", addr, tlsConfig)
 	if err != nil {

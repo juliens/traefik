@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"time"
 
+	ttypes "github.com/traefik/traefik/v3/pkg/types"
+
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/observability"
 	"go.opentelemetry.io/otel"
@@ -20,21 +22,13 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 )
 
-type TracingVerbosity string
+// TracingVerbosity is defined in pkg/types, so the dynamic configuration does not depend on the OpenTelemetry exporters.
+type TracingVerbosity = ttypes.TracingVerbosity
 
 const (
-	MinimalVerbosity  TracingVerbosity = "minimal"
-	DetailedVerbosity TracingVerbosity = "detailed"
+	MinimalVerbosity  = ttypes.MinimalVerbosity
+	DetailedVerbosity = ttypes.DetailedVerbosity
 )
-
-func (v TracingVerbosity) Allows(verbosity TracingVerbosity) bool {
-	switch v {
-	case DetailedVerbosity:
-		return verbosity == DetailedVerbosity || verbosity == MinimalVerbosity
-	default:
-		return verbosity == MinimalVerbosity
-	}
-}
 
 // OTelTracing provides configuration settings for the open-telemetry tracer.
 type OTelTracing struct {
@@ -158,4 +152,28 @@ func (t *tpCloser) Close() error {
 	defer cancel()
 
 	return t.provider.Shutdown(ctx)
+}
+
+// Tracing holds the tracing configuration.
+type Tracing struct {
+	ServiceName             string            `description:"Defines the service name resource attribute." json:"serviceName,omitempty" toml:"serviceName,omitempty" yaml:"serviceName,omitempty" export:"true"`
+	ResourceAttributes      map[string]string `description:"Defines additional resource attributes (key:value)." json:"resourceAttributes,omitempty" toml:"resourceAttributes,omitempty" yaml:"resourceAttributes,omitempty" export:"true"`
+	CapturedRequestHeaders  []string          `description:"Request headers to add as attributes for server and client spans." json:"capturedRequestHeaders,omitempty" toml:"capturedRequestHeaders,omitempty" yaml:"capturedRequestHeaders,omitempty" export:"true"`
+	CapturedResponseHeaders []string          `description:"Response headers to add as attributes for server and client spans." json:"capturedResponseHeaders,omitempty" toml:"capturedResponseHeaders,omitempty" yaml:"capturedResponseHeaders,omitempty" export:"true"`
+	SafeQueryParams         []string          `description:"Query params to not redact." json:"safeQueryParams,omitempty" toml:"safeQueryParams,omitempty" yaml:"safeQueryParams,omitempty" export:"true"`
+	SampleRate              float64           `description:"Sets the rate between 0.0 and 1.0 of requests to trace." json:"sampleRate,omitempty" toml:"sampleRate,omitempty" yaml:"sampleRate,omitempty" export:"true"`
+	AddInternals            bool              `description:"Enables tracing for internal services (ping, dashboard, etc...)." json:"addInternals,omitempty" toml:"addInternals,omitempty" yaml:"addInternals,omitempty" export:"true"`
+	OTLP                    *OTelTracing      `description:"Settings for OpenTelemetry." json:"otlp,omitempty" toml:"otlp,omitempty" yaml:"otlp,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+
+	// Deprecated: please use ResourceAttributes instead.
+	GlobalAttributes map[string]string `description:"(Deprecated) Defines additional resource attributes (key:value)." json:"globalAttributes,omitempty" toml:"globalAttributes,omitempty" yaml:"globalAttributes,omitempty" export:"true"`
+}
+
+// SetDefaults sets the default values.
+func (t *Tracing) SetDefaults() {
+	t.ServiceName = "traefik"
+	t.SampleRate = 1.0
+
+	t.OTLP = &OTelTracing{}
+	t.OTLP.SetDefaults()
 }

@@ -1,0 +1,6 @@
+displayName: CircuitBreaker middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/circuitbreaker
+implements: circuitBreaker
+summary: The circuitBreaker middleware of Traefik, as a plugin.
+testData: {}

@@ -6,7 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
+
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/ip"
 	"github.com/traefik/traefik/v3/pkg/muxer"
@@ -33,7 +34,7 @@ func expect1Parameter(fn func(*matchersTree, ...string) error) func(*matchersTre
 func alpn(tree *matchersTree, protos ...string) error {
 	proto := protos[0]
 
-	if proto == tlsalpn01.ACMETLS1Protocol {
+	if proto == traefiktls.ACMETLS1Protocol {
 		return fmt.Errorf("invalid protocol value for ALPN matcher, %q is not allowed", proto)
 	}
 

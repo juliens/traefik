@@ -4,7 +4,6 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
@@ -137,7 +136,7 @@ func Test_mergeConfiguration_tlsCertificates(t *testing.T) {
 				"provider-1": &dynamic.Configuration{
 					TLS: &dynamic.TLSConfiguration{
 						Certificates: []*tls.CertAndStores{
-							{Certificate: tls.Certificate{}, Stores: []string{tlsalpn01.ACMETLS1Protocol}},
+							{Certificate: tls.Certificate{}, Stores: []string{tls.ACMETLS1Protocol}},
 						},
 					},
 				},
@@ -152,7 +151,7 @@ func Test_mergeConfiguration_tlsCertificates(t *testing.T) {
 						Certificates: []*tls.CertAndStores{{
 							CertFile: "foo",
 							KeyFile:  "bar",
-							Stores:   []string{tlsalpn01.ACMETLS1Protocol},
+							Stores:   []string{tls.ACMETLS1Protocol},
 						}},
 					},
 				},
@@ -160,7 +159,7 @@ func Test_mergeConfiguration_tlsCertificates(t *testing.T) {
 			expected: []*tls.CertAndStores{{
 				CertFile: "foo",
 				KeyFile:  "bar",
-				Stores:   []string{tlsalpn01.ACMETLS1Protocol},
+				Stores:   []string{tls.ACMETLS1Protocol},
 			}},
 		},
 	}

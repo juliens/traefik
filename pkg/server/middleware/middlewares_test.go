@@ -271,7 +271,7 @@ func TestBuilder_BuildChainWithContext(t *testing.T) {
 					Middlewares: test.configuration,
 				},
 			})
-			builder := NewBuilder(rtConf.Middlewares, nil, nil)
+			builder := NewBuilder(rtConf.Middlewares, nil, &fakePluginsBuilder{})
 
 			result := builder.BuildMiddlewareChain(ctx, test.buildChain)
 
@@ -295,33 +295,12 @@ func TestBuilder_BuildChainWithContext(t *testing.T) {
 
 func TestBuilder_buildConstructor(t *testing.T) {
 	testConfig := map[string]*dynamic.Middleware{
-		"cb-empty": {
-			CircuitBreaker: &dynamic.CircuitBreaker{
-				Expression: "",
-			},
-		},
-		"cb-foo": {
-			CircuitBreaker: &dynamic.CircuitBreaker{
-				Expression: "NetworkErrorRatio() > 0.5",
-			},
-		},
-		"ap-empty": {
-			AddPrefix: &dynamic.AddPrefix{
-				Prefix: "",
-			},
-		},
 		"ap-foo": {
-			AddPrefix: &dynamic.AddPrefix{
-				Prefix: "foo/",
-			},
+			AddPrefix: &dynamic.AddPrefix{Prefix: "foo/"},
 		},
-		"buff-foo": {
-			Buffering: &dynamic.Buffering{
-				MaxRequestBodyBytes:  1,
-				MemRequestBodyBytes:  2,
-				MaxResponseBodyBytes: 3,
-				MemResponseBodyBytes: 5,
-			},
+		"multi": {
+			AddPrefix:   &dynamic.AddPrefix{Prefix: "foo/"},
+			StripPrefix: &dynamic.StripPrefix{Prefixes: []string{"/foo"}},
 		},
 	}
 
@@ -330,63 +309,63 @@ func TestBuilder_buildConstructor(t *testing.T) {
 			Middlewares: testConfig,
 		},
 	})
-	middlewaresBuilder := NewBuilder(rtConf.Middlewares, nil, nil)
 
-	testCases := []struct {
-		desc          string
-		middlewareID  string
-		expectedError bool
-	}{
-		{
-			desc:          "Should fail at creating a circuit breaker with an empty expression",
-			middlewareID:  "cb-empty",
-			expectedError: true,
-		},
-		{
-			desc:          "Should create a circuit breaker with a valid expression",
-			middlewareID:  "cb-foo",
-			expectedError: false,
-		},
-		{
-			desc:          "Should create a buffering middleware",
-			middlewareID:  "buff-foo",
-			expectedError: false,
-		},
-		{
-			desc:          "Should not create an empty AddPrefix middleware when given an empty prefix",
-			middlewareID:  "ap-empty",
-			expectedError: true,
-		},
-		{
-			desc:          "Should create an AddPrefix middleware when given a valid configuration",
-			middlewareID:  "ap-foo",
-			expectedError: false,
-		},
-	}
+	t.Run("the option goes to the plugin implementing it", func(t *testing.T) {
+		pluginsBuilder := &fakePluginsBuilder{}
+		builder := NewBuilder(rtConf.Middlewares, nil, pluginsBuilder)
 
-	for _, test := range testCases {
-		t.Run(test.desc, func(t *testing.T) {
-			t.Parallel()
+		constructor, err := builder.buildConstructor(t.Context(), "ap-foo")
+		require.NoError(t, err)
 
-			constructor, err := middlewaresBuilder.buildConstructor(t.Context(), test.middlewareID)
-			require.NoError(t, err)
+		_, err = constructor(http.NotFoundHandler())
+		require.NoError(t, err)
 
-			middleware, err2 := constructor(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
+		assert.Equal(t, "addPrefix", pluginsBuilder.typedOption)
+		assert.Equal(t, &dynamic.AddPrefix{Prefix: "foo/"}, pluginsBuilder.typedConfig)
+	})
 
-			if test.expectedError {
-				require.Error(t, err2)
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, middleware)
-			}
-		})
-	}
+	t.Run("a middleware has one type", func(t *testing.T) {
+		builder := NewBuilder(rtConf.Middlewares, nil, &fakePluginsBuilder{})
+
+		_, err := builder.buildConstructor(t.Context(), "multi")
+		require.Error(t, err)
+	})
+
+	t.Run("the plugins are disabled", func(t *testing.T) {
+		builder := NewBuilder(rtConf.Middlewares, nil, nil)
+
+		_, err := builder.buildConstructor(t.Context(), "ap-foo")
+		require.Error(t, err)
+	})
 }
 
 type fakePluginsBuilder struct {
 	config         map[string]any
 	buildErr       error
 	constructorErr error
+
+	typedOption string
+	typedConfig any
+}
+
+// BuildTyped builds the typed middlewares used by the tests: headers sets its custom request headers, the others do nothing.
+func (b *fakePluginsBuilder) BuildTyped(option string, config any, _ string) (plugins.Constructor, error) {
+	b.typedOption = option
+	b.typedConfig = config
+
+	return func(_ context.Context, next http.Handler) (http.Handler, error) {
+		headers, ok := config.(*dynamic.Headers)
+		if !ok {
+			return next, nil
+		}
+
+		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			for name, value := range headers.CustomRequestHeaders {
+				req.Header.Set(name, value)
+			}
+			next.ServeHTTP(rw, req)
+		}), nil
+	}, nil
 }
 
 func (b *fakePluginsBuilder) Build(_ string, config map[string]any, _ string) (plugins.Constructor, error) {
@@ -483,21 +462,14 @@ func TestBuilder_BuildMiddlewareChain_basicAuthURNRefs(t *testing.T) {
 		},
 	})
 
-	builder := NewBuilder(rtConf.Middlewares, nil, nil)
+	pluginsBuilder := &fakePluginsBuilder{}
+	builder := NewBuilder(rtConf.Middlewares, nil, pluginsBuilder)
 
-	next := http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
-		rw.WriteHeader(http.StatusOK)
-	})
-
-	handler, err := builder.BuildMiddlewareChain(t.Context(), []string{"auth@file"}).Then(next)
+	_, err := builder.BuildMiddlewareChain(t.Context(), []string{"auth@file"}).Then(http.NotFoundHandler())
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodGet, "http://localhost", nil)
-	req.SetBasicAuth("test", "test")
-	rw := httptest.NewRecorder()
-	handler.ServeHTTP(rw, req)
-
-	assert.Equal(t, http.StatusOK, rw.Code)
+	// The plugin gets the resolved users, the runtime configuration keeps the reference.
+	assert.Equal(t, &dynamic.BasicAuth{Users: dynamic.Users{"test:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"}}, pluginsBuilder.typedConfig)
 	assert.Equal(t, dynamic.Users{"urn:k8s:secret:auth:users"}, rtConf.Middlewares["auth@file"].BasicAuth.Users)
 }
 
