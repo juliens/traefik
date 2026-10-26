@@ -449,6 +449,8 @@ func switchRouter(routerFactory *server.RouterFactory, serverEntryPointsTCP serv
 
 		serverEntryPointsTCP.Switch(routers)
 		serverEntryPointsUDP.Switch(udpRouters)
+
+		routerFactory.ReleasePreviousRouters()
 	}
 }
 

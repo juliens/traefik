@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -209,12 +210,22 @@ func TestEngine_ConcurrentNext(t *testing.T) {
 			const requests = 50
 			const delay = 50 * time.Millisecond
 
+			// The number of next calls running at the same time tells whether the instances are free while next
+			// runs, without depending on the load of the machine.
+			var running, maxRunning atomic.Int64
 			slowNext := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				n := running.Add(1)
+				for {
+					m := maxRunning.Load()
+					if n <= m || maxRunning.CompareAndSwap(m, n) {
+						break
+					}
+				}
+
 				time.Sleep(delay)
+				running.Add(-1)
 				echoNext.ServeHTTP(rw, req)
 			})
-
-			start := time.Now()
 
 			var wg sync.WaitGroup
 			results := make([]*httptest.ResponseRecorder, requests)
@@ -228,8 +239,7 @@ func TestEngine_ConcurrentNext(t *testing.T) {
 			}
 			wg.Wait()
 
-			elapsed := time.Since(start)
-			assert.Less(t, elapsed, requests*delay/4, "requests were serialized")
+			assert.Greater(t, maxRunning.Load(), int64(1), "requests were serialized")
 
 			for _, rw := range results {
 				assert.Equal(t, http.StatusCreated, rw.Code)

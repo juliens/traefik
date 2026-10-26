@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,6 +14,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
 	"github.com/traefik/traefik/v3/pkg/config/static"
+	"github.com/traefik/traefik/v3/pkg/plugins"
 	"github.com/traefik/traefik/v3/pkg/server/middleware"
 	"github.com/traefik/traefik/v3/pkg/server/service"
 	"github.com/traefik/traefik/v3/pkg/tcp"
@@ -307,4 +310,59 @@ func (p proxyBuilderMock) Build(_ string, _ *url.URL, _, _ bool, _ time.Duration
 
 func (p proxyBuilderMock) Update(_ map[string]*dynamic.ServersTransport) {
 	panic("implement me")
+}
+
+type generationsMock struct {
+	begun, ended int
+}
+
+func (g *generationsMock) Build(string, map[string]any, string) (plugins.Constructor, error) {
+	return nil, errors.New("no plugin")
+}
+
+func (g *generationsMock) BeginGeneration() {
+	g.begun++
+}
+
+func (g *generationsMock) EndGeneration(context.Context) {
+	g.ended++
+}
+
+func TestRouterFactory_PluginGenerations(t *testing.T) {
+	staticConfig := static.Configuration{
+		EntryPoints: map[string]*static.EntryPoint{
+			"web": {},
+		},
+	}
+
+	managerFactory := service.NewManagerFactory(staticConfig, nil, nil, service.NewTransportManager(nil), proxyBuilderMock{}, nil, nil)
+
+	generations := &generationsMock{}
+	factory, err := NewRouterFactory(staticConfig, managerFactory, tls.NewManager(nil), nil, generations, tcp.NewDialerManager(nil))
+	require.NoError(t, err)
+
+	factory.CreateRouters(runtime.NewConfig(dynamic.Configuration{}))
+	assert.Equal(t, 1, generations.begun)
+	assert.Equal(t, 0, generations.ended)
+
+	factory.ReleasePreviousRouters()
+	assert.Equal(t, 1, generations.ended)
+}
+
+func TestRouterFactory_NilPluginBuilder(t *testing.T) {
+	staticConfig := static.Configuration{
+		EntryPoints: map[string]*static.EntryPoint{
+			"web": {},
+		},
+	}
+
+	managerFactory := service.NewManagerFactory(staticConfig, nil, nil, service.NewTransportManager(nil), proxyBuilderMock{}, nil, nil)
+
+	// The plugin builder is a nil pointer when the plugins failed to load.
+	var builder *plugins.Builder
+	factory, err := NewRouterFactory(staticConfig, managerFactory, tls.NewManager(nil), nil, builder, tcp.NewDialerManager(nil))
+	require.NoError(t, err)
+
+	factory.CreateRouters(runtime.NewConfig(dynamic.Configuration{}))
+	factory.ReleasePreviousRouters()
 }

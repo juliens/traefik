@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
@@ -21,6 +22,12 @@ import (
 	"github.com/traefik/traefik/v3/pkg/udp"
 )
 
+// pluginGenerations is implemented by the plugin builders that keep resources across router configurations.
+type pluginGenerations interface {
+	BeginGeneration()
+	EndGeneration(ctx context.Context)
+}
+
 // RouterFactory the factory of TCP/UDP routers.
 type RouterFactory struct {
 	entryPointsTCP []string
@@ -30,7 +37,8 @@ type RouterFactory struct {
 
 	managerFactory *service.ManagerFactory
 
-	pluginBuilder middleware.PluginsBuilder
+	pluginBuilder     middleware.PluginsBuilder
+	pluginGenerations pluginGenerations
 
 	observabilityMgr *middleware.ObservabilityMgr
 	tlsManager       *tls.Manager
@@ -83,7 +91,14 @@ func NewRouterFactory(staticConfiguration static.Configuration, managerFactory *
 		providersPrecedence = staticConfiguration.Providers.Precedence
 	}
 
+	// The plugin builder is a nil pointer when the plugins failed to load.
+	var generations pluginGenerations
+	if g, ok := pluginBuilder.(pluginGenerations); ok && !reflect.ValueOf(pluginBuilder).IsNil() {
+		generations = g
+	}
+
 	return &RouterFactory{
+		pluginGenerations:   generations,
 		entryPointsTCP:      entryPointsTCP,
 		entryPointsUDP:      entryPointsUDP,
 		managerFactory:      managerFactory,
@@ -105,6 +120,10 @@ func (f *RouterFactory) CreateRouters(rtConf *runtime.Configuration) (map[string
 
 	var ctx context.Context
 	ctx, f.cancelPrevState = context.WithCancel(context.Background())
+
+	if f.pluginGenerations != nil {
+		f.pluginGenerations.BeginGeneration()
+	}
 
 	// HTTP
 	serviceManager := f.managerFactory.Build(rtConf)
@@ -146,4 +165,12 @@ func (f *RouterFactory) CreateRouters(rtConf *runtime.Configuration) (map[string
 	rtConf.PopulateUsedBy()
 
 	return routersTCP, routersUDP
+}
+
+// ReleasePreviousRouters releases the resources that only the routers of the previous configurations used.
+// It must be called once the routers returned by the last CreateRouters call serve the requests.
+func (f *RouterFactory) ReleasePreviousRouters() {
+	if f.pluginGenerations != nil {
+		f.pluginGenerations.EndGeneration(context.Background())
+	}
 }

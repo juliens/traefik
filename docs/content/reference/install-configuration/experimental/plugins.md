@@ -100,6 +100,8 @@ A request is pinned to one instance for its `handle_request` and `handle_respons
 while the next handler of the chain runs: a slow upstream does not hold an instance.
 The memory of a wasm middleware is therefore bounded by `settings.instances` times the memory of one instance,
 whatever the number of in-flight requests.
+When the routing configuration changes, the instances of a middleware configuration that is no longer used are
+closed once their in-flight requests are done, or after one minute.
 
 Because several requests are handled by the same instance between their `handle_request` and `handle_response`
 calls, a plugin must keep its per-request state behind the request context it returns from `handle_request`,

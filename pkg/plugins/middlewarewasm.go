@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
@@ -16,6 +17,10 @@ import (
 	"github.com/traefik/traefik/v3/pkg/plugins/wasm/httpwasm"
 	"github.com/traefik/traefik/v3/pkg/plugins/wasm/wasihttp"
 )
+
+// engineDrainTimeout bounds how long an engine that the routers no longer use waits for its in-flight requests
+// before it is closed.
+const engineDrainTimeout = time.Minute
 
 // wasmMiddlewareBuilder holds what is shared by every middleware of a wasm plugin: the compiled guest and its
 // settings, and the engines, one per middleware configuration.
@@ -25,8 +30,16 @@ type wasmMiddlewareBuilder struct {
 	cache    wazero.CompilationCache
 	settings Settings
 
-	mu      sync.Mutex
-	engines map[string]engine.Engine
+	mu sync.Mutex
+	// generation counts the router configurations; an engine is kept as long as the last one uses it.
+	generation uint64
+	engines    map[string]*engineEntry
+}
+
+type engineEntry struct {
+	engine     engine.Engine
+	name       string
+	generation uint64
 }
 
 func newWasmMiddlewareBuilder(ctx context.Context, goPath, moduleName, wasmPath string, settings Settings) (*wasmMiddlewareBuilder, error) {
@@ -73,7 +86,7 @@ func newWasmMiddlewareBuilderFromPath(ctx context.Context, path string, settings
 		mode:     mode,
 		cache:    cache,
 		settings: settings,
-		engines:  map[string]engine.Engine{},
+		engines:  map[string]*engineEntry{},
 	}, nil
 }
 
@@ -83,14 +96,54 @@ func (b *wasmMiddlewareBuilder) Close(ctx context.Context) error {
 	defer b.mu.Unlock()
 
 	var errs []error
-	for key, eng := range b.engines {
-		if err := eng.Close(ctx); err != nil {
+	for key, entry := range b.engines {
+		if err := entry.engine.Close(ctx); err != nil {
 			errs = append(errs, err)
 		}
 		delete(b.engines, key)
 	}
 
 	return errors.Join(errs...)
+}
+
+// beginGeneration starts a new router configuration: the engines it uses are marked as it builds its middlewares.
+func (b *wasmMiddlewareBuilder) beginGeneration() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.generation++
+}
+
+// endGeneration closes, in the background, the engines that the current router configuration does not use.
+// The routers of the previous configuration may still serve requests: each engine waits for its in-flight requests,
+// up to engineDrainTimeout, before closing its instances.
+func (b *wasmMiddlewareBuilder) endGeneration(ctx context.Context) {
+	b.mu.Lock()
+	var unused []*engineEntry
+	for key, entry := range b.engines {
+		if entry.generation < b.generation {
+			unused = append(unused, entry)
+			delete(b.engines, key)
+		}
+	}
+	b.mu.Unlock()
+
+	for _, entry := range unused {
+		go func() {
+			logger := middlewares.GetLogger(ctx, entry.name, "wasm")
+
+			drainCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), engineDrainTimeout)
+			defer cancel()
+
+			if err := entry.engine.Close(drainCtx); err != nil {
+				logger.Warn().Err(err).Msg("Closing unused wasm engine")
+
+				return
+			}
+
+			logger.Debug().Msg("Unused wasm engine closed")
+		}()
+	}
 }
 
 func (b *wasmMiddlewareBuilder) newMiddleware(config map[string]any, middlewareName string) (pluginMiddleware, error) {
@@ -115,8 +168,10 @@ func (b *wasmMiddlewareBuilder) engineFor(ctx context.Context, middlewareName st
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if eng, ok := b.engines[key]; ok {
-		return eng, nil
+	if entry, ok := b.engines[key]; ok {
+		entry.generation = b.generation
+
+		return entry.engine, nil
 	}
 
 	logger := middlewares.GetLogger(ctx, middlewareName, "wasm")
@@ -152,7 +207,7 @@ func (b *wasmMiddlewareBuilder) engineFor(ctx context.Context, middlewareName st
 
 	logger.Debug().Str("mode", string(b.mode)).Int("instances", cfg.InstanceCount()).Msg("Wasm engine created")
 
-	b.engines[key] = eng
+	b.engines[key] = &engineEntry{engine: eng, name: middlewareName, generation: b.generation}
 
 	return eng, nil
 }

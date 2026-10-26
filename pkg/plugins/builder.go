@@ -128,6 +128,32 @@ func (b Builder) Build(pName string, config map[string]any, middlewareName strin
 	return nil, fmt.Errorf("unknown plugin type: %s", pName)
 }
 
+// BeginGeneration starts the build of a new router configuration.
+// The middlewares it builds mark the plugin resources they use.
+func (b Builder) BeginGeneration() {
+	for _, mb := range b.middlewareBuilders {
+		if g, ok := mb.(generational); ok {
+			g.beginGeneration()
+		}
+	}
+}
+
+// EndGeneration releases the plugin resources that the last router configuration does not use.
+// It must be called once the routers of that configuration serve the requests.
+func (b Builder) EndGeneration(ctx context.Context) {
+	for _, mb := range b.middlewareBuilders {
+		if g, ok := mb.(generational); ok {
+			g.endGeneration(ctx)
+		}
+	}
+}
+
+// generational is implemented by the middleware builders that keep resources across router configurations.
+type generational interface {
+	beginGeneration()
+	endGeneration(ctx context.Context)
+}
+
 func newMiddlewareBuilder(ctx context.Context, goPath string, manifest *Manifest, moduleName string, settings Settings) (middlewareBuilder, error) {
 	switch manifest.Runtime {
 	case runtimeWasm:

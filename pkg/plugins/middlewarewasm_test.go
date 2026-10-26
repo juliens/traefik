@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -56,6 +57,76 @@ func TestWasmMiddleware(t *testing.T) {
 	assert.Equal(t, "b", rw.Header().Get("X-Next-Saw-Plugin"))
 	assert.Equal(t, "1", rw.Header().Get("X-Plugin-Resp"))
 	assert.Len(t, builder.engines, 2)
+}
+
+func TestWasmMiddleware_Generations(t *testing.T) {
+	t.Parallel()
+
+	ctx := log.Logger.WithContext(t.Context())
+
+	builder, err := newWasmMiddlewareBuilderFromPath(ctx, "./fixtures/withnext/plugin.wasm", Settings{Instances: 1})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = builder.Close(context.Background()) })
+
+	release := make(chan struct{})
+	slowNext := http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
+		<-release
+		rw.WriteHeader(http.StatusTeapot)
+	})
+
+	newHandler := func(t *testing.T, header string) http.Handler {
+		t.Helper()
+
+		m, err := builder.newMiddleware(map[string]any{"header": header}, "test")
+		require.NoError(t, err)
+
+		h, err := m.NewHandler(ctx, slowNext)
+		require.NoError(t, err)
+
+		return h
+	}
+
+	// First router configuration: two middleware configurations.
+	builder.beginGeneration()
+	handlerA := newHandler(t, "a")
+	handlerB := newHandler(t, "b")
+	builder.endGeneration(ctx)
+	require.Len(t, builder.engines, 2)
+
+	engineB := builder.engines["test\x00"+`{"header":"b"}`].engine
+
+	// A request is in flight on b when the configuration changes.
+	inFlight := make(chan int)
+	go func() {
+		rw := httptest.NewRecorder()
+		handlerB.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody))
+		inFlight <- rw.Code
+	}()
+	require.Eventually(t, func() bool { return engineB.Stats().InFlight == 1 }, 5*time.Second, 5*time.Millisecond)
+
+	// Second router configuration: only a is still used.
+	builder.beginGeneration()
+	handlerA2 := newHandler(t, "a")
+	builder.endGeneration(ctx)
+	require.Len(t, builder.engines, 1)
+
+	// The engine of b waits for its in-flight request before closing.
+	assert.Equal(t, 1, engineB.Stats().LiveInstances)
+	close(release)
+	assert.Equal(t, http.StatusTeapot, <-inFlight)
+	require.Eventually(t, func() bool { return engineB.Stats().LiveInstances == 0 }, 5*time.Second, 5*time.Millisecond)
+
+	// The engine of a is kept, and shared by the handlers of both configurations.
+	for _, h := range []http.Handler{handlerA, handlerA2} {
+		rw := httptest.NewRecorder()
+		h.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody))
+		assert.Equal(t, http.StatusTeapot, rw.Code)
+	}
+
+	// The old handler of b does not serve anymore.
+	rw := httptest.NewRecorder()
+	handlerB.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody))
+	assert.Equal(t, http.StatusServiceUnavailable, rw.Code)
 }
 
 func TestWasmMiddleware_WasiHTTP(t *testing.T) {

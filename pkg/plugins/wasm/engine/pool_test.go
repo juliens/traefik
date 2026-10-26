@@ -142,3 +142,60 @@ func TestPool_CloseDrains(t *testing.T) {
 	_, err = p.Pick()
 	require.ErrorIs(t, err, ErrClosing)
 }
+
+func TestPool_CloseTimeout(t *testing.T) {
+	t.Parallel()
+
+	logger := zerolog.Nop()
+	inst := &fakeInstance{}
+	p, err := NewPool(t.Context(), 1, func(context.Context, int) (Instance, error) {
+		return inst, nil
+	}, &logger)
+	require.NoError(t, err)
+
+	require.NoError(t, p.Enter())
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	defer cancel()
+
+	require.ErrorIs(t, p.Close(ctx), context.DeadlineExceeded)
+	assert.True(t, inst.closed.Load())
+
+	// A request that ends after the timeout does not block anything.
+	p.Leave()
+}
+
+func TestPool_CloseWhileEntering(t *testing.T) {
+	t.Parallel()
+
+	logger := zerolog.Nop()
+	p, err := NewPool(t.Context(), 1, func(_ context.Context, slot int) (Instance, error) {
+		return &fakeInstance{slot: slot}, nil
+	}, &logger)
+	require.NoError(t, err)
+
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+
+				if p.Enter() == nil {
+					p.Leave()
+				}
+			}
+		})
+	}
+
+	time.Sleep(10 * time.Millisecond)
+	require.NoError(t, p.Close(t.Context()))
+	close(stop)
+	wg.Wait()
+
+	assert.Equal(t, Stats{}, p.Stats())
+}

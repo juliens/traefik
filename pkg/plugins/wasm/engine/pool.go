@@ -56,16 +56,22 @@ type Pool struct {
 	logger  *zerolog.Logger
 	slots   []*Slot
 
-	rr       atomic.Uint32
-	inFlight atomic.Int64
-	closing  atomic.Bool
-	drained  chan struct{}
-	wg       sync.WaitGroup
+	rr      atomic.Uint32
+	closing atomic.Bool
+	// closed is closed once Close has closed every instance.
+	closed chan struct{}
+
+	// A counter under a mutex instead of a sync.WaitGroup: Enter may race with Close, which a WaitGroup forbids.
+	mu       sync.Mutex
+	inFlight int64
+	// idle is closed when the pool is closing and no request is in flight.
+	idle     chan struct{}
+	idleOnce sync.Once
 }
 
 // NewPool creates n instances; it fails if any of them cannot be created.
 func NewPool(ctx context.Context, n int, factory Factory, logger *zerolog.Logger) (*Pool, error) {
-	p := &Pool{factory: factory, logger: logger, drained: make(chan struct{})}
+	p := &Pool{factory: factory, logger: logger, closed: make(chan struct{}), idle: make(chan struct{})}
 
 	for i := range n {
 		inst, err := factory(ctx, i)
@@ -101,20 +107,27 @@ func (p *Pool) Pick() (*Slot, error) {
 
 // Enter registers an in-flight request; it fails when the pool is closing.
 func (p *Pool) Enter() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.closing.Load() {
 		return ErrClosing
 	}
 
-	p.inFlight.Add(1)
-	p.wg.Add(1)
+	p.inFlight++
 
 	return nil
 }
 
 // Leave unregisters an in-flight request.
 func (p *Pool) Leave() {
-	p.inFlight.Add(-1)
-	p.wg.Done()
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.inFlight--
+	if p.inFlight == 0 && p.closing.Load() {
+		p.idleOnce.Do(func() { close(p.idle) })
+	}
 }
 
 // Replace marks the slot dead and re-creates its instance in the background, with a backoff on failures.
@@ -170,26 +183,30 @@ func (p *Pool) Stats() Stats {
 		}
 	}
 
-	return Stats{InFlight: p.inFlight.Load(), LiveInstances: live}
+	p.mu.Lock()
+	inFlight := p.inFlight
+	p.mu.Unlock()
+
+	return Stats{InFlight: inFlight, LiveInstances: live}
 }
 
 // Close refuses new requests, waits for the in-flight ones until ctx is done, then closes every instance.
 func (p *Pool) Close(ctx context.Context) error {
+	p.mu.Lock()
 	if p.closing.Swap(true) {
-		<-p.drained
+		p.mu.Unlock()
+		<-p.closed
 
 		return nil
 	}
-
-	done := make(chan struct{})
-	go func() {
-		p.wg.Wait()
-		close(done)
-	}()
+	if p.inFlight == 0 {
+		p.idleOnce.Do(func() { close(p.idle) })
+	}
+	p.mu.Unlock()
 
 	var errs []error
 	select {
-	case <-done:
+	case <-p.idle:
 	case <-ctx.Done():
 		errs = append(errs, fmt.Errorf("waiting for in-flight requests: %w", ctx.Err()))
 	}
@@ -210,7 +227,7 @@ func (p *Pool) Close(ctx context.Context) error {
 		}
 	}
 
-	close(p.drained)
+	close(p.closed)
 
 	return errors.Join(errs...)
 }
