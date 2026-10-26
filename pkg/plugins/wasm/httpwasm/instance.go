@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	handlerapi "github.com/http-wasm/http-wasm-host-go/api/handler"
 	"github.com/tetratelabs/wazero"
@@ -22,6 +23,9 @@ type instance struct {
 
 	handleRequestFn  wazeroapi.Function
 	handleResponseFn wazeroapi.Function
+
+	// callTimeout bounds each guest call; the runtime closes the module when it is exceeded.
+	callTimeout time.Duration
 
 	// mu serializes the guest calls: the guest runtimes are not thread-safe.
 	mu sync.Mutex
@@ -75,6 +79,7 @@ func (e *httpWasm) instantiate(ctx context.Context, rt wazero.Runtime, slot int)
 		rt:               rt,
 		mod:              mod,
 		applyCtx:         applyCtx,
+		callTimeout:      e.cfg.CallTimeout,
 		handleRequestFn:  mod.ExportedFunction(handlerapi.FuncHandleRequest),
 		handleResponseFn: mod.ExportedFunction(handlerapi.FuncHandleResponse),
 	}, nil
@@ -127,6 +132,9 @@ func (inst *instance) handleRequest(ctx context.Context) (handlerapi.CtxNext, er
 	inst.mu.Lock()
 	defer inst.mu.Unlock()
 
+	ctx, cancel := inst.callContext(ctx)
+	defer cancel()
+
 	results, err := inst.handleRequestFn.Call(inst.applyCtx(ctx))
 	if err != nil {
 		return 0, err
@@ -145,9 +153,23 @@ func (inst *instance) handleResponse(ctx context.Context, reqCtx uint32, nextErr
 		wasError = 1
 	}
 
+	ctx, cancel := inst.callContext(ctx)
+	defer cancel()
+
 	_, err := inst.handleResponseFn.Call(inst.applyCtx(ctx), uint64(reqCtx), wasError)
 
 	return err
+}
+
+// callContext bounds a guest call by the call timeout, counted once the instance lock is held.
+// The call does not follow the request cancellation: with a timeout, a done context closes the whole module, and a
+// client going away must not kill an instance shared by other requests.
+func (inst *instance) callContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if inst.callTimeout <= 0 {
+		return ctx, func() {}
+	}
+
+	return context.WithTimeout(context.WithoutCancel(ctx), inst.callTimeout)
 }
 
 // broken reports whether the guest cannot be trusted anymore after a call error: the module exited, trapped or

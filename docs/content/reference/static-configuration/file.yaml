@@ -676,6 +676,8 @@ experimental:
         instances: 42
         memoryLimit: 42
         exclusive: true
+        callTimeout: 42s
+        bodyPrefetchSize: 42
     Descriptor1:
       moduleName: foobar
       version: foobar
@@ -690,6 +692,8 @@ experimental:
         instances: 42
         memoryLimit: 42
         exclusive: true
+        callTimeout: 42s
+        bodyPrefetchSize: 42
   localPlugins:
     LocalDescriptor0:
       moduleName: foobar
@@ -704,6 +708,8 @@ experimental:
         instances: 42
         memoryLimit: 42
         exclusive: true
+        callTimeout: 42s
+        bodyPrefetchSize: 42
     LocalDescriptor1:
       moduleName: foobar
       settings:
@@ -717,6 +723,8 @@ experimental:
         instances: 42
         memoryLimit: 42
         exclusive: true
+        callTimeout: 42s
+        bodyPrefetchSize: 42
   abortOnPluginFailure: true
   fastProxy:
     debug: true

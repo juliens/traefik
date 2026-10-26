@@ -17,11 +17,13 @@ import (
 //   - upperResponse: when true, the response body of next is read and upper-cased.
 //   - panicOn: a request path for which handle_request panics (to test instance replacement).
 //   - echoBody: when true, the request body is read and sent back as the response (no next).
+//   - loopOn: a request path for which handle_request never returns (to test the call timeout).
 type config struct {
 	Header        string `json:"header"`
 	UpperResponse bool   `json:"upperResponse"`
 	PanicOn       string `json:"panicOn"`
 	EchoBody      bool   `json:"echoBody"`
+	LoopOn        string `json:"loopOn"`
 }
 
 var cfg config
@@ -50,6 +52,12 @@ var counter uint32
 func handleRequest(req api.Request, resp api.Response) (bool, uint32) {
 	if cfg.PanicOn != "" && req.GetURI() == cfg.PanicOn {
 		panic("requested panic")
+	}
+
+	if cfg.LoopOn != "" && req.GetURI() == cfg.LoopOn {
+		for {
+			counter++
+		}
 	}
 
 	if cfg.EchoBody {

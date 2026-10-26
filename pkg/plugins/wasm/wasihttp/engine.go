@@ -15,13 +15,20 @@ type wasiHTTP struct {
 }
 
 // ValidateSettings rejects the plugin settings that this mode does not support.
-func ValidateSettings(mounts []string, exclusive bool) error {
-	if len(mounts) > 0 {
+func ValidateSettings(cfg engine.Config) error {
+	if len(cfg.Mounts) > 0 {
 		return errors.New("settings.mounts is not supported by plugins built with github.com/traefik/wasm-go")
 	}
 
-	if exclusive {
+	// The guest runs in one call that never returns, and reads the request body as a stream: these http-wasm
+	// settings have no meaning here.
+	switch {
+	case cfg.Exclusive:
 		return errors.New("settings.exclusive is only supported by http-wasm plugins")
+	case cfg.CallTimeout > 0:
+		return errors.New("settings.callTimeout is only supported by http-wasm plugins")
+	case cfg.BodyPrefetchSize > 0:
+		return errors.New("settings.bodyPrefetchSize is only supported by http-wasm plugins")
 	}
 
 	return nil
@@ -29,7 +36,7 @@ func ValidateSettings(mounts []string, exclusive bool) error {
 
 // New starts the instances of a plugin built with github.com/traefik/wasm-go.
 func New(ctx context.Context, cfg engine.Config) (engine.Engine, error) {
-	if err := ValidateSettings(cfg.Mounts, cfg.Exclusive); err != nil {
+	if err := ValidateSettings(cfg); err != nil {
 		return nil, err
 	}
 

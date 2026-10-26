@@ -184,6 +184,24 @@ func TestNewWasmMiddlewareBuilder_Errors(t *testing.T) {
 			err:      "settings.memoryLimit must be positive",
 		},
 		{
+			desc:     "negative call timeout",
+			path:     "./fixtures/withnext/plugin.wasm",
+			settings: Settings{CallTimeout: -1},
+			err:      "settings.callTimeout must be positive",
+		},
+		{
+			desc:     "negative body prefetch size",
+			path:     "./fixtures/withnext/plugin.wasm",
+			settings: Settings{BodyPrefetchSize: -1},
+			err:      "settings.bodyPrefetchSize must be positive",
+		},
+		{
+			desc:     "call timeout with a wasm-go plugin",
+			path:     "./fixtures/wasihttp/plugin.wasm",
+			settings: Settings{CallTimeout: 1},
+			err:      "settings.callTimeout is only supported by http-wasm plugins",
+		},
+		{
 			desc:     "mounts with a wasm-go plugin",
 			path:     "./fixtures/wasihttp/plugin.wasm",
 			settings: Settings{Mounts: []string{"/tmp"}},

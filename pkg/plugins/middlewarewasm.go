@@ -68,17 +68,20 @@ func newWasmMiddlewareBuilderFromPath(ctx context.Context, path string, settings
 	}
 
 	if mode == engine.ModeWasiHTTP {
-		if err := wasihttp.ValidateSettings(settings.Mounts, settings.Exclusive); err != nil {
+		if err := wasihttp.ValidateSettings(settingsConfig(settings)); err != nil {
 			return nil, err
 		}
 	}
 
-	if settings.Instances < 0 {
+	switch {
+	case settings.Instances < 0:
 		return nil, errors.New("settings.instances must be positive")
-	}
-
-	if settings.MemoryLimit < 0 {
+	case settings.MemoryLimit < 0:
 		return nil, errors.New("settings.memoryLimit must be positive")
+	case settings.CallTimeout < 0:
+		return nil, errors.New("settings.callTimeout must be positive")
+	case settings.BodyPrefetchSize < 0:
+		return nil, errors.New("settings.bodyPrefetchSize must be positive")
 	}
 
 	return &wasmMiddlewareBuilder{
@@ -176,18 +179,12 @@ func (b *wasmMiddlewareBuilder) engineFor(ctx context.Context, middlewareName st
 
 	logger := middlewares.GetLogger(ctx, middlewareName, "wasm")
 
-	cfg := engine.Config{
-		Name:        middlewareName,
-		Code:        b.code,
-		Cache:       b.cache,
-		Instances:   b.settings.Instances,
-		MemoryLimit: b.settings.MemoryLimit,
-		Exclusive:   b.settings.Exclusive,
-		Envs:        b.settings.Envs,
-		Mounts:      b.settings.Mounts,
-		GuestConfig: config,
-		Logger:      logger,
-	}
+	cfg := settingsConfig(b.settings)
+	cfg.Name = middlewareName
+	cfg.Code = b.code
+	cfg.Cache = b.cache
+	cfg.GuestConfig = config
+	cfg.Logger = logger
 
 	var (
 		eng engine.Engine
@@ -229,4 +226,17 @@ func (m *WasmMiddleware) NewHandler(ctx context.Context, next http.Handler) (htt
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		eng.ServeHTTP(rw, req, next)
 	}), nil
+}
+
+// settingsConfig returns the part of an engine configuration that comes from the plugin settings.
+func settingsConfig(settings Settings) engine.Config {
+	return engine.Config{
+		Instances:        settings.Instances,
+		MemoryLimit:      settings.MemoryLimit,
+		Exclusive:        settings.Exclusive,
+		CallTimeout:      time.Duration(settings.CallTimeout),
+		BodyPrefetchSize: settings.BodyPrefetchSize,
+		Envs:             settings.Envs,
+		Mounts:           settings.Mounts,
+	}
 }

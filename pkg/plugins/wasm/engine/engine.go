@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"slices"
 	"sort"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/tetratelabs/wazero"
@@ -86,6 +87,11 @@ type Config struct {
 	MemoryLimit int64
 	// Exclusive dedicates one instance to each in-flight request (http-wasm only).
 	Exclusive bool
+	// CallTimeout bounds each call to the guest; 0 means no limit (http-wasm only).
+	CallTimeout time.Duration
+	// BodyPrefetchSize is how much of the request body is read before the guest is called; 0 means the default
+	// (http-wasm only).
+	BodyPrefetchSize int
 	// Envs lists the environment variables forwarded to the guest.
 	Envs []string
 	// Mounts lists the directories mounted in the guest (http-wasm only).
@@ -111,6 +117,12 @@ func (c Config) RuntimeConfig() wazero.RuntimeConfig {
 	if c.MemoryLimit > 0 {
 		pages := (c.MemoryLimit + wasmPageSize - 1) / wasmPageSize
 		cfg = cfg.WithMemoryLimitPages(uint32(min(pages, 1<<16)))
+	}
+
+	// Interrupting a call on its deadline makes the compiled code check the context in loops, which has a cost:
+	// it is only enabled when a timeout is set.
+	if c.CallTimeout > 0 {
+		cfg = cfg.WithCloseOnContextDone(true)
 	}
 
 	return cfg

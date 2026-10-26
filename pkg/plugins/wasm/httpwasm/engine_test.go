@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -278,21 +279,88 @@ func TestEngine_Panic(t *testing.T) {
 	assert.Equal(t, "1", rw.Header().Get("X-Plugin-Resp"), "a fresh instance starts its sequence at 1")
 }
 
+func TestEngine_CallTimeout(t *testing.T) {
+	t.Parallel()
+
+	eng := newTestEngine(t, fixtureWithNext, map[string]any{"header": "h", "loopOn": "/loop"},
+		engine.Config{Instances: 1, CallTimeout: 200 * time.Millisecond})
+
+	// A client going away does not stop the call: only the timeout does.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	start := time.Now()
+	rw := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/loop", http.NoBody)
+	eng.ServeHTTP(rw, req, echoNext)
+
+	assert.Equal(t, http.StatusInternalServerError, rw.Code)
+	assert.GreaterOrEqual(t, time.Since(start), 200*time.Millisecond)
+
+	// The instance that looped is replaced.
+	require.Eventually(t, func() bool {
+		return eng.Stats().LiveInstances == 1
+	}, 5*time.Second, 10*time.Millisecond)
+
+	rw = httptest.NewRecorder()
+	req = httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", http.NoBody)
+	eng.ServeHTTP(rw, req, echoNext)
+
+	assert.Equal(t, http.StatusCreated, rw.Code)
+	assert.Equal(t, "1", rw.Header().Get("X-Plugin-Resp"))
+}
+
+func TestEngine_CallTimeoutCanceledRequest(t *testing.T) {
+	t.Parallel()
+
+	eng := newTestEngine(t, fixtureWithNext, map[string]any{"header": "h"},
+		engine.Config{Instances: 1, CallTimeout: time.Second})
+
+	// With a timeout, a done context closes the module: the canceled request must not kill the instance.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	rw := httptest.NewRecorder()
+	eng.ServeHTTP(rw, httptest.NewRequestWithContext(ctx, http.MethodGet, "/", http.NoBody), echoNext)
+	assert.Equal(t, http.StatusCreated, rw.Code)
+
+	rw = httptest.NewRecorder()
+	eng.ServeHTTP(rw, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", http.NoBody), echoNext)
+	assert.Equal(t, http.StatusCreated, rw.Code)
+	assert.Equal(t, "2", rw.Header().Get("X-Plugin-Resp"))
+}
+
 func TestEngine_EchoBody(t *testing.T) {
 	t.Parallel()
 
-	eng := newTestEngine(t, fixtureWithNext, map[string]any{"echoBody": true}, engine.Config{Instances: 1})
+	testCases := []struct {
+		desc         string
+		prefetchSize int
+		bodySize     int
+	}{
+		{desc: "body larger than the default prefetch size", bodySize: 3 * defaultBodyPrefetchSize},
+		{desc: "body larger than a small prefetch size", prefetchSize: 16, bodySize: 1000},
+		{desc: "body smaller than a large prefetch size", prefetchSize: 1 << 20, bodySize: 3 * defaultBodyPrefetchSize},
+	}
 
-	// Larger than the prefetch size: the guest reads past the prefix.
-	body := strings.Repeat("abcdefgh", 3*bodyPrefetchSize/8)
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
 
-	rw := httptest.NewRecorder()
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(body))
-	eng.ServeHTTP(rw, req, echoNext)
+			eng := newTestEngine(t, fixtureWithNext, map[string]any{"echoBody": true},
+				engine.Config{Instances: 1, BodyPrefetchSize: test.prefetchSize})
 
-	assert.Equal(t, http.StatusOK, rw.Code)
-	assert.Equal(t, "196608", rw.Header().Get("X-Body-Length"))
-	assert.Equal(t, body, rw.Body.String())
+			body := strings.Repeat("a", test.bodySize)
+
+			rw := httptest.NewRecorder()
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(body))
+			eng.ServeHTTP(rw, req, echoNext)
+
+			assert.Equal(t, http.StatusOK, rw.Code)
+			assert.Equal(t, strconv.Itoa(test.bodySize), rw.Header().Get("X-Body-Length"))
+			assert.Equal(t, body, rw.Body.String())
+		})
+	}
 }
 
 func TestEngine_Close(t *testing.T) {

@@ -339,6 +339,16 @@ func TestNew_Errors(t *testing.T) {
 			err:  "settings.exclusive is only supported by http-wasm plugins",
 		},
 		{
+			desc: "call timeout is refused",
+			cfg:  engine.Config{CallTimeout: time.Second},
+			err:  "settings.callTimeout is only supported by http-wasm plugins",
+		},
+		{
+			desc: "body prefetch size is refused",
+			cfg:  engine.Config{BodyPrefetchSize: 16},
+			err:  "settings.bodyPrefetchSize is only supported by http-wasm plugins",
+		},
+		{
 			desc: "memory limit too small for the guest",
 			cfg:  engine.Config{MemoryLimit: 1 << 20},
 			err:  "creating instance 0: compiling guest module: section memory: min 37 pages (2 Mi) over limit of 16 pages (1 Mi)",

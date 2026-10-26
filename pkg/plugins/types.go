@@ -1,5 +1,7 @@
 package plugins
 
+import ptypes "github.com/traefik/paerser/types"
+
 const (
 	runtimeYaegi = "yaegi"
 	runtimeWasm  = "wasm"
@@ -18,6 +20,9 @@ type Settings struct {
 	Instances   int      `description:"Number of wasm instances per middleware (default: GOMAXPROCS, at most 8)." json:"instances,omitempty" toml:"instances,omitempty" yaml:"instances,omitempty" export:"true"`
 	MemoryLimit int64    `description:"Maximum linear memory of a wasm instance, in bytes (default: 4GiB)." json:"memoryLimit,omitempty" toml:"memoryLimit,omitempty" yaml:"memoryLimit,omitempty" export:"true"`
 	Exclusive   bool     `description:"Dedicate a wasm instance to each in-flight request instead of sharing the instances (http-wasm plugins only)." json:"exclusive,omitempty" toml:"exclusive,omitempty" yaml:"exclusive,omitempty" export:"true"`
+
+	CallTimeout      ptypes.Duration `description:"Maximum duration of a call to the wasm guest; the instance is replaced when it is exceeded (http-wasm plugins only, disabled by default)." json:"callTimeout,omitempty" toml:"callTimeout,omitempty" yaml:"callTimeout,omitempty" export:"true"`
+	BodyPrefetchSize int             `description:"Bytes of the request body read before the wasm guest is called (http-wasm plugins only, default: 65536)." json:"bodyPrefetchSize,omitempty" toml:"bodyPrefetchSize,omitempty" yaml:"bodyPrefetchSize,omitempty" export:"true"`
 }
 
 // Descriptor The static part of a plugin configuration.

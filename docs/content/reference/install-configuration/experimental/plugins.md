@@ -56,6 +56,8 @@ To learn more about how to add a new plugin to a Traefik instance, please refer 
 | <a id="opt-settings-instances" href="#opt-settings-instances" title="#opt-settings-instances">`settings.instances`</a> | Number of wasm instances per middleware. Defaults to the number of CPUs, with a maximum of 8. | int | No |
 | <a id="opt-settings-memoryLimit" href="#opt-settings-memoryLimit" title="#opt-settings-memoryLimit">`settings.memoryLimit`</a> | Maximum linear memory of a wasm instance, in bytes. Defaults to 4GiB. | int | No |
 | <a id="opt-settings-exclusive" href="#opt-settings-exclusive" title="#opt-settings-exclusive">`settings.exclusive`</a> | Dedicate a wasm instance to each in-flight request instead of sharing the instances between requests. See [wasm plugin execution](#wasm-plugin-execution). | bool | No |
+| <a id="opt-settings-callTimeout" href="#opt-settings-callTimeout" title="#opt-settings-callTimeout">`settings.callTimeout`</a> | Maximum duration of a call to an http-wasm guest. When it is exceeded, the request gets a `500` response and the instance is replaced. Disabled by default. | duration | No |
+| <a id="opt-settings-bodyPrefetchSize" href="#opt-settings-bodyPrefetchSize" title="#opt-settings-bodyPrefetchSize">`settings.bodyPrefetchSize`</a> | Bytes of the request body read before an http-wasm guest is called. Defaults to 65536. | int | No |
 
 ## Local Plugins
 
@@ -91,6 +93,8 @@ experimental:
 | <a id="opt-settings-instances-2" href="#opt-settings-instances-2" title="#opt-settings-instances-2">`settings.instances`</a> | Number of wasm instances per middleware. Defaults to the number of CPUs, with a maximum of 8. | int | No |
 | <a id="opt-settings-memoryLimit-2" href="#opt-settings-memoryLimit-2" title="#opt-settings-memoryLimit-2">`settings.memoryLimit`</a> | Maximum linear memory of a wasm instance, in bytes. Defaults to 4GiB. | int | No |
 | <a id="opt-settings-exclusive-2" href="#opt-settings-exclusive-2" title="#opt-settings-exclusive-2">`settings.exclusive`</a> | Dedicate a wasm instance to each in-flight request instead of sharing the instances between requests. See [wasm plugin execution](#wasm-plugin-execution). | bool | No |
+| <a id="opt-settings-callTimeout-2" href="#opt-settings-callTimeout-2" title="#opt-settings-callTimeout-2">`settings.callTimeout`</a> | Maximum duration of a call to an http-wasm guest. When it is exceeded, the request gets a `500` response and the instance is replaced. Disabled by default. | duration | No |
+| <a id="opt-settings-bodyPrefetchSize-2" href="#opt-settings-bodyPrefetchSize-2" title="#opt-settings-bodyPrefetchSize-2">`settings.bodyPrefetchSize`</a> | Bytes of the request body read before an http-wasm guest is called. Defaults to 65536. | int | No |
 
 ## Wasm Plugin Execution
 
@@ -109,8 +113,16 @@ as the http-wasm ABI requires.
 A plugin that keeps per-request state in global variables can set `settings.exclusive` to get a dedicated
 instance per in-flight request, at the cost of one instance memory per concurrent request.
 
+An instance is busy while the guest runs `handle_request` or `handle_response`, including when it reads the request
+body from the client.
+Traefik reads the first `settings.bodyPrefetchSize` bytes of the body before calling the guest, so a guest that reads a
+small body never waits for a slow client; raise it for plugins that inspect larger bodies.
+`settings.callTimeout` bounds each guest call: a guest stuck in a loop gets its instance replaced instead of blocking
+it forever.
+
 A plugin built with the [Traefik WASM Go SDK](https://github.com/traefik/wasm-go) serves every request in its own
 goroutine, inside one instance, so its global state must be synchronized as in any Go server.
-Such a plugin has no file system: `settings.mounts` and `settings.exclusive` are refused.
+Such a plugin has no file system, and reads the request body as a stream: `settings.mounts`, `settings.exclusive`,
+`settings.callTimeout` and `settings.bodyPrefetchSize` are refused.
 When an instance stops (for example on `os.Exit` or when it runs out of memory), its in-flight requests get a
 `502 Bad Gateway` response and the instance is replaced.

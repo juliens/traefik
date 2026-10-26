@@ -17,9 +17,9 @@ import (
 	"github.com/traefik/traefik/v3/pkg/plugins/wasm/engine"
 )
 
-// bodyPrefetchSize is how much of the request body is read before taking the instance lock, so that a guest reading
-// a small body never waits for the client while it holds the lock.
-const bodyPrefetchSize = 64 * 1024
+// defaultBodyPrefetchSize is how much of the request body is read before taking the instance lock, so that a guest
+// reading a small body never waits for the client while it holds the lock.
+const defaultBodyPrefetchSize = 64 * 1024
 
 // httpWasm serves one plugin binary and one middleware configuration on a pool of instances.
 type httpWasm struct {
@@ -143,7 +143,7 @@ func (e *httpWasm) serveExclusive(rw http.ResponseWriter, req *http.Request, nex
 // onError is called with the error of a failed guest call.
 func (e *httpWasm) serve(rw http.ResponseWriter, req *http.Request, next http.Handler, inst *instance, onError func(error)) {
 	s := newRequestState(rw, req, next, handlerapi.Features(e.features.Load()))
-	prefetchBody(req)
+	prefetchBody(req, e.prefetchSize())
 
 	ctx := context.WithValue(req.Context(), requestStateKey{}, s)
 
@@ -190,13 +190,21 @@ func (e *httpWasm) fail(rw http.ResponseWriter, call string, err error, onError 
 	http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
+func (e *httpWasm) prefetchSize() int64 {
+	if e.cfg.BodyPrefetchSize > 0 {
+		return int64(e.cfg.BodyPrefetchSize)
+	}
+
+	return defaultBodyPrefetchSize
+}
+
 // prefetchBody reads the start of the request body before the guest is called, outside the instance lock.
-func prefetchBody(req *http.Request) {
+func prefetchBody(req *http.Request, size int64) {
 	if req.Body == nil || req.Body == http.NoBody {
 		return
 	}
 
-	prefix, err := io.ReadAll(io.LimitReader(req.Body, bodyPrefetchSize))
+	prefix, err := io.ReadAll(io.LimitReader(req.Body, size))
 	if err != nil {
 		req.Body = &prefetchedBody{Reader: io.MultiReader(bytes.NewReader(prefix), errReader{err: err}), closer: req.Body}
 
