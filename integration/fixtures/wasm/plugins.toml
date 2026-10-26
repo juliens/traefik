@@ -1,0 +1,23 @@
+[global]
+  checkNewVersion = false
+  sendAnonymousUsage = false
+
+[log]
+  level = "DEBUG"
+
+[entryPoints.web]
+  address = ":8000"
+
+[experimental.localPlugins.gowasm]
+  moduleName = "github.com/traefik/gowasmdemo"
+  [experimental.localPlugins.gowasm.settings]
+    instances = 1
+
+[experimental.localPlugins.httpwasm]
+  moduleName = "github.com/traefik/httpwasmdemo"
+  [experimental.localPlugins.httpwasm.settings]
+    instances = 1
+
+[providers.file]
+  filename = "{{ .DynamicFile }}"
+  watch = true
