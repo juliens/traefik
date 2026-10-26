@@ -58,6 +58,7 @@ To learn more about how to add a new plugin to a Traefik instance, please refer 
 | <a id="opt-settings-exclusive" href="#opt-settings-exclusive" title="#opt-settings-exclusive">`settings.exclusive`</a> | Dedicate a wasm instance to each in-flight request instead of sharing the instances between requests. See [wasm plugin execution](#wasm-plugin-execution). | bool | No |
 | <a id="opt-settings-callTimeout" href="#opt-settings-callTimeout" title="#opt-settings-callTimeout">`settings.callTimeout`</a> | Maximum duration of a call to an http-wasm guest. When it is exceeded, the request gets a `500` response and the instance is replaced. Disabled by default. | duration | No |
 | <a id="opt-settings-bodyPrefetchSize" href="#opt-settings-bodyPrefetchSize" title="#opt-settings-bodyPrefetchSize">`settings.bodyPrefetchSize`</a> | Bytes of the request body read before an http-wasm guest is called. Defaults to 65536. | int | No |
+| <a id="opt-settings-allowOutbound" href="#opt-settings-allowOutbound" title="#opt-settings-allowOutbound">`settings.allowOutbound`</a> | Allow a plugin built with the [Traefik WASM Go SDK](https://github.com/traefik/wasm-go) to send outbound HTTP requests. Defaults to false. | bool | No |
 
 ## Local Plugins
 
@@ -95,6 +96,7 @@ experimental:
 | <a id="opt-settings-exclusive-2" href="#opt-settings-exclusive-2" title="#opt-settings-exclusive-2">`settings.exclusive`</a> | Dedicate a wasm instance to each in-flight request instead of sharing the instances between requests. See [wasm plugin execution](#wasm-plugin-execution). | bool | No |
 | <a id="opt-settings-callTimeout-2" href="#opt-settings-callTimeout-2" title="#opt-settings-callTimeout-2">`settings.callTimeout`</a> | Maximum duration of a call to an http-wasm guest. When it is exceeded, the request gets a `500` response and the instance is replaced. Disabled by default. | duration | No |
 | <a id="opt-settings-bodyPrefetchSize-2" href="#opt-settings-bodyPrefetchSize-2" title="#opt-settings-bodyPrefetchSize-2">`settings.bodyPrefetchSize`</a> | Bytes of the request body read before an http-wasm guest is called. Defaults to 65536. | int | No |
+| <a id="opt-settings-allowOutbound-2" href="#opt-settings-allowOutbound-2" title="#opt-settings-allowOutbound-2">`settings.allowOutbound`</a> | Allow a plugin built with the [Traefik WASM Go SDK](https://github.com/traefik/wasm-go) to send outbound HTTP requests. Defaults to false. | bool | No |
 
 ## Wasm Plugin Execution
 
@@ -126,3 +128,7 @@ Such a plugin has no file system, and reads the request body as a stream: `setti
 `settings.callTimeout` and `settings.bodyPrefetchSize` are refused.
 When an instance stops (for example on `os.Exit` or when it runs out of memory), its in-flight requests get a
 `502 Bad Gateway` response and the instance is replaced.
+
+Such a plugin can send outbound HTTP requests with `wasihttp.DefaultClient`, for example to call an authorization
+server, once `settings.allowOutbound` is set.
+Traefik sends them on behalf of the plugin, and stops them when the instance stops.

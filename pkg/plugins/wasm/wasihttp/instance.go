@@ -27,6 +27,11 @@ type instance struct {
 	rt     wazero.Runtime
 	mod    api.Module
 
+	// client sends the outbound requests of the guest; ctx cancels them when the instance stops.
+	client *http.Client
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	listener *engine.Pipe
 	// wake is signaled by every event that may let the guest make progress.
 	wake chan struct{}
@@ -36,19 +41,25 @@ type instance struct {
 	// stopped is closed when traefik_serve returned.
 	stopped chan struct{}
 
-	mu      sync.Mutex
-	nextID  uint32
-	reqs    map[uint32]*request
-	fds     map[uint32]*vfd
-	dead    bool
-	deadErr error
-	closing bool
+	mu           sync.Mutex
+	nextID       uint32
+	nextClientID uint32
+	reqs         map[uint32]*request
+	fds          map[uint32]*vfd
+	dead         bool
+	deadErr      error
+	closing      bool
 }
 
-func newInstance(ctx context.Context, cfg *engine.Config, slot int) (*instance, error) {
+func newInstance(ctx context.Context, cfg *engine.Config, client *http.Client, slot int) (*instance, error) {
+	instCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+
 	inst := &instance{
 		cfg:     cfg,
 		logger:  cfg.Logger,
+		client:  client,
+		ctx:     instCtx,
+		cancel:  cancel,
 		wake:    make(chan struct{}, 1),
 		closed:  make(chan struct{}),
 		stopped: make(chan struct{}),
@@ -61,6 +72,7 @@ func newInstance(ctx context.Context, cfg *engine.Config, slot int) (*instance, 
 	inst.rt = wazero.NewRuntimeWithConfig(ctx, cfg.RuntimeConfig())
 
 	if err := inst.instantiate(ctx, fmt.Sprintf("%s-%d", cfg.Name, slot)); err != nil {
+		cancel()
 		_ = inst.rt.Close(ctx)
 
 		return nil, err
@@ -84,6 +96,8 @@ func (inst *instance) Close(ctx context.Context) error {
 	case <-inst.stopped:
 	case <-ctx.Done():
 	}
+
+	inst.releaseDescriptors(engine.ErrClosing)
 
 	return inst.rt.Close(ctx)
 }
@@ -153,6 +167,25 @@ func (inst *instance) run() {
 
 	for _, st := range reqs {
 		st.end(engine.ErrInstanceDied)
+	}
+
+	inst.releaseDescriptors(engine.ErrInstanceDied)
+}
+
+// releaseDescriptors cancels the outbound requests and closes every descriptor of a stopped instance, so that no
+// host goroutine stays blocked on a pipe that the guest will never read or write again.
+func (inst *instance) releaseDescriptors(cause error) {
+	inst.cancel()
+
+	inst.mu.Lock()
+	fds := make([]*vfd, 0, len(inst.fds))
+	for _, f := range inst.fds {
+		fds = append(fds, f)
+	}
+	inst.mu.Unlock()
+
+	for _, f := range fds {
+		_ = f.pipe.CloseWithError(cause)
 	}
 }
 
@@ -485,8 +518,8 @@ func (w *nextWriter) WriteHeader(code int) {
 	}
 	w.sent = true
 
-	block := appendResponse(nil, responseBlock{Status: code, Header: w.header.Clone()})
-	_, _ = w.pipe.Write(appendFrame(nil, block))
+	block := appendResponse(responseBlock{Status: code, Header: w.header.Clone()})
+	_, _ = w.pipe.Write(appendFrame(block))
 }
 
 func (w *nextWriter) Write(b []byte) (int, error) {
@@ -501,7 +534,7 @@ func (w *nextWriter) fail(msg string) {
 	}
 	w.sent = true
 
-	_, _ = w.pipe.Write(appendFrame(nil, appendResponse(nil, responseBlock{Error: msg})))
+	_, _ = w.pipe.Write(appendFrame(appendResponse(responseBlock{Error: msg})))
 }
 
 // instantiateHost exposes the imports of the traefik module, all bound to this instance.
@@ -528,7 +561,7 @@ func (inst *instance) instantiateHost(ctx context.Context) error {
 			return 0
 		}
 
-		return put(m, ptr, size, appendRequest(nil, requestInfo(st.req)))
+		return put(m, ptr, size, appendRequest(requestInfo(st.req)))
 	}).Export("req_info")
 
 	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, id, ptr, size uint32) {
@@ -599,6 +632,10 @@ func (inst *instance) instantiateHost(ctx context.Context) error {
 
 		return 0
 	}).Export("log_enabled")
+
+	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, ptr, size, mode uint32) uint32 {
+		return inst.startClient(bytes.Clone(read(m, ptr, size)), mode)
+	}).Export("client_start")
 
 	_, err := b.Instantiate(ctx)
 

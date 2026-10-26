@@ -10,8 +10,9 @@ import (
 
 // wasiHTTP serves one plugin binary and one middleware configuration on a pool of instances.
 type wasiHTTP struct {
-	cfg  engine.Config
-	pool *engine.Pool
+	cfg    engine.Config
+	pool   *engine.Pool
+	client *http.Client
 }
 
 // ValidateSettings rejects the plugin settings that this mode does not support.
@@ -41,9 +42,12 @@ func New(ctx context.Context, cfg engine.Config) (engine.Engine, error) {
 	}
 
 	e := &wasiHTTP{cfg: cfg}
+	if cfg.AllowOutbound {
+		e.client = newOutboundClient()
+	}
 
 	pool, err := engine.NewPool(ctx, cfg.InstanceCount(), func(ctx context.Context, slot int) (engine.Instance, error) {
-		return newInstance(ctx, &e.cfg, slot)
+		return newInstance(ctx, &e.cfg, e.client, slot)
 	}, cfg.Logger)
 	if err != nil {
 		return nil, err
@@ -102,5 +106,11 @@ func (e *wasiHTTP) Stats() engine.Stats {
 
 // Close implements engine.Engine.
 func (e *wasiHTTP) Close(ctx context.Context) error {
-	return e.pool.Close(ctx)
+	err := e.pool.Close(ctx)
+
+	if e.client != nil {
+		e.client.CloseIdleConnections()
+	}
+
+	return err
 }

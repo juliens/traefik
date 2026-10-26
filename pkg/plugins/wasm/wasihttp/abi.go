@@ -38,6 +38,13 @@ const (
 	// maxRequestIDs bounds the request ids so that the request descriptors stay below the client ones.
 	// Ids are reused after maxRequestIDs requests on one instance.
 	maxRequestIDs = 1 << 26
+
+	clientFDCount      uint32 = 2
+	fdClientResponseIn uint32 = 0
+	fdClientBodyOut    uint32 = 1
+
+	// maxClientIDs bounds the outbound request ids so that their descriptors fit in 32 bits.
+	maxClientIDs = 1 << 26
 )
 
 const (
@@ -58,6 +65,10 @@ const (
 
 func requestFD(id, k uint32) uint32 {
 	return requestFDBase + id*requestFDCount + k
+}
+
+func clientFD(cid, k uint32) uint32 {
+	return clientFDBase + cid*clientFDCount + k
 }
 
 // requestBlock is the request line and the headers of a request, as exchanged with the guest.
@@ -81,9 +92,10 @@ type responseBlock struct {
 
 const emptyField = "-"
 
-// appendRequest writes the space separated request line, an empty field being "-", then one "Key: value" line per
+// appendRequest encodes the space separated request line, an empty field being "-", then one "Key: value" line per
 // header value, keys sorted.
-func appendRequest(dst []byte, r requestBlock) []byte {
+func appendRequest(r requestBlock) []byte {
+	var dst []byte
 	for i, field := range []string{r.Method, r.Target, r.Host, r.Scheme, r.Proto, r.RemoteAddr} {
 		if i > 0 {
 			dst = append(dst, ' ')
@@ -130,8 +142,8 @@ func parseRequest(b []byte) (requestBlock, error) {
 	}, nil
 }
 
-func appendResponse(dst []byte, r responseBlock) []byte {
-	dst = strconv.AppendInt(dst, int64(r.Status), 10)
+func appendResponse(r responseBlock) []byte {
+	dst := strconv.AppendInt(nil, int64(r.Status), 10)
 	if r.Status == 0 && r.Error != "" {
 		dst = append(dst, ' ')
 		dst = append(dst, strings.ReplaceAll(r.Error, "\n", " ")...)
@@ -153,9 +165,9 @@ func parseResponse(b []byte) (responseBlock, error) {
 	return responseBlock{Status: status, Error: msg, Header: parseHeader(rest)}, nil
 }
 
-// appendFrame writes block prefixed by its length as a little endian uint32.
-func appendFrame(dst, block []byte) []byte {
-	dst = binary.LittleEndian.AppendUint32(dst, uint32(len(block)))
+// appendFrame returns block prefixed by its length as a little endian uint32.
+func appendFrame(block []byte) []byte {
+	dst := binary.LittleEndian.AppendUint32(make([]byte, 0, 4+len(block)), uint32(len(block)))
 
 	return append(dst, block...)
 }

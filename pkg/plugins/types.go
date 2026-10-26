@@ -23,6 +23,7 @@ type Settings struct {
 
 	CallTimeout      ptypes.Duration `description:"Maximum duration of a call to the wasm guest; the instance is replaced when it is exceeded (http-wasm plugins only, disabled by default)." json:"callTimeout,omitempty" toml:"callTimeout,omitempty" yaml:"callTimeout,omitempty" export:"true"`
 	BodyPrefetchSize int             `description:"Bytes of the request body read before the wasm guest is called (http-wasm plugins only, default: 65536)." json:"bodyPrefetchSize,omitempty" toml:"bodyPrefetchSize,omitempty" yaml:"bodyPrefetchSize,omitempty" export:"true"`
+	AllowOutbound    bool            `description:"Allow the wasm guest to send outbound HTTP requests (plugins built with github.com/traefik/wasm-go only)." json:"allowOutbound,omitempty" toml:"allowOutbound,omitempty" yaml:"allowOutbound,omitempty" export:"true"`
 }
 
 // Descriptor The static part of a plugin configuration.

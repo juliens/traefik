@@ -92,6 +92,8 @@ type Config struct {
 	// BodyPrefetchSize is how much of the request body is read before the guest is called; 0 means the default
 	// (http-wasm only).
 	BodyPrefetchSize int
+	// AllowOutbound lets the guest send outbound HTTP requests (wasm-go plugins only).
+	AllowOutbound bool
 	// Envs lists the environment variables forwarded to the guest.
 	Envs []string
 	// Mounts lists the directories mounted in the guest (http-wasm only).

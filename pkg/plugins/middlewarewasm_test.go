@@ -196,6 +196,12 @@ func TestNewWasmMiddlewareBuilder_Errors(t *testing.T) {
 			err:      "settings.bodyPrefetchSize must be positive",
 		},
 		{
+			desc:     "outbound requests with an http-wasm plugin",
+			path:     "./fixtures/withnext/plugin.wasm",
+			settings: Settings{AllowOutbound: true},
+			err:      "settings.allowOutbound is only supported by plugins built with github.com/traefik/wasm-go",
+		},
+		{
 			desc:     "call timeout with a wasm-go plugin",
 			path:     "./fixtures/wasihttp/plugin.wasm",
 			settings: Settings{CallTimeout: 1},

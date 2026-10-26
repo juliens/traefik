@@ -41,6 +41,9 @@ func hostLog(level uint32, ptr unsafe.Pointer, size uint32)
 //go:wasmimport traefik log_enabled
 func logEnabled(level uint32) uint32
 
+//go:wasmimport traefik client_start
+func clientStart(ptr unsafe.Pointer, size, mode uint32) uint32
+
 const (
 	fdBodyIn         = 0
 	fdResponseOut    = 1
@@ -150,6 +153,23 @@ func handle(id uint32) {
 		size, _ := strconv.Atoi(strings.TrimPrefix(r.target, "/big?size="))
 		respond(id, 200, nil, bytes.Repeat([]byte("x"), size))
 
+	case "/outbound":
+		// The destination is the url query parameter, as scheme://host/path.
+		_, dest, _ := strings.Cut(r.target, "url=")
+		scheme, rest, _ := strings.Cut(dest, "://")
+		host, path, _ := strings.Cut(rest, "/")
+		body := readAll(id, fdBodyIn)
+
+		block := []byte("POST /" + path + " " + host + " " + scheme + " - - " + strconv.Itoa(len(body)) + "\nX-From-Plugin: yes\n")
+		cid := clientStart(unsafe.Pointer(&block[0]), uint32(len(block)), bodyFromGuest)
+
+		out := os.NewFile(uintptr(1<<30+cid*2+1), "client-body")
+		_, _ = out.Write(body)
+		_ = out.Close()
+
+		status, header, resp := readFramed(readAllFD(1<<30 + cid*2))
+		respond(id, status, header, resp)
+
 	case "/exit":
 		os.Exit(3)
 
@@ -203,7 +223,11 @@ func setRequest(id uint32, method, target, host string, length int64, header []s
 }
 
 func readAll(id, k uint32) []byte {
-	f := os.NewFile(uintptr(fd(id, k)), "in")
+	return readAllFD(fd(id, k))
+}
+
+func readAllFD(n uint32) []byte {
+	f := os.NewFile(uintptr(n), "in")
 	defer f.Close()
 
 	b, _ := io.ReadAll(f)
@@ -211,9 +235,14 @@ func readAll(id, k uint32) []byte {
 	return b
 }
 
-// readNext reads the response of next: a frame with the status and the headers, then the body.
+// readNext reads the response of next.
 func readNext(id uint32) (int, []string, []byte) {
-	b := readAll(id, fdNextResponseIn)
+	return readFramed(readAll(id, fdNextResponseIn))
+}
+
+// readFramed parses a response sent by the host: a frame with the status and the headers, then the body.
+// A host failure becomes a 502 response with the error as body.
+func readFramed(b []byte) (int, []string, []byte) {
 	if len(b) < 4 {
 		return 502, nil, nil
 	}
@@ -221,9 +250,10 @@ func readNext(id uint32) (int, []string, []byte) {
 	size := binary.LittleEndian.Uint32(b)
 	block, body := string(b[4:4+size]), b[4+size:]
 	line, rest, _ := strings.Cut(block, "\n")
-	status, _ := strconv.Atoi(line)
+	code, msg, _ := strings.Cut(line, " ")
+	status, _ := strconv.Atoi(code)
 	if status == 0 {
-		return 502, nil, nil
+		return 502, nil, []byte(msg)
 	}
 
 	var header []string

@@ -678,6 +678,7 @@ experimental:
         exclusive: true
         callTimeout: 42s
         bodyPrefetchSize: 42
+        allowOutbound: true
     Descriptor1:
       moduleName: foobar
       version: foobar
@@ -694,6 +695,7 @@ experimental:
         exclusive: true
         callTimeout: 42s
         bodyPrefetchSize: 42
+        allowOutbound: true
   localPlugins:
     LocalDescriptor0:
       moduleName: foobar
@@ -710,6 +712,7 @@ experimental:
         exclusive: true
         callTimeout: 42s
         bodyPrefetchSize: 42
+        allowOutbound: true
     LocalDescriptor1:
       moduleName: foobar
       settings:
@@ -725,6 +728,7 @@ experimental:
         exclusive: true
         callTimeout: 42s
         bodyPrefetchSize: 42
+        allowOutbound: true
   abortOnPluginFailure: true
   fastProxy:
     debug: true

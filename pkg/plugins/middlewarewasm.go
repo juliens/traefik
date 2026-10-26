@@ -67,9 +67,14 @@ func newWasmMiddlewareBuilderFromPath(ctx context.Context, path string, settings
 		return nil, fmt.Errorf("detecting guest ABI: %w", err)
 	}
 
-	if mode == engine.ModeWasiHTTP {
+	switch mode {
+	case engine.ModeWasiHTTP:
 		if err := wasihttp.ValidateSettings(settingsConfig(settings)); err != nil {
 			return nil, err
+		}
+	case engine.ModeHTTPWasm:
+		if settings.AllowOutbound {
+			return nil, errors.New("settings.allowOutbound is only supported by plugins built with github.com/traefik/wasm-go")
 		}
 	}
 
@@ -236,6 +241,7 @@ func settingsConfig(settings Settings) engine.Config {
 		Exclusive:        settings.Exclusive,
 		CallTimeout:      time.Duration(settings.CallTimeout),
 		BodyPrefetchSize: settings.BodyPrefetchSize,
+		AllowOutbound:    settings.AllowOutbound,
 		Envs:             settings.Envs,
 		Mounts:           settings.Mounts,
 	}

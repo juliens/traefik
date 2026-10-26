@@ -305,6 +305,88 @@ func TestEngine_InstanceDies(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, serve(t, eng, nil, http.MethodGet, "/echo", "").Code)
 }
 
+func TestEngine_Outbound(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		body, _ := io.ReadAll(req.Body)
+		rw.Header().Set("X-Server", "yes")
+		rw.WriteHeader(http.StatusAccepted)
+		_, _ = fmt.Fprintf(rw, "server saw %s %s %s %d:%s", req.Method, req.URL.Path, req.Header.Get("X-From-Plugin"), req.ContentLength, body)
+	}))
+	t.Cleanup(server.Close)
+
+	eng, _ := newTestEngine(t, engine.Config{AllowOutbound: true})
+
+	rw := serve(t, eng, nil, http.MethodPost, "/outbound?url="+server.URL+"/api", "ping")
+
+	assert.Equal(t, http.StatusAccepted, rw.Code)
+	assert.Equal(t, "server saw POST /api yes 4:ping", rw.Body.String())
+	assert.Equal(t, "yes", rw.Header().Get("X-Server"))
+}
+
+func TestEngine_OutboundError(t *testing.T) {
+	t.Parallel()
+
+	eng, _ := newTestEngine(t, engine.Config{AllowOutbound: true})
+
+	// Nothing listens on port 1.
+	rw := serve(t, eng, nil, http.MethodPost, "/outbound?url=http://127.0.0.1:1/api", "ping")
+
+	assert.Equal(t, http.StatusBadGateway, rw.Code)
+	assert.Contains(t, rw.Body.String(), "connection refused")
+}
+
+func TestEngine_OutboundNotAllowed(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Error("the outbound request was sent")
+	}))
+	t.Cleanup(server.Close)
+
+	eng, _ := newTestEngine(t, engine.Config{})
+
+	rw := serve(t, eng, nil, http.MethodPost, "/outbound?url="+server.URL+"/api", "ping")
+
+	assert.Equal(t, http.StatusBadGateway, rw.Code)
+	assert.Equal(t, "outbound requests are not allowed: set the allowOutbound plugin setting", rw.Body.String())
+}
+
+func TestEngine_OutboundStopsWithInstance(t *testing.T) {
+	t.Parallel()
+
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		select {
+		case <-release:
+		case <-req.Context().Done():
+		}
+	}))
+	t.Cleanup(func() {
+		close(release)
+		server.Close()
+	})
+
+	eng, _ := newTestEngine(t, engine.Config{AllowOutbound: true})
+
+	done := make(chan *httptest.ResponseRecorder)
+	go func() {
+		done <- serve(t, eng, nil, http.MethodPost, "/outbound?url="+server.URL+"/slow", "ping")
+	}()
+	time.Sleep(100 * time.Millisecond)
+
+	// The instance dies while the outbound request waits: the request ends, and so does the outbound one.
+	assert.Equal(t, http.StatusBadGateway, serve(t, eng, nil, http.MethodGet, "/exit", "").Code)
+
+	select {
+	case rw := <-done:
+		assert.Equal(t, http.StatusBadGateway, rw.Code)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the request did not end with the instance")
+	}
+}
+
 func TestEngine_Close(t *testing.T) {
 	t.Parallel()
 

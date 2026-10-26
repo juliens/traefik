@@ -625,6 +625,7 @@
         exclusive = true
         callTimeout = "42s"
         bodyPrefetchSize = 42
+        allowOutbound = true
     [experimental.plugins.Descriptor1]
       moduleName = "foobar"
       version = "foobar"
@@ -637,6 +638,7 @@
         exclusive = true
         callTimeout = "42s"
         bodyPrefetchSize = 42
+        allowOutbound = true
   [experimental.localPlugins]
     [experimental.localPlugins.LocalDescriptor0]
       moduleName = "foobar"
@@ -649,6 +651,7 @@
         exclusive = true
         callTimeout = "42s"
         bodyPrefetchSize = 42
+        allowOutbound = true
     [experimental.localPlugins.LocalDescriptor1]
       moduleName = "foobar"
       [experimental.localPlugins.LocalDescriptor1.settings]
@@ -660,6 +663,7 @@
         exclusive = true
         callTimeout = "42s"
         bodyPrefetchSize = 42
+        allowOutbound = true
   [experimental.fastProxy]
     debug = true
 
