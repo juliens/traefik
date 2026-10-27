@@ -44,6 +44,9 @@ func callTrailers(cid uint32, ptr unsafe.Pointer, size uint32) uint32
 //go:wasmimport traefik config_get
 func configGet(kptr unsafe.Pointer, klen uint32, ptr unsafe.Pointer, size uint32) int32
 
+//go:wasmimport traefik config_get_all
+func configGetAll(ptr unsafe.Pointer, size uint32) uint32
+
 //go:wasmimport traefik log
 func hostLog(level uint32, ptr unsafe.Pointer, size uint32)
 
@@ -188,6 +191,9 @@ func handle(id uint32) {
 			return
 		}
 		respond(id, 200, nil, value)
+
+	case "/config-all":
+		respond(id, 200, nil, fetch(configGetAll))
 
 	case "/log":
 		msg := []byte("hello from guest")

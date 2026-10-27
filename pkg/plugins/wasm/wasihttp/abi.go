@@ -3,7 +3,9 @@ package wasihttp
 import (
 	"encoding/binary"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -188,6 +190,18 @@ func appendFrame(block []byte) []byte {
 	dst := binary.LittleEndian.AppendUint32(make([]byte, 0, 4+len(block)), uint32(len(block)))
 
 	return append(dst, block...)
+}
+
+// appendConfig encodes the config block of the wasi:config/store entries: for each entry, keys sorted, the key then
+// the value, each one as a frame, since values may hold any byte.
+func appendConfig(entries map[string]string) []byte {
+	var dst []byte
+	for _, k := range slices.Sorted(maps.Keys(entries)) {
+		dst = append(dst, appendFrame([]byte(k))...)
+		dst = append(dst, appendFrame([]byte(entries[k]))...)
+	}
+
+	return dst
 }
 
 func appendHeader(dst []byte, h http.Header) []byte {

@@ -279,6 +279,22 @@ func TestEngine_Config(t *testing.T) {
 	}
 }
 
+func TestEngine_ConfigAll(t *testing.T) {
+	t.Parallel()
+
+	eng, _ := newTestEngine(t, engine.Config{GuestConfig: []byte(`{"name":"demo","count":1,"list":["a","b"]}`)})
+
+	var want []byte
+	for _, s := range []string{"count", "1", "list", `["a","b"]`, "name", "demo"} {
+		want = append(want, appendFrame([]byte(s))...)
+	}
+
+	rw := serve(t, eng, nil, http.MethodGet, "/config-all", "")
+
+	assert.Equal(t, http.StatusOK, rw.Code)
+	assert.Equal(t, want, rw.Body.Bytes())
+}
+
 func TestEngine_Log(t *testing.T) {
 	t.Parallel()
 

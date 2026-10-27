@@ -611,6 +611,10 @@ func (inst *instance) instantiateHost(ctx context.Context) error {
 		return int32(put(m, ptr, size, []byte(v)))
 	}).Export("config_get")
 
+	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, ptr, size uint32) uint32 {
+		return put(m, ptr, size, appendConfig(inst.store))
+	}).Export("config_get_all")
+
 	b.NewFunctionBuilder().WithFunc(func(_ context.Context, m api.Module, level, ptr, size uint32) {
 		inst.logger.WithLevel(zerologLevel(level)).Msg(string(read(m, ptr, size)))
 	}).Export("log")
