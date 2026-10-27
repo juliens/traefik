@@ -69,7 +69,7 @@ require (
 	github.com/tailscale/tscert v0.0.0-20230806124524-28a91b69a046 // No tag on the repo.
 	github.com/testcontainers/testcontainers-go v0.42.0
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.42.0
-	github.com/tetratelabs/wazero v1.8.0
+	github.com/tetratelabs/wazero v1.12.0
 	github.com/tidwall/gjson v1.17.0
 	github.com/traefik/grpc-web v0.16.0
 	github.com/traefik/paerser v0.2.2
