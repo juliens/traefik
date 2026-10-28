@@ -291,7 +291,7 @@ linters:
         text: 'unusedwrite: unused write to field'
         linters:
           - govet
-      - path: pkg/provider/acme/local_store.go
+      - path: plugins/providers/acme/local_store.go
         linters:
           - musttag
       - path: pkg/tls/certificate.go
@@ -337,9 +337,9 @@ linters:
         text: 'SA1019: cfg.(SSLRedirect|SSLTemporaryRedirect|SSLHost|SSLForceHost|FeaturePolicy) is deprecated'
       - path: (.+)\.go$
         text: 'SA1019: c.Providers.(ConsulCatalog|Consul|Nomad).Namespace is deprecated'
-      - path: pkg/middlewares/auth/basic_auth_test.go
+      - path: plugins/middlewares/auth/basic_auth_test.go
         text: 'SA1008: keys in http.Header are canonicalized, "x-user" is not canonical; fix the constant or use http.CanonicalHeaderKey'
-      - path: pkg/middlewares/auth/digest_auth_test.go
+      - path: plugins/middlewares/auth/digest_auth_test.go
         text: 'SA1008: keys in http.Header are canonicalized, "x-user" is not canonical; fix the constant or use http.CanonicalHeaderKey'
       - path: plugins/providers/kubernetes/crd/kubernetes.go
         text: "Function 'loadConfigurationFromCRD' has too many statements"

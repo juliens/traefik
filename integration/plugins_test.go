@@ -24,8 +24,10 @@ func (s *PluginsSuite) SetupTest() {
 	require.NoError(s.T(), os.CopyFS("plugins-local/src", os.DirFS("fixtures/plugins/src")))
 }
 
+// TearDownTest removes only the test plugins: plugins-local also holds the providers and the middlewares of Traefik.
 func (s *PluginsSuite) TearDownTest() {
-	_ = os.RemoveAll("plugins-local")
+	_ = os.RemoveAll("plugins-local/src/github.com/traefik/govmprovider")
+	_ = os.RemoveAll("plugins-local/src/github.com/traefik/govmplugin")
 }
 
 func (s *PluginsSuite) TestLocalProviderPlugin() {

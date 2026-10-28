@@ -10,7 +10,12 @@
   [entryPoints.web]
     address = ":8000"
 
-[providers.file]
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
+
+[providers.plugin.file]
   filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##
@@ -42,3 +47,8 @@
         url = "http://172.17.0.4:80"
       [[http.services.service2.loadBalancer.servers]]
         url = "http://172.17.0.5:80"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

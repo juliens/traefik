@@ -113,13 +113,6 @@ func (p *ProviderAggregator) Provide(configurationChan chan<- dynamic.Message, p
 	return nil
 }
 
-func (p *ProviderAggregator) quietAddProvider(provider provider.Provider) {
-	err := p.AddProvider(provider)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error while initializing provider %T", provider)
-	}
-}
-
 func (p *ProviderAggregator) launchProvider(configurationChan chan<- dynamic.Message, pool *safe.Pool, prd provider.Provider) {
 	jsonConf, err := redactor.RemoveCredentials(prd)
 	if err != nil {

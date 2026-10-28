@@ -43,6 +43,9 @@ var (
 	traefikVersion               = flag.String("traefikVersion", "dev", "defines the Traefik version")
 )
 
+// traefikStartup is the time Traefik may need to load its plugins (providers and middlewares) before it serves the configuration.
+const traefikStartup = 30 * time.Second
+
 const (
 	k3sImage                = "docker.io/rancher/k3s:v1.34.2-k3s1"
 	traefikImage            = "traefik/traefik:latest"
@@ -324,6 +327,8 @@ func (s *BaseSuite) cmdTraefik(args ...string) (*exec.Cmd, *bytes.Buffer) {
 	err := cmd.Start()
 	require.NoError(s.T(), err)
 
+	try.SetStartup(traefikStartup)
+
 	return cmd, &out
 }
 
@@ -337,7 +342,8 @@ func (s *BaseSuite) killCmd(cmd *exec.Cmd) {
 		log.Error().Err(err).Msg("Kill")
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	// The next test reuses the ports: Traefik, with its plugins loaded, takes some time to exit.
+	_ = cmd.Wait()
 }
 
 func (s *BaseSuite) traefikCmd(args ...string) *exec.Cmd {

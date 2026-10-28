@@ -16,10 +16,20 @@
 [providers]
   precedence = {{ .Precedence }}
 
-  [providers.file]
+  [experimental.localPlugins.file]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+    [experimental.localPlugins.file.settings.goVM]
+      trusted = true
+
+  [providers.plugin.file]
     filename = "{{ .SelfFilename }}"
 
-  [providers.docker]
+  [experimental.localPlugins.docker]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+    [experimental.localPlugins.docker.settings.goVM]
+      trusted = true
+
+  [providers.plugin.docker]
     endpoint = "{{ .DockerHost }}"
     exposedByDefault = false
 
@@ -46,3 +56,8 @@
   [tcp.services.file-service.loadBalancer]
     [[tcp.services.file-service.loadBalancer.servers]]
       address = "{{ .FileBackendAddress }}"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

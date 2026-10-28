@@ -19,8 +19,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/traefik/traefik/v3/pkg/plugins/host"
-
 	"github.com/go-acme/lego/v5/acme"
 	"github.com/go-acme/lego/v5/certcrypto"
 	"github.com/go-acme/lego/v5/certificate"
@@ -37,6 +35,7 @@ import (
 	httpmuxer "github.com/traefik/traefik/v3/pkg/muxer/http"
 	tcpmuxer "github.com/traefik/traefik/v3/pkg/muxer/tcp"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
+	"github.com/traefik/traefik/v3/pkg/plugins/host"
 	"github.com/traefik/traefik/v3/pkg/safe"
 	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"

@@ -14,8 +14,18 @@
   insecure = true
 
 [providers]
-  [providers.consulCatalog]
+  [experimental.localPlugins.consulCatalog]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/consulcatalog"
+    [experimental.localPlugins.consulCatalog.settings.goVM]
+      trusted = true
+
+  [providers.plugin.consulCatalog]
     exposedByDefault = false
     refreshInterval = "500ms"
-  [providers.consulCatalog.endpoint]
+  [providers.plugin.consulCatalog.endpoint]
     address = "{{ .ConsulAddress }}"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

@@ -16,7 +16,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
 	// The AOT copies of the standard library and of common libraries, used unless settings.goVM.disableAOT is set.
 	_ "github.com/traefik/go-vm/aot/all"
 	// The symbols of expvar, net/http/pprof and testing/quick, which go-vm leaves out of its standard library
@@ -169,6 +168,11 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 		logger.Warn().Msg(note)
 	}
 
+	// A plugin implementing options of the dynamic configuration has a constructor per option (see checkTypedMiddleware).
+	if len(manifest.Implements) > 0 {
+		return p, nil
+	}
+
 	if p.Pkg.Func("CreateConfig") == nil {
 		return nil, errors.New("failed to find CreateConfig")
 	}
@@ -222,9 +226,16 @@ func createGoVMConfig(p *vm.Plugin, config map[string]any) (*vm.Object, error) {
 // decodePluginConfig decodes the configuration with the same options as the Yaegi runtime.
 func decodePluginConfig(config map[string]any, result any) error {
 	cfg := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.ComposeDecodeHookFunc(mapstructure.StringToSliceHookFunc(","), emptyStringToStruct),
+		// The static configuration gives the durations as text ("1s"): ptypes.Duration decodes it.
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToSliceHookFunc(","),
+			emptyStringToStruct,
+			mapstructure.TextUnmarshallerHookFunc(),
+		),
 		WeaklyTypedInput: true,
-		Result:           result,
+		// The options of an embedded struct are at the level of the struct that embeds it, as in the static configuration.
+		Squash: true,
+		Result: result,
 	}
 
 	decoder, err := mapstructure.NewDecoder(cfg)
@@ -288,32 +299,44 @@ func goVMError(res *vm.Object) error {
 
 // newTypedMiddleware creates the middleware of a plugin implementing an option of the dynamic configuration:
 // the plugin gets the configuration as it is, a value of the native types of pkg/config/dynamic.
-func (b *goVMMiddlewareBuilder) newTypedMiddleware(config any, middlewareName string) *GoVMMiddleware {
+func (b *goVMMiddlewareBuilder) newTypedMiddleware(option string, config any, middlewareName string) pluginMiddleware {
 	return &GoVMMiddleware{
 		middlewareName: middlewareName,
 		config:         config,
 		plugin:         b.plugin,
+		constructor:    typedConstructor(option),
 	}
 }
 
-// checkTypedMiddleware checks that the New function of a plugin implementing an option of the dynamic configuration
-// takes the configuration of this option: New(ctx context.Context, next http.Handler, config *dynamic.<Type>, name string).
+func (b *goVMMiddlewareBuilder) checkTypedMiddleware(option string) error {
+	return checkTypedMiddleware(b.plugin, option)
+}
+
+// typedConstructor returns the name of the constructor of the middleware implementing the option: NewHeaders for headers.
+func typedConstructor(option string) string {
+	return "New" + strings.ToUpper(option[:1]) + option[1:]
+}
+
+// checkTypedMiddleware checks that a plugin implementing an option of the dynamic configuration has its constructor:
+// New<Option>(ctx context.Context, next http.Handler, config *dynamic.<Type>, name string) (http.Handler, error).
 func checkTypedMiddleware(p *vm.Plugin, option string) error {
 	field, ok := middlewareOption(option)
 	if !ok {
 		return fmt.Errorf("the middleware option %q does not exist", option)
 	}
 
-	fn := p.Pkg.Func("New")
+	name := typedConstructor(option)
+
+	fn := p.Pkg.Func(name)
 	if fn == nil {
-		return errors.New("failed to find New")
+		return fmt.Errorf("failed to find %s", name)
 	}
 
 	expected := "*" + field.Type.Elem().PkgPath() + "." + field.Type.Elem().Name()
 
 	params := fn.Signature.Params()
 	if params.Len() != 4 || types.TypeString(params.At(2).Type(), nil) != expected {
-		return fmt.Errorf("the New function of a plugin implementing the %q middleware option must take a %s configuration", option, expected)
+		return fmt.Errorf("the %s function of a plugin implementing the %q middleware option must take a %s configuration", name, option, expected)
 	}
 
 	return nil
@@ -322,9 +345,7 @@ func checkTypedMiddleware(p *vm.Plugin, option string) error {
 // middlewareOption returns the field of the given option of the dynamic configuration of the middlewares.
 func middlewareOption(option string) (reflect.StructField, bool) {
 	typ := reflect.TypeFor[dynamic.Middleware]()
-	for i := range typ.NumField() {
-		field := typ.Field(i)
-
+	for field := range typ.Fields() {
 		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
 		if name == option && field.Type.Kind() == reflect.Pointer && field.Type.Elem().Kind() == reflect.Struct {
 			return field, true
@@ -341,23 +362,82 @@ type GoVMMiddleware struct {
 	// the result of its CreateConfig function, or the value of an option of the dynamic configuration.
 	config any
 	plugin *vm.Plugin
+	// constructor is the function creating the handler: New, or New<Option> for an option of the dynamic configuration.
+	constructor string
 }
 
 // NewHandler creates a new HTTP handler.
 func (m *GoVMMiddleware) NewHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
-	return wrapExternal(next, func(next http.Handler) (http.Handler, error) {
-		return m.newPluginHandler(ctx, next)
+	handler, traceable, err := wrapExternalWith(next, func(next http.Handler) (http.Handler, traceable, error) {
+		handler, err := m.newPluginHandler(ctx, next)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return handler, asTraceable(handler), nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// The middlewares of Traefik name their traces themselves (RateLimiter, CustomError, ...), the wrapper must keep it.
+	if traceable != nil {
+		return &traceableHandler{Handler: handler, traceable: traceable}, nil
+	}
+
+	return handler, nil
+}
+
+// traceable is a handler naming its traces itself (see observability.Traceable).
+type traceable interface {
+	GetTracingInformation() (name string, typeName string)
+}
+
+type traceableHandler struct {
+	http.Handler
+	traceable
+}
+
+// go-vm shows the methods of a plugin value to native code only through a wrapper per interface:
+// the http.Handler returned by a plugin does not have GetTracingInformation without this wrapper.
+func init() {
+	vm.RegisterWrapper[traceable](func(o vm.Obj) traceable { return traceableObj{o} })
+}
+
+type traceableObj struct{ vm.Obj }
+
+func (t traceableObj) GetTracingInformation() (string, string) {
+	out := t.Call("GetTracingInformation")
+	return vm.Out[string](out, 0), vm.Out[string](out, 1)
+}
+
+// asTraceable returns the handler of a plugin as a traceable, or nil when it does not name its traces.
+func asTraceable(handler http.Handler) (t traceable) {
+	// vm.AssertI needs the AOT mode: with settings.goVM.disableAOT, it panics and the handler is not traceable.
+	defer func() {
+		if recover() != nil {
+			t = nil
+		}
+	}()
+
+	t, _ = vm.AssertI[traceable](handler)
+
+	return t
 }
 
 func (m *GoVMMiddleware) newPluginHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
-	res, err := m.plugin.Call(ctx, "New", ctx, next, m.config, m.middlewareName)
+	constructor := m.constructor
+	if constructor == "" {
+		constructor = "New"
+	}
+
+	res, err := m.plugin.Call(ctx, constructor, ctx, next, m.config, m.middlewareName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call New: %w", err)
+		return nil, fmt.Errorf("failed to call %s: %w", constructor, err)
 	}
 
 	if len(res) != 2 {
-		return nil, fmt.Errorf("invalid number of return for the New function: %d", len(res))
+		return nil, fmt.Errorf("invalid number of return for the %s function: %d", constructor, len(res))
 	}
 
 	if err := goVMError(res[1]); err != nil {

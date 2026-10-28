@@ -453,13 +453,20 @@ func (s *SimpleSuite) TestNoAuthOnPing() {
 	require.NoError(s.T(), err)
 }
 
+// dockerProviderFlags are the flags of the Docker provider, which is a plugin.
+var dockerProviderFlags = []string{
+	"--experimental.localPlugins.docker.moduleName=github.com/traefik/traefik/v3/plugins/providers/docker",
+	"--experimental.localPlugins.docker.settings.goVM.trusted=true",
+	"--providers.plugin.docker.exposedByDefault=true",
+}
+
 func (s *SimpleSuite) TestDefaultEntryPointHTTP() {
 	s.createComposeProject("base")
 
 	s.composeUp()
 	defer s.composeDown()
 
-	s.traefikCmd("--entryPoints.http.Address=:8000", "--log.level=DEBUG", "--providers.docker", "--api.insecure")
+	s.traefikCmd(append([]string{"--entryPoints.http.Address=:8000", "--log.level=DEBUG", "--api.insecure"}, dockerProviderFlags...)...)
 
 	err := try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("PathPrefix"))
 	require.NoError(s.T(), err)
@@ -474,7 +481,7 @@ func (s *SimpleSuite) TestWithNonExistingEntryPoint() {
 	s.composeUp()
 	defer s.composeDown()
 
-	s.traefikCmd("--entryPoints.http.Address=:8000", "--log.level=DEBUG", "--providers.docker", "--api.insecure")
+	s.traefikCmd(append([]string{"--entryPoints.http.Address=:8000", "--log.level=DEBUG", "--api.insecure"}, dockerProviderFlags...)...)
 
 	err := try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("PathPrefix"))
 	require.NoError(s.T(), err)
@@ -489,7 +496,7 @@ func (s *SimpleSuite) TestMetricsPrometheusDefaultEntryPoint() {
 	s.composeUp()
 	defer s.composeDown()
 
-	s.traefikCmd("--entryPoints.http.Address=:8000", "--api.insecure", "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0", "--providers.docker", "--metrics.prometheus.addrouterslabels=true", "--log.level=DEBUG")
+	s.traefikCmd(append([]string{"--entryPoints.http.Address=:8000", "--api.insecure", "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0", "--metrics.prometheus.addrouterslabels=true", "--log.level=DEBUG"}, dockerProviderFlags...)...)
 
 	err := try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("PathPrefix(`/whoami`)"))
 	require.NoError(s.T(), err)
@@ -520,7 +527,7 @@ func (s *SimpleSuite) TestMetricsPrometheusTwoRoutersOneService() {
 	s.composeUp()
 	defer s.composeDown()
 
-	s.traefikCmd("--entryPoints.http.Address=:8000", "--api.insecure", "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0", "--providers.docker", "--metrics.prometheus.addentrypointslabels=false", "--metrics.prometheus.addrouterslabels=true", "--log.level=DEBUG")
+	s.traefikCmd(append([]string{"--entryPoints.http.Address=:8000", "--api.insecure", "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0", "--metrics.prometheus.addentrypointslabels=false", "--metrics.prometheus.addrouterslabels=true", "--log.level=DEBUG"}, dockerProviderFlags...)...)
 
 	err := try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("PathPrefix"))
 	require.NoError(s.T(), err)
@@ -2024,9 +2031,10 @@ func (s *SimpleSuite) TestSimpleOCSP() {
 
 	s.traefikCmd(withConfigFile(file))
 
+	// The first call waits for Traefik to start: the go-vm runtime takes several seconds to load the file provider.
 	select {
 	case <-responderCalled:
-	case <-time.After(5 * time.Second):
+	case <-time.After(30 * time.Second):
 		s.T().Fatal("OCSP responder was not called")
 	}
 

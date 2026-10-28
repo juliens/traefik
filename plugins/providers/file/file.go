@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"text/template"
 
-	"github.com/traefik/traefik/v3/plugins/providers/common"
-
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/paerser/file"
@@ -25,6 +23,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/safe"
 	"github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
+	"github.com/traefik/traefik/v3/plugins/providers/common"
 )
 
 // ProviderName is the file provider name.

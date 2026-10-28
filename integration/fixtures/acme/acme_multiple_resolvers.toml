@@ -14,19 +14,24 @@
 
 {{range $name, $resolvers := .Acme }}
 
-[certificatesResolvers.{{ $name }}.acme]
+[experimental.localPlugins.{{ $name }}]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/acme"
+  [experimental.localPlugins.{{ $name }}.settings.goVM]
+    trusted = true
+
+[providers.plugin.{{ $name }}]
   email = "test@traefik.io"
   storage = "/tmp/acme.json"
   keyType = "{{ $resolvers.ACME.KeyType }}"
   caServer = "{{ $resolvers.ACME.CAServer }}"
 
   {{if $resolvers.ACME.HTTPChallenge }}
-  [certificatesResolvers.{{ $name }}.acme.httpChallenge]
+  [providers.plugin.{{ $name }}.httpChallenge]
     entryPoint = "{{ $resolvers.ACME.HTTPChallenge.EntryPoint }}"
   {{end}}
 
   {{if $resolvers.ACME.TLSChallenge }}
-  [certificatesResolvers.{{ $name }}.acme.tlsChallenge]
+  [providers.plugin.{{ $name }}.tlsChallenge]
   {{end}}
 
 {{end}}
@@ -34,7 +39,12 @@
 [api]
   insecure = true
 
-[providers.file]
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
+
+[providers.plugin.file]
   filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##
@@ -58,3 +68,8 @@
     service = "test"
     [http.routers.tchouk.tls]
       certResolver = "tchouk"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

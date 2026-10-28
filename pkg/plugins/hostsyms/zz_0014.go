@@ -6,19 +6,17 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p14 "github.com/traefik/traefik/v3/pkg/provider"
+	p14 "google.golang.org/grpc/codes"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/traefik/traefik/v3/pkg/provider",
-		Funcs: map[string]reflect.Value{
-			"Normalize": reflect.ValueOf(p14.Normalize),
-		},
+		Path:  "google.golang.org/grpc/codes",
+		Funcs: map[string]reflect.Value{},
 		Types: map[string]reflect.Type{
-			"NamespacedProvider": reflect.TypeFor[p14.NamespacedProvider](),
-			"Provider":           reflect.TypeFor[p14.Provider](),
+			"Code": reflect.TypeFor[p14.Code](),
 		},
-		Vars: map[string]reflect.Value{},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

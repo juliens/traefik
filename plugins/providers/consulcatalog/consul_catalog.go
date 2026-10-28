@@ -8,8 +8,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/traefik/traefik/v3/plugins/providers/common"
-
 	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
@@ -23,6 +21,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/safe"
 	"github.com/traefik/traefik/v3/pkg/types"
 	"github.com/traefik/traefik/v3/plugins/job"
+	"github.com/traefik/traefik/v3/plugins/providers/common"
 	"github.com/traefik/traefik/v3/plugins/providers/constraints"
 )
 

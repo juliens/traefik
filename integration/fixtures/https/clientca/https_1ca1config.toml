@@ -13,7 +13,12 @@
 [api]
   insecure = true
 
-[providers.file]
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
+
+[providers.plugin.file]
   filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##
@@ -52,3 +57,8 @@
   [tls.options.default.clientAuth]
     caFiles = ["fixtures/https/clientca/ca1.crt"]
     clientAuthType = "VerifyClientCertIfGiven"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

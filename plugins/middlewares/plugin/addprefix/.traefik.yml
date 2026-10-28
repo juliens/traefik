@@ -1,6 +1,0 @@
-displayName: AddPrefix middleware
-type: middleware
-import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/addprefix
-implements: addPrefix
-summary: The addPrefix middleware of Traefik, as a plugin.
-testData: {}

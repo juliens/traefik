@@ -8,13 +8,12 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/traefik/traefik/v3/pkg/config/dynamic"
-	"github.com/traefik/traefik/v3/pkg/plugins/host"
-
 	"github.com/containous/alice"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
 	"github.com/traefik/traefik/v3/pkg/middlewares/chain"
 	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
+	"github.com/traefik/traefik/v3/pkg/plugins/host"
 	"github.com/traefik/traefik/v3/pkg/server/provider"
 	"github.com/traefik/traefik/v3/pkg/server/recursion"
 )
@@ -122,8 +121,10 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 			pluginCtx = host.WithServiceBuilder(ctx, b.serviceBuilder.BuildHTTP)
 		}
 
+		// The middlewares of Traefik name their traces themselves (RateLimiter, CustomError, ...),
+		// and some of them none: the Retry middleware creates a span for each attempt.
 		middleware = func(next http.Handler) (http.Handler, error) {
-			handler, err := newTraceablePlugin(pluginCtx, middlewareName, option.typeName, plug, next)
+			handler, err := plug(pluginCtx, next)
 			if err != nil {
 				return nil, info.RedactURNRefs(err)
 			}
@@ -146,7 +147,7 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 		}
 
 		middleware = func(next http.Handler) (http.Handler, error) {
-			handler, err := newTraceablePlugin(ctx, middlewareName, typeName, plug, next)
+			handler, err := newTraceablePlugin(ctx, middlewareName, plug, next)
 			if err != nil {
 				return nil, info.RedactURNRefs(err)
 			}
@@ -165,10 +166,8 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 // typedOption is an option of the dynamic configuration of a middleware, implemented by a plugin.
 type typedOption struct {
 	// name is the name of the option in the configuration (headers, stripPrefix, ...).
-	name string
-	// typeName is the type of the middleware in the traces (Headers, StripPrefix, ...).
-	typeName string
-	value    any
+	name  string
+	value any
 }
 
 // typedOptions returns the options of the configuration implemented by the middleware plugins: the options other than chain and plugin.
@@ -187,7 +186,7 @@ func typedOptions(config *dynamic.Middleware) []typedOption {
 			continue
 		}
 
-		options = append(options, typedOption{name: name, typeName: field.Name, value: val.Field(i).Interface()})
+		options = append(options, typedOption{name: name, value: val.Field(i).Interface()})
 	}
 
 	return options

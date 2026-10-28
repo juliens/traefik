@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/tcp"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 )
 
 // All the tests in the suite are a copy of tcp muxer tests on branch v2.

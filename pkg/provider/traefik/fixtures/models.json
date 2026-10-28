@@ -30,8 +30,8 @@
         },
         "observability": {
           "accessLogs": false,
-          "tracing": false,
-          "metrics": false
+          "metrics": false,
+          "tracing": false
         }
       }
     }

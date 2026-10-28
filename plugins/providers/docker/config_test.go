@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/traefik/traefik/v3/plugins/providers/common"
-
 	containertypes "github.com/moby/moby/api/types/container"
 	networktypes "github.com/moby/moby/api/types/network"
 	swarmtypes "github.com/moby/moby/api/types/swarm"
@@ -17,6 +15,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
+	"github.com/traefik/traefik/v3/plugins/providers/common"
 )
 
 func TestDynConfBuilder_DefaultRule(t *testing.T) {

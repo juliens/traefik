@@ -12,6 +12,16 @@
 [api]
   insecure = true
 
-[providers.zookeeper]
+[experimental.localPlugins.zookeeper]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kv/zk"
+  [experimental.localPlugins.zookeeper.settings.goVM]
+    trusted = true
+
+[providers.plugin.zookeeper]
   rootKey = "traefik"
   endpoints = ["{{ .ZkAddress }}"]
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

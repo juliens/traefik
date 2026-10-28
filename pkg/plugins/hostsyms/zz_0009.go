@@ -6,26 +6,18 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p9 "github.com/traefik/traefik/v3/pkg/types"
+	p9 "github.com/traefik/traefik/dynamic/ext"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/traefik/traefik/v3/pkg/types",
-		Funcs: map[string]reflect.Value{
-			"CanonicalDomain":   reflect.ValueOf(p9.CanonicalDomain),
-			"MatchDomain":       reflect.ValueOf(p9.MatchDomain),
-			"NewHTTPCodeRanges": reflect.ValueOf(p9.NewHTTPCodeRanges),
-		},
+		Path:  "github.com/traefik/traefik/dynamic/ext",
+		Funcs: map[string]reflect.Value{},
 		Types: map[string]reflect.Type{
-			"ClientTLS":          reflect.TypeFor[p9.ClientTLS](),
-			"Domain":             reflect.TypeFor[p9.Domain](),
-			"FileOrContent":      reflect.TypeFor[p9.FileOrContent](),
-			"HTTPCodeRanges":     reflect.TypeFor[p9.HTTPCodeRanges](),
-			"HostResolverConfig": reflect.TypeFor[p9.HostResolverConfig](),
-			"RouteAppender":      reflect.TypeFor[p9.RouteAppender](),
-			"TracingVerbosity":   reflect.TypeFor[p9.TracingVerbosity](),
+			"HTTP":   reflect.TypeFor[p9.HTTP](),
+			"Router": reflect.TypeFor[p9.Router](),
 		},
-		Vars: map[string]reflect.Value{},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

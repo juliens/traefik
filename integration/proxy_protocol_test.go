@@ -3,6 +3,7 @@ package integration
 import (
 	"bufio"
 	"net"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -45,7 +46,7 @@ func (s *ProxyProtocolSuite) TestProxyProtocolTrusted() {
 
 	s.traefikCmd(withConfigFile(file))
 
-	err := try.GetRequest("http://127.0.0.1:8000/whoami", 10*time.Second)
+	err := try.GetRequest("http://127.0.0.1:8000/whoami", 30*time.Second, try.StatusCodeIs(http.StatusOK))
 	require.NoError(s.T(), err)
 
 	content, err := proxyProtoRequest("127.0.0.1:8000", 1)
@@ -65,7 +66,7 @@ func (s *ProxyProtocolSuite) TestProxyProtocolNotTrusted() {
 
 	s.traefikCmd(withConfigFile(file))
 
-	err := try.GetRequest("http://127.0.0.1:9000/whoami", 10*time.Second)
+	err := try.GetRequest("http://127.0.0.1:9000/whoami", 30*time.Second, try.StatusCodeIs(http.StatusOK))
 	require.NoError(s.T(), err)
 
 	content, err := proxyProtoRequest("127.0.0.1:9000", 1)

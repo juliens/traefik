@@ -14,6 +14,8 @@ DATE := $(shell date -u '+%Y-%m-%d_%I:%M:%S%p')
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 GOGC ?=
+# CGO_ENABLED is 1 for the binary loading the plugins built as shared objects (plugins-so): Go loads them with cgo.
+CGO_ENABLED ?= 0
 
 LINT_EXECUTABLES = misspell shellcheck
 
@@ -58,7 +60,7 @@ generate:
 #? binary: Build the binary
 binary: generate-webui dist
 	@echo SHA: $(VERSION) $(CODENAME) $(DATE)
-	CGO_ENABLED=0 GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go build ${FLAGS} -ldflags "-s -w \
+	CGO_ENABLED=${CGO_ENABLED} GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go build ${FLAGS} -ldflags "-s -w \
     -X github.com/traefik/traefik/v3/pkg/version.Version=$(VERSION) \
     -X github.com/traefik/traefik/v3/pkg/version.Codename=$(CODENAME) \
     -X github.com/traefik/traefik/v3/pkg/version.BuildDate=$(DATE)" \
@@ -95,9 +97,28 @@ test-unit:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./pkg/... ./cmd/...
 	cd plugins && GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./...
 
+# The providers and middlewares of Traefik are plugins, which Traefik finds by module name in this order:
+# compiled in (binary-builtin), as shared objects next to the binary (plugins-so), or as sources run by go-vm (binary, plugins-local).
+
+.PHONY: binary-builtin
+#? binary-builtin: Build the binary with the providers and middlewares of Traefik compiled in
+binary-builtin: FLAGS += -tags=builtinplugins
+binary-builtin: binary
+
+.PHONY: plugins-so
+#? plugins-so: Build the binary, and the providers and middlewares of Traefik as shared objects (.so) in dist/<os>/<arch>/plugins
+plugins-so: export CGO_ENABLED := 1
+plugins-so: binary
+	GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go run ./cmd/internal/nativeplugins -so "./dist/${GOOS}/${GOARCH}/plugins" -- ${FLAGS}
+
+.PHONY: plugins-local
+#? plugins-local: Copy the providers and middlewares of Traefik (plugins) into integration/plugins-local
+plugins-local:
+	./script/plugins-local.sh integration/plugins-local
+
 .PHONY: test-integration
 #? test-integration: Run the integration tests
-test-integration:
+test-integration: plugins-local
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test ./integration -test.timeout=20m -failfast -v $(TESTFLAGS)
 
 .PHONY: test-gateway-api-conformance

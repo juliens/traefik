@@ -6,28 +6,43 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p13 "github.com/traefik/traefik/v3/pkg/plugins/host"
+	p13 "github.com/traefik/traefik/v3/pkg/tls"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/traefik/traefik/v3/pkg/plugins/host",
+		Path: "github.com/traefik/traefik/v3/pkg/tls",
 		Funcs: map[string]reflect.Value{
-			"BuildService":          reflect.ValueOf(p13.BuildService),
-			"CertificateDomains":    reflect.ValueOf(p13.CertificateDomains),
-			"DefaultRuleSyntax":     reflect.ValueOf(p13.DefaultRuleSyntax),
-			"EntryPoints":           reflect.ValueOf(p13.EntryPoints),
-			"Lookup":                reflect.ValueOf(p13.Lookup),
-			"NotifySignals":         reflect.ValueOf(p13.NotifySignals),
-			"Register":              reflect.ValueOf(p13.Register),
-			"SetCertificateDomains": reflect.ValueOf(p13.SetCertificateDomains),
-			"SetStatic":             reflect.ValueOf(p13.SetStatic),
-			"Unregister":            reflect.ValueOf(p13.Unregister),
-			"WithServiceBuilder":    reflect.ValueOf(p13.WithServiceBuilder),
+			"GetCipherName":         reflect.ValueOf(p13.GetCipherName),
+			"GetVersion":            reflect.ValueOf(p13.GetVersion),
+			"NewCertificateStore":   reflect.ValueOf(p13.NewCertificateStore),
+			"NewManager":            reflect.ValueOf(p13.NewManager),
+			"VerifyPeerCertificate": reflect.ValueOf(p13.VerifyPeerCertificate),
 		},
 		Types: map[string]reflect.Type{
-			"EntryPoint": reflect.TypeFor[p13.EntryPoint](),
+			"CertAndStores":    reflect.TypeFor[p13.CertAndStores](),
+			"Certificate":      reflect.TypeFor[p13.Certificate](),
+			"CertificateData":  reflect.TypeFor[p13.CertificateData](),
+			"CertificateStore": reflect.TypeFor[p13.CertificateStore](),
+			"Certificates":     reflect.TypeFor[p13.Certificates](),
+			"ClientAuth":       reflect.TypeFor[p13.ClientAuth](),
+			"FileOrContent":    reflect.TypeFor[p13.FileOrContent](),
+			"GeneratedCert":    reflect.TypeFor[p13.GeneratedCert](),
+			"Manager":          reflect.TypeFor[p13.Manager](),
+			"OCSPConfig":       reflect.TypeFor[p13.OCSPConfig](),
+			"Options":          reflect.TypeFor[p13.Options](),
+			"SAN":              reflect.TypeFor[p13.SAN](),
+			"SANType":          reflect.TypeFor[p13.SANType](),
+			"Store":            reflect.TypeFor[p13.Store](),
 		},
-		Vars: map[string]reflect.Value{},
+		Vars: map[string]reflect.Value{
+			"CipherSuites":         reflect.ValueOf(&p13.CipherSuites),
+			"CipherSuitesReversed": reflect.ValueOf(&p13.CipherSuitesReversed),
+			"CurveIDs":             reflect.ValueOf(&p13.CurveIDs),
+			"DefaultTLSOptions":    reflect.ValueOf(&p13.DefaultTLSOptions),
+			"MaxVersion":           reflect.ValueOf(&p13.MaxVersion),
+			"MinVersion":           reflect.ValueOf(&p13.MinVersion),
+		},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

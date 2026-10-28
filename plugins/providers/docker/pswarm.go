@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/traefik/traefik/v3/plugins/providers/common"
-
 	"github.com/cenkalti/backoff/v4"
 	networktypes "github.com/moby/moby/api/types/network"
 	swarmtypes "github.com/moby/moby/api/types/swarm"
@@ -20,6 +18,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/pkg/safe"
 	"github.com/traefik/traefik/v3/plugins/job"
+	"github.com/traefik/traefik/v3/plugins/providers/common"
 )
 
 // SwarmName is the swarm provider name.

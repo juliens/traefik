@@ -31,11 +31,16 @@ func (b Builder) BuildProvider(pName string, config map[string]any) (provider.Pr
 		return nil, fmt.Errorf("unknown plugin type: %s", pName)
 	}
 
+	if builder.native != nil {
+		return newNativeProvider(builder.native, config, pName)
+	}
+
 	return newGoVMProvider(builder.plugin, config, pName)
 }
 
 type providerBuilder struct {
 	plugin *vm.Plugin
+	native *nativePlugin
 }
 
 // Provider is a plugin's provider wrapper.

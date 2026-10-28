@@ -11,5 +11,15 @@
     address = ":8000"
 
 [providers]
-  [providers.file]
+  [experimental.localPlugins.file]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+    [experimental.localPlugins.file.settings.goVM]
+      trusted = true
+
+  [providers.plugin.file]
     directory = "fixtures/file/dir/"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

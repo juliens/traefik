@@ -6,7 +6,12 @@
   [entryPoints.web]
     address = ":8000"
 
-[providers.file]
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
+
+[providers.plugin.file]
   filename = "{{ .SelfFilename }}"
 
 [ocsp.responderOverrides]
@@ -25,3 +30,8 @@
   [tls.stores.default.defaultCertificate]
     certFile = "fixtures/ocsp/default.crt"
     keyFile = "fixtures/ocsp/default.key"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

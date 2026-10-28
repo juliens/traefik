@@ -8,10 +8,9 @@ import (
 	"net/url"
 	"time"
 
-	ttypes "github.com/traefik/traefik/v3/pkg/types"
-
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/observability"
+	ttypes "github.com/traefik/traefik/v3/pkg/types"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -171,7 +170,7 @@ type Tracing struct {
 
 // SetDefaults sets the default values.
 func (t *Tracing) SetDefaults() {
-	t.ServiceName = "traefik"
+	t.ServiceName = OTelTraefikServiceName
 	t.SampleRate = 1.0
 
 	t.OTLP = &OTelTracing{}

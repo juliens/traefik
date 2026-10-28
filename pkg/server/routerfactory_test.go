@@ -16,6 +16,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/server/service"
 	"github.com/traefik/traefik/v3/pkg/tcp"
 	th "github.com/traefik/traefik/v3/pkg/testhelpers"
+	"github.com/traefik/traefik/v3/pkg/testhelpers/plugintest"
 	"github.com/traefik/traefik/v3/pkg/tls"
 )
 
@@ -59,7 +60,7 @@ func TestReuseService(t *testing.T) {
 
 	dialerManager := tcp.NewDialerManager(nil)
 	dialerManager.Update(map[string]*dynamic.TCPServersTransport{"default@internal": {}})
-	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, th.MiddlewarePlugins{}, dialerManager)
+	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, plugintest.MiddlewarePlugins{}, dialerManager)
 	require.NoError(t, err)
 
 	entryPointsHandlers, _ := factory.CreateRouters(runtime.NewConfig(dynamic.Configuration{HTTP: dynamicConfigs}))
@@ -186,7 +187,7 @@ func TestServerResponseEmptyBackend(t *testing.T) {
 			dialerManager := tcp.NewDialerManager(nil)
 			dialerManager.Update(map[string]*dynamic.TCPServersTransport{"default@internal": {}})
 			observabiltyMgr := middleware.NewObservabilityMgr(staticConfig, nil, nil, nil, nil, nil)
-			factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, observabiltyMgr, th.MiddlewarePlugins{}, dialerManager)
+			factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, observabiltyMgr, plugintest.MiddlewarePlugins{}, dialerManager)
 			require.NoError(t, err)
 
 			entryPointsHandlers, _ := factory.CreateRouters(runtime.NewConfig(dynamic.Configuration{HTTP: test.config(testServer.URL)}))
@@ -231,7 +232,7 @@ func TestInternalServices(t *testing.T) {
 
 	dialerManager := tcp.NewDialerManager(nil)
 	dialerManager.Update(map[string]*dynamic.TCPServersTransport{"default@internal": {}})
-	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, th.MiddlewarePlugins{}, dialerManager)
+	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, plugintest.MiddlewarePlugins{}, dialerManager)
 	require.NoError(t, err)
 
 	entryPointsHandlers, _ := factory.CreateRouters(runtime.NewConfig(dynamic.Configuration{HTTP: dynamicConfigs}))
@@ -280,7 +281,7 @@ func TestRecursionService(t *testing.T) {
 
 	dialerManager := tcp.NewDialerManager(nil)
 	dialerManager.Update(map[string]*dynamic.TCPServersTransport{"default@internal": {}})
-	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, th.MiddlewarePlugins{}, dialerManager)
+	factory, err := NewRouterFactory(staticConfig, managerFactory, tlsManager, nil, plugintest.MiddlewarePlugins{}, dialerManager)
 	require.NoError(t, err)
 
 	rtConf := runtime.NewConfig(dynamic.Configuration{HTTP: dynamicConfigs})

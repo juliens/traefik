@@ -7,8 +7,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/traefik/traefik/v3/plugins/providers/common"
-
 	containertypes "github.com/moby/moby/api/types/container"
 	networktypes "github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
@@ -16,6 +14,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
 	"github.com/traefik/traefik/v3/plugins/config/label"
+	"github.com/traefik/traefik/v3/plugins/providers/common"
 	"github.com/traefik/traefik/v3/plugins/providers/constraints"
 )
 

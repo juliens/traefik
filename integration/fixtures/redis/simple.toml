@@ -12,6 +12,16 @@
 [api]
   insecure = true
 
-[providers.redis]
+[experimental.localPlugins.redis]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kv/redis"
+  [experimental.localPlugins.redis.settings.goVM]
+    trusted = true
+
+[providers.plugin.redis]
   rootKey = "traefik"
   endpoints = ["{{ .RedisAddress }}"]
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

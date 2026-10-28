@@ -6,14 +6,13 @@ import (
 	"path/filepath"
 	"time"
 
-	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
-
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/config/static"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
 	"github.com/traefik/traefik/v3/pkg/plugins"
 	"github.com/traefik/traefik/v3/pkg/plugins/host"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 )
 
 const outputDir = "./plugins-storage/"

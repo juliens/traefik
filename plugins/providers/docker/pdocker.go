@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/traefik/traefik/v3/plugins/providers/common"
-
 	"github.com/cenkalti/backoff/v4"
 	eventtypes "github.com/moby/moby/api/types/events"
 	"github.com/moby/moby/client"
@@ -19,6 +17,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/pkg/safe"
 	"github.com/traefik/traefik/v3/plugins/job"
+	"github.com/traefik/traefik/v3/plugins/providers/common"
 )
 
 // DockerName is the docker provider name.

@@ -39,18 +39,17 @@ func findPluginConfig(rawConfig map[string]dynamic.PluginConf) (string, map[stri
 }
 
 type traceablePlugin struct {
-	name     string
-	typeName string
-	h        http.Handler
+	name string
+	h    http.Handler
 }
 
-func newTraceablePlugin(ctx context.Context, name, typeName string, plug plugins.Constructor, next http.Handler) (*traceablePlugin, error) {
+func newTraceablePlugin(ctx context.Context, name string, plug plugins.Constructor, next http.Handler) (*traceablePlugin, error) {
 	h, err := plug(ctx, next)
 	if err != nil {
 		return nil, err
 	}
 
-	return &traceablePlugin{name: name, typeName: typeName, h: h}, nil
+	return &traceablePlugin{name: name, h: h}, nil
 }
 
 func (s *traceablePlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -58,5 +57,5 @@ func (s *traceablePlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (s *traceablePlugin) GetTracingInformation() (string, string) {
-	return s.name, s.typeName
+	return s.name, typeName
 }

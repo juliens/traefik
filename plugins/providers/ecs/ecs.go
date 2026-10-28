@@ -9,8 +9,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/traefik/traefik/v3/plugins/providers/common"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -29,6 +27,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/pkg/safe"
 	"github.com/traefik/traefik/v3/plugins/job"
+	"github.com/traefik/traefik/v3/plugins/providers/common"
 )
 
 // ProviderName is the ECS provider name.

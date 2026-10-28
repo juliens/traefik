@@ -14,11 +14,21 @@
   insecure = true
 
 [providers]
-  [providers.docker]
+  [experimental.localPlugins.docker]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+    [experimental.localPlugins.docker.settings.goVM]
+      trusted = true
+
+  [providers.plugin.docker]
     watch = true
     exposedByDefault = false
 
-  [providers.file]
+  [experimental.localPlugins.file]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+    [experimental.localPlugins.file.settings.goVM]
+      trusted = true
+
+  [providers.plugin.file]
     filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##
@@ -32,3 +42,8 @@
   [http.services.service-test.loadBalancer]
     [[http.services.service-test.loadBalancer.servers]]
       url = "http://{{ .IP }}"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

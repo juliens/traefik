@@ -21,7 +21,12 @@
     buckets = "0.1,0.3,1.2,5.0"
 
 [providers]
-  [providers.file]
+  [experimental.localPlugins.file]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+    [experimental.localPlugins.file.settings.goVM]
+      trusted = true
+
+  [providers.plugin.file]
     filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##
@@ -64,3 +69,8 @@
   [http.services.service-resp.loadBalancer]
     [[http.services.service-resp.loadBalancer.servers]]
       url = "http://{{ .IP }}"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

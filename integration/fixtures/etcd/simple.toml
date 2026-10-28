@@ -12,6 +12,16 @@
 [api]
   insecure = true
 
-[providers.etcd]
+[experimental.localPlugins.etcd]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kv/etcd"
+  [experimental.localPlugins.etcd.settings.goVM]
+    trusted = true
+
+[providers.plugin.etcd]
   rootKey = "traefik"
   endpoints = ["{{ .EtcdAddress }}"]
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

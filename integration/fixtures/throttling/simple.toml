@@ -15,10 +15,20 @@
 
 [providers]
   providersThrottleDuration = "400ms"
-  [providers.rest]
+  [experimental.localPlugins.rest]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/rest"
+    [experimental.localPlugins.rest.settings.goVM]
+      trusted = true
+
+  [providers.plugin.rest]
     insecure = true
 
 [metrics]
   addInternals = true
   [metrics.prometheus]
     buckets = [0.1,0.3,1.2,5.0]
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

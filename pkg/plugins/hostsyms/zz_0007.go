@@ -6,29 +6,17 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p7 "github.com/traefik/traefik/v3/pkg/observability/logs"
+	p7 "github.com/traefik/paerser/types"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/traefik/traefik/v3/pkg/observability/logs",
-		Funcs: map[string]reflect.Value{
-			"NewDatadogLogger":       reflect.ValueOf(p7.NewDatadogLogger),
-			"NewElasticLogger":       reflect.ValueOf(p7.NewElasticLogger),
-			"NewInstanaLogger":       reflect.ValueOf(p7.NewInstanaLogger),
-			"NewNoLevelHook":         reflect.ValueOf(p7.NewNoLevelHook),
-			"NewOxyWrapper":          reflect.ValueOf(p7.NewOxyWrapper),
-			"NewRetryableHTTPLogger": reflect.ValueOf(p7.NewRetryableHTTPLogger),
-			"NoLevel":                reflect.ValueOf(p7.NoLevel),
-		},
+		Path:  "github.com/traefik/paerser/types",
+		Funcs: map[string]reflect.Value{},
 		Types: map[string]reflect.Type{
-			"DatadogLogger":       reflect.TypeFor[p7.DatadogLogger](),
-			"ElasticLogger":       reflect.TypeFor[p7.ElasticLogger](),
-			"InstanaLogger":       reflect.TypeFor[p7.InstanaLogger](),
-			"NoLevelHook":         reflect.TypeFor[p7.NoLevelHook](),
-			"OxyWrapper":          reflect.TypeFor[p7.OxyWrapper](),
-			"RetryableHTTPLogger": reflect.TypeFor[p7.RetryableHTTPLogger](),
+			"Duration": reflect.TypeFor[p7.Duration](),
 		},
-		Vars: map[string]reflect.Value{},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

@@ -6,68 +6,85 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p17 "golang.org/x/net/http2"
+	p17 "go.opentelemetry.io/otel/attribute"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "golang.org/x/net/http2",
+		Path: "go.opentelemetry.io/otel/attribute",
 		Funcs: map[string]reflect.Value{
-			"ConfigureServer":           reflect.ValueOf(p17.ConfigureServer),
-			"ConfigureTransport":        reflect.ValueOf(p17.ConfigureTransport),
-			"ConfigureTransports":       reflect.ValueOf(p17.ConfigureTransports),
-			"NewFramer":                 reflect.ValueOf(p17.NewFramer),
-			"NewPriorityWriteScheduler": reflect.ValueOf(p17.NewPriorityWriteScheduler),
-			"NewRandomWriteScheduler":   reflect.ValueOf(p17.NewRandomWriteScheduler),
-			"ReadFrameHeader":           reflect.ValueOf(p17.ReadFrameHeader),
+			"Bool":                       reflect.ValueOf(p17.Bool),
+			"BoolSlice":                  reflect.ValueOf(p17.BoolSlice),
+			"BoolSliceValue":             reflect.ValueOf(p17.BoolSliceValue),
+			"BoolValue":                  reflect.ValueOf(p17.BoolValue),
+			"ByteSlice":                  reflect.ValueOf(p17.ByteSlice),
+			"ByteSliceValue":             reflect.ValueOf(p17.ByteSliceValue),
+			"DefaultEncoder":             reflect.ValueOf(p17.DefaultEncoder),
+			"EmptySet":                   reflect.ValueOf(p17.EmptySet),
+			"Float64":                    reflect.ValueOf(p17.Float64),
+			"Float64Slice":               reflect.ValueOf(p17.Float64Slice),
+			"Float64SliceValue":          reflect.ValueOf(p17.Float64SliceValue),
+			"Float64Value":               reflect.ValueOf(p17.Float64Value),
+			"Int":                        reflect.ValueOf(p17.Int),
+			"Int64":                      reflect.ValueOf(p17.Int64),
+			"Int64Slice":                 reflect.ValueOf(p17.Int64Slice),
+			"Int64SliceValue":            reflect.ValueOf(p17.Int64SliceValue),
+			"Int64Value":                 reflect.ValueOf(p17.Int64Value),
+			"IntSlice":                   reflect.ValueOf(p17.IntSlice),
+			"IntSliceValue":              reflect.ValueOf(p17.IntSliceValue),
+			"IntValue":                   reflect.ValueOf(p17.IntValue),
+			"Map":                        reflect.ValueOf(p17.Map),
+			"MapValue":                   reflect.ValueOf(p17.MapValue),
+			"NewAllowKeysFilter":         reflect.ValueOf(p17.NewAllowKeysFilter),
+			"NewDenyKeysFilter":          reflect.ValueOf(p17.NewDenyKeysFilter),
+			"NewEncoderID":               reflect.ValueOf(p17.NewEncoderID),
+			"NewHasher":                  reflect.ValueOf(p17.NewHasher),
+			"NewMergeIterator":           reflect.ValueOf(p17.NewMergeIterator),
+			"NewSet":                     reflect.ValueOf(p17.NewSet),
+			"NewSetWithFiltered":         reflect.ValueOf(p17.NewSetWithFiltered),
+			"NewSetWithSortable":         reflect.ValueOf(p17.NewSetWithSortable),
+			"NewSetWithSortableFiltered": reflect.ValueOf(p17.NewSetWithSortableFiltered),
+			"Slice":                      reflect.ValueOf(p17.Slice),
+			"SliceValue":                 reflect.ValueOf(p17.SliceValue),
+			"String":                     reflect.ValueOf(p17.String),
+			"StringSlice":                reflect.ValueOf(p17.StringSlice),
+			"StringSliceValue":           reflect.ValueOf(p17.StringSliceValue),
+			"StringValue":                reflect.ValueOf(p17.StringValue),
+			"Stringer":                   reflect.ValueOf(p17.Stringer),
 		},
 		Types: map[string]reflect.Type{
-			"ClientConn":                   reflect.TypeFor[p17.ClientConn](),
-			"ClientConnPool":               reflect.TypeFor[p17.ClientConnPool](),
-			"ClientConnState":              reflect.TypeFor[p17.ClientConnState](),
-			"ConnectionError":              reflect.TypeFor[p17.ConnectionError](),
-			"ContinuationFrame":            reflect.TypeFor[p17.ContinuationFrame](),
-			"DataFrame":                    reflect.TypeFor[p17.DataFrame](),
-			"ErrCode":                      reflect.TypeFor[p17.ErrCode](),
-			"Flags":                        reflect.TypeFor[p17.Flags](),
-			"Frame":                        reflect.TypeFor[p17.Frame](),
-			"FrameHeader":                  reflect.TypeFor[p17.FrameHeader](),
-			"FrameType":                    reflect.TypeFor[p17.FrameType](),
-			"FrameWriteRequest":            reflect.TypeFor[p17.FrameWriteRequest](),
-			"Framer":                       reflect.TypeFor[p17.Framer](),
-			"GoAwayError":                  reflect.TypeFor[p17.GoAwayError](),
-			"GoAwayFrame":                  reflect.TypeFor[p17.GoAwayFrame](),
-			"HeadersFrame":                 reflect.TypeFor[p17.HeadersFrame](),
-			"HeadersFrameParam":            reflect.TypeFor[p17.HeadersFrameParam](),
-			"MetaHeadersFrame":             reflect.TypeFor[p17.MetaHeadersFrame](),
-			"OpenStreamOptions":            reflect.TypeFor[p17.OpenStreamOptions](),
-			"PingFrame":                    reflect.TypeFor[p17.PingFrame](),
-			"PriorityFrame":                reflect.TypeFor[p17.PriorityFrame](),
-			"PriorityParam":                reflect.TypeFor[p17.PriorityParam](),
-			"PriorityUpdateFrame":          reflect.TypeFor[p17.PriorityUpdateFrame](),
-			"PriorityWriteSchedulerConfig": reflect.TypeFor[p17.PriorityWriteSchedulerConfig](),
-			"PushPromiseFrame":             reflect.TypeFor[p17.PushPromiseFrame](),
-			"PushPromiseParam":             reflect.TypeFor[p17.PushPromiseParam](),
-			"RSTStreamFrame":               reflect.TypeFor[p17.RSTStreamFrame](),
-			"RoundTripOpt":                 reflect.TypeFor[p17.RoundTripOpt](),
-			"ServeConnOpts":                reflect.TypeFor[p17.ServeConnOpts](),
-			"Server":                       reflect.TypeFor[p17.Server](),
-			"Setting":                      reflect.TypeFor[p17.Setting](),
-			"SettingID":                    reflect.TypeFor[p17.SettingID](),
-			"SettingsFrame":                reflect.TypeFor[p17.SettingsFrame](),
-			"StreamError":                  reflect.TypeFor[p17.StreamError](),
-			"Transport":                    reflect.TypeFor[p17.Transport](),
-			"UnknownFrame":                 reflect.TypeFor[p17.UnknownFrame](),
-			"WindowUpdateFrame":            reflect.TypeFor[p17.WindowUpdateFrame](),
-			"WriteScheduler":               reflect.TypeFor[p17.WriteScheduler](),
+			"Distinct":      reflect.TypeFor[p17.Distinct](),
+			"Encoder":       reflect.TypeFor[p17.Encoder](),
+			"EncoderID":     reflect.TypeFor[p17.EncoderID](),
+			"Filter":        reflect.TypeFor[p17.Filter](),
+			"Hasher":        reflect.TypeFor[p17.Hasher](),
+			"Iterator":      reflect.TypeFor[p17.Iterator](),
+			"Key":           reflect.TypeFor[p17.Key](),
+			"KeyValue":      reflect.TypeFor[p17.KeyValue](),
+			"MergeIterator": reflect.TypeFor[p17.MergeIterator](),
+			"Set":           reflect.TypeFor[p17.Set](),
+			"Sortable":      reflect.TypeFor[p17.Sortable](),
+			"Type":          reflect.TypeFor[p17.Type](),
+			"Value":         reflect.TypeFor[p17.Value](),
 		},
-		Vars: map[string]reflect.Value{
-			"DebugGoroutines":     reflect.ValueOf(&p17.DebugGoroutines),
-			"ErrFrameTooLarge":    reflect.ValueOf(&p17.ErrFrameTooLarge),
-			"ErrNoCachedConn":     reflect.ValueOf(&p17.ErrNoCachedConn),
-			"ErrPushLimitReached": reflect.ValueOf(&p17.ErrPushLimitReached),
-			"ErrRecursivePush":    reflect.ValueOf(&p17.ErrRecursivePush),
-			"VerboseLogs":         reflect.ValueOf(&p17.VerboseLogs),
+		Vars: map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{
+			"Encoder": reflect.TypeFor[_p17_Encoder](),
 		},
 	})
+}
+
+// _p17_Encoder is the go-vm wrapper of the Encoder interface.
+type _p17_Encoder struct {
+	IValue  any
+	WEncode func(a0 p17.Iterator) string
+	WID     func() p17.EncoderID
+}
+
+func (W _p17_Encoder) Encode(a0 p17.Iterator) string {
+	return W.WEncode(a0)
+}
+
+func (W _p17_Encoder) ID() p17.EncoderID {
+	return W.WID()
 }

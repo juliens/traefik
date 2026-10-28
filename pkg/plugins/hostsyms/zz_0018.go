@@ -6,29 +6,17 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p18 "golang.org/x/net/trace"
+	p18 "go.opentelemetry.io/otel/codes"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "golang.org/x/net/trace",
-		Funcs: map[string]reflect.Value{
-			"Events":       reflect.ValueOf(p18.Events),
-			"FromContext":  reflect.ValueOf(p18.FromContext),
-			"New":          reflect.ValueOf(p18.New),
-			"NewContext":   reflect.ValueOf(p18.NewContext),
-			"NewEventLog":  reflect.ValueOf(p18.NewEventLog),
-			"Render":       reflect.ValueOf(p18.Render),
-			"RenderEvents": reflect.ValueOf(p18.RenderEvents),
-			"Traces":       reflect.ValueOf(p18.Traces),
-		},
+		Path:  "go.opentelemetry.io/otel/codes",
+		Funcs: map[string]reflect.Value{},
 		Types: map[string]reflect.Type{
-			"EventLog": reflect.TypeFor[p18.EventLog](),
-			"Trace":    reflect.TypeFor[p18.Trace](),
+			"Code": reflect.TypeFor[p18.Code](),
 		},
-		Vars: map[string]reflect.Value{
-			"AuthRequest":         reflect.ValueOf(&p18.AuthRequest),
-			"DebugUseAfterFinish": reflect.ValueOf(&p18.DebugUseAfterFinish),
-		},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

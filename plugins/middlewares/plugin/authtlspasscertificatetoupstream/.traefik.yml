@@ -1,6 +1,0 @@
-displayName: AuthTLSPassCertificateToUpstream middleware
-type: middleware
-import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/authtlspasscertificatetoupstream
-implements: authTLSPassCertificateToUpstream
-summary: The authTLSPassCertificateToUpstream middleware of Traefik, as a plugin.
-testData: {}

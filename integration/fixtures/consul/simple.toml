@@ -12,6 +12,16 @@
 [api]
   insecure = true
 
-[providers.consul]
+[experimental.localPlugins.consul]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kv/consul"
+  [experimental.localPlugins.consul.settings.goVM]
+    trusted = true
+
+[providers.plugin.consul]
   rootKey = "traefik"
   endpoints = ["{{ .ConsulAddress }}"]
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

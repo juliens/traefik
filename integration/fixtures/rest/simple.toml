@@ -14,5 +14,15 @@
   insecure = true
 
 [providers]
-  [providers.rest]
+  [experimental.localPlugins.rest]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/rest"
+    [experimental.localPlugins.rest.settings.goVM]
+      trusted = true
+
+  [providers.plugin.rest]
   insecure = true
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

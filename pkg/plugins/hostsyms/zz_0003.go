@@ -5,36 +5,22 @@ package hostsyms
 import (
 	"reflect"
 
-	p3 "github.com/rs/zerolog/log"
+	p3 "github.com/patrickmn/go-cache"
 	"github.com/traefik/go-vm/vm"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/rs/zerolog/log",
+		Path: "github.com/patrickmn/go-cache",
 		Funcs: map[string]reflect.Value{
-			"Ctx":       reflect.ValueOf(p3.Ctx),
-			"Debug":     reflect.ValueOf(p3.Debug),
-			"Err":       reflect.ValueOf(p3.Err),
-			"Error":     reflect.ValueOf(p3.Error),
-			"Fatal":     reflect.ValueOf(p3.Fatal),
-			"Hook":      reflect.ValueOf(p3.Hook),
-			"Info":      reflect.ValueOf(p3.Info),
-			"Level":     reflect.ValueOf(p3.Level),
-			"Log":       reflect.ValueOf(p3.Log),
-			"Output":    reflect.ValueOf(p3.Output),
-			"Panic":     reflect.ValueOf(p3.Panic),
-			"Print":     reflect.ValueOf(p3.Print),
-			"Printf":    reflect.ValueOf(p3.Printf),
-			"Sample":    reflect.ValueOf(p3.Sample),
-			"Trace":     reflect.ValueOf(p3.Trace),
-			"Warn":      reflect.ValueOf(p3.Warn),
-			"With":      reflect.ValueOf(p3.With),
-			"WithLevel": reflect.ValueOf(p3.WithLevel),
+			"New":     reflect.ValueOf(p3.New),
+			"NewFrom": reflect.ValueOf(p3.NewFrom),
 		},
-		Types: map[string]reflect.Type{},
-		Vars: map[string]reflect.Value{
-			"Logger": reflect.ValueOf(&p3.Logger),
+		Types: map[string]reflect.Type{
+			"Cache": reflect.TypeFor[p3.Cache](),
+			"Item":  reflect.TypeFor[p3.Item](),
 		},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

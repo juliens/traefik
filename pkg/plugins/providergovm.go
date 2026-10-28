@@ -189,6 +189,10 @@ func ConfigurationListener(p provider.Provider) (func(dynamic.Configuration), bo
 		gp = v
 	case *goVMHandlerProvider:
 		gp = v.goVMProvider
+	case *nativeProvider:
+		return v.configurationListener()
+	case *nativeHandlerProvider:
+		return v.configurationListener()
 	}
 
 	if gp == nil || !gp.listens {

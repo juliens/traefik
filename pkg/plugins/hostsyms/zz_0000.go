@@ -5,31 +5,21 @@ package hostsyms
 import (
 	"reflect"
 
-	p0 "github.com/gorilla/mux"
+	p0 "github.com/containous/alice"
 	"github.com/traefik/go-vm/vm"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/gorilla/mux",
+		Path: "github.com/containous/alice",
 		Funcs: map[string]reflect.Value{
-			"CurrentRoute": reflect.ValueOf(p0.CurrentRoute),
-			"NewRouter":    reflect.ValueOf(p0.NewRouter),
-			"SetURLVars":   reflect.ValueOf(p0.SetURLVars),
-			"Vars":         reflect.ValueOf(p0.Vars),
+			"New": reflect.ValueOf(p0.New),
 		},
 		Types: map[string]reflect.Type{
-			"BuildVarsFunc":         reflect.TypeFor[p0.BuildVarsFunc](),
-			"MatcherFunc":           reflect.TypeFor[p0.MatcherFunc](),
-			"Route":                 reflect.TypeFor[p0.Route](),
-			"RouteMatch":            reflect.TypeFor[p0.RouteMatch](),
-			"Router":                reflect.TypeFor[p0.Router](),
-			"RoutingPathContextKey": reflect.TypeFor[p0.RoutingPathContextKey](),
-			"WalkFunc":              reflect.TypeFor[p0.WalkFunc](),
+			"Chain":       reflect.TypeFor[p0.Chain](),
+			"Constructor": reflect.TypeFor[p0.Constructor](),
 		},
-		Vars: map[string]reflect.Value{
-			"ErrMethodMismatch": reflect.ValueOf(&p0.ErrMethodMismatch),
-			"SkipRouter":        reflect.ValueOf(&p0.SkipRouter),
-		},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

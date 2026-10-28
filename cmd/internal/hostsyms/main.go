@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"go/format"
 	"go/types"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -24,6 +25,12 @@ import (
 // sdk are the packages of Traefik given to the plugins.
 var sdk = []string{
 	"./pkg/config/dynamic",
+	// The middleware plugins share the state of the request with Traefik through the context:
+	// the access log data, the observability of the router, the tracer, and the retry attempts that the proxy reads.
+	"./pkg/middlewares/accesslog",
+	"./pkg/middlewares/observability",
+	"./pkg/middlewares/retry",
+	"./pkg/observability/tracing",
 	"./pkg/observability/logs",
 	"./pkg/plugins/host",
 	"./pkg/provider",
@@ -32,6 +39,11 @@ var sdk = []string{
 	"./pkg/types",
 	"./pkg/version",
 	"github.com/rs/zerolog/log",
+	// The global state of OpenTelemetry (the tracer provider, the propagators): the types of otel/trace are native,
+	// and an interpreted copy cannot keep its default tracer provider, whose interface has unexported methods, in them.
+	"go.opentelemetry.io/otel",
+	// The carriers given to the native propagators of OpenTelemetry (otelhttp in the Docker client).
+	"go.opentelemetry.io/otel/propagation",
 	// The decoding of the configuration files: paerser/parser is native (pkg/config/label), and gets the reflect values of its callers.
 	"github.com/traefik/paerser/file",
 	// Its init registers handlers in the native http.DefaultServeMux: a second copy in a plugin panics.
@@ -41,6 +53,10 @@ var sdk = []string{
 	// It configures the transports of the native net/http, which only accepts its own HTTP/2 configuration.
 	"golang.org/x/net/http2",
 }
+
+// platforms are the platforms Traefik is built for: the tables only hold the declarations that exist on all of them
+// (golang.org/x/sys/cpu declares Errno on darwin only), so that the generated files build everywhere.
+var platforms = []string{"linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64", "windows/amd64", "freebsd/amd64"}
 
 func main() {
 	output := flag.String("output", "pkg/plugins/hostsyms", "output directory of the generated package")
@@ -95,12 +111,17 @@ func run(output string) error {
 		return err
 	}
 
+	common, err := commonNames(paths)
+	if err != nil {
+		return err
+	}
+
 	for i, pkg := range pkgs {
 		if len(pkg.Errors) > 0 {
 			return fmt.Errorf("%s: %v", pkg.PkgPath, pkg.Errors)
 		}
 
-		src, err := table(pkg.Types, i)
+		src, err := table(pkg.Types, i, common[pkg.PkgPath])
 		if err != nil {
 			return fmt.Errorf("%s: %w", pkg.PkgPath, err)
 		}
@@ -148,12 +169,12 @@ func apiPackages(roots []*packages.Package) map[string]*types.Package {
 			if _, iface := t.Underlying().(*types.Interface); !iface && t.Obj().Pkg() != nil {
 				res[t.Obj().Pkg().Path()] = t.Obj().Pkg()
 			}
-			for i := range t.TypeArgs().Len() {
-				walk(t.TypeArgs().At(i))
+			for arg := range t.TypeArgs().Types() {
+				walk(arg)
 			}
-			for i := range t.NumMethods() {
-				if t.Method(i).Exported() {
-					walk(t.Method(i).Type())
+			for method := range t.Methods() {
+				if method.Exported() {
+					walk(method.Type())
 				}
 			}
 			walk(t.Underlying())
@@ -174,17 +195,17 @@ func apiPackages(roots []*packages.Package) map[string]*types.Package {
 			walk(t.Params())
 			walk(t.Results())
 		case *types.Tuple:
-			for i := range t.Len() {
-				walk(t.At(i).Type())
+			for v := range t.Variables() {
+				walk(v.Type())
 			}
 		case *types.Struct:
 			// go-vm converts all the fields of a struct, the unexported ones too.
-			for i := range t.NumFields() {
-				walk(t.Field(i).Type())
+			for field := range t.Fields() {
+				walk(field.Type())
 			}
 		case *types.Interface:
-			for i := range t.NumMethods() {
-				walk(t.Method(i).Type())
+			for method := range t.Methods() {
+				walk(method.Type())
 			}
 		}
 	}
@@ -201,6 +222,52 @@ func apiPackages(roots []*packages.Package) map[string]*types.Package {
 	}
 
 	return res
+}
+
+// commonNames returns the exported declarations of the packages that exist on all the platforms, by package.
+func commonNames(paths []string) (map[string]map[string]bool, error) {
+	var common map[string]map[string]bool
+
+	for _, platform := range platforms {
+		goos, goarch, _ := strings.Cut(platform, "/")
+
+		cfg := &packages.Config{
+			Mode: packages.NeedName | packages.NeedTypes,
+			Env:  append(os.Environ(), "CGO_ENABLED=0", "GOOS="+goos, "GOARCH="+goarch),
+		}
+
+		pkgs, err := packages.Load(cfg, paths...)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", platform, err)
+		}
+
+		names := map[string]map[string]bool{}
+		for _, pkg := range pkgs {
+			if len(pkg.Errors) > 0 {
+				return nil, fmt.Errorf("%s: %s: %v", platform, pkg.PkgPath, pkg.Errors)
+			}
+
+			names[pkg.PkgPath] = map[string]bool{}
+			for _, name := range pkg.Types.Scope().Names() {
+				names[pkg.PkgPath][name] = true
+			}
+		}
+
+		if common == nil {
+			common = names
+			continue
+		}
+
+		for path, set := range common {
+			for name := range set {
+				if !names[path][name] {
+					delete(set, name)
+				}
+			}
+		}
+	}
+
+	return common, nil
 }
 
 func isStd(path string) bool {
@@ -224,15 +291,17 @@ func exposable(path string) bool {
 	return true
 }
 
-func table(pkg *types.Package, index int) ([]byte, error) {
+// table returns the table of the package, with the declarations of common, the declarations that exist on all the platforms.
+func table(pkg *types.Package, index int, common map[string]bool) ([]byte, error) {
 	alias := fmt.Sprintf("p%d", index)
 
-	var funcs, typs, vars []string
+	var funcs, typs, vars, wrappers, decls []string
+	imports := map[string]string{pkg.Path(): alias}
 
 	scope := pkg.Scope()
 	for _, name := range scope.Names() {
 		obj := scope.Lookup(name)
-		if !obj.Exported() {
+		if !obj.Exported() || !common[name] {
 			continue
 		}
 
@@ -249,15 +318,25 @@ func table(pkg *types.Package, index int) ([]byte, error) {
 			}
 			typs = append(typs, fmt.Sprintf("%q: reflect.TypeFor[%s.%s](),", name, alias, name))
 
+			if decl, ok := wrapper(o, index, imports); ok {
+				decls = append(decls, decl)
+				wrappers = append(wrappers, fmt.Sprintf("%q: reflect.TypeFor[_%s_%s](),", name, alias, name))
+			}
+
 		case *types.Var:
 			vars = append(vars, fmt.Sprintf("%q: reflect.ValueOf(&%s.%s),", name, alias, name))
 		}
 	}
 
-	// A package that exports only constants and generic declarations has an empty table.
-	if len(funcs)+len(typs)+len(vars) == 0 {
-		alias = "_"
+	var importLines []string
+	for path, name := range imports {
+		// A package that exports only constants and generic declarations has an empty table.
+		if path == pkg.Path() && len(funcs)+len(typs)+len(vars) == 0 {
+			name = "_"
+		}
+		importLines = append(importLines, fmt.Sprintf("%s %q", name, path))
 	}
+	slices.Sort(importLines)
 
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, `// Code generated by cmd/internal/hostsyms. DO NOT EDIT.
@@ -268,7 +347,7 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	%s %q
+	%s
 )
 
 func init() {
@@ -283,11 +362,148 @@ func init() {
 		Vars: map[string]reflect.Value{
 %s
 		},
+		Wrappers: map[string]reflect.Type{
+%s
+		},
 	})
 }
-`, alias, pkg.Path(), pkg.Path(), strings.Join(funcs, "\n"), strings.Join(typs, "\n"), strings.Join(vars, "\n"))
+
+%s
+`, strings.Join(importLines, "\n"), pkg.Path(), strings.Join(funcs, "\n"), strings.Join(typs, "\n"), strings.Join(vars, "\n"),
+		strings.Join(wrappers, "\n"), strings.Join(decls, "\n"))
 
 	return format.Source(buf.Bytes())
+}
+
+// wrapper returns the declaration of the wrapper of the interface o, in the format of the go-vm stdsyms wrappers:
+// go-vm boxes the plugin values given to native code as this interface in it (klog gives its logr.LogSink to logr.New).
+// It returns false for the interfaces that a plugin cannot implement or that the generated package cannot name.
+func wrapper(o *types.TypeName, index int, imports map[string]string) (string, bool) {
+	iface, ok := o.Type().Underlying().(*types.Interface)
+	if !ok || o.IsAlias() || iface.NumMethods() == 0 {
+		return "", false
+	}
+
+	// The qualifier names the packages of the signatures; their imports are only added when the wrapper is kept.
+	added := map[string]string{}
+	named := true
+	qualifier := func(p *types.Package) string {
+		if name, ok := imports[p.Path()]; ok {
+			return name
+		}
+		if name, ok := added[p.Path()]; ok {
+			return name
+		}
+		if !exposable(p.Path()) {
+			named = false
+		}
+		name := fmt.Sprintf("p%d_%d", index, len(imports)+len(added))
+		added[p.Path()] = name
+		return name
+	}
+
+	name := fmt.Sprintf("_%s_%s", imports[o.Pkg().Path()], o.Name())
+
+	var fields, methods []string
+	for method := range iface.Methods() {
+		sig := method.Signature()
+		if !method.Exported() || !exportedOnly(sig) {
+			return "", false
+		}
+
+		var params, args []string
+		for i, p := range slices.Collect(sig.Params().Variables()) {
+			typ := types.TypeString(p.Type(), qualifier)
+			arg := fmt.Sprintf("a%d", i)
+			if sig.Variadic() && i == sig.Params().Len()-1 {
+				typ = "..." + types.TypeString(p.Type().(*types.Slice).Elem(), qualifier)
+				arg += "..."
+			}
+			params = append(params, fmt.Sprintf("a%d %s", i, typ))
+			args = append(args, arg)
+		}
+
+		var results string
+		if sig.Results().Len() > 0 {
+			var res []string
+			for v := range sig.Results().Variables() {
+				res = append(res, types.TypeString(v.Type(), qualifier))
+			}
+			results = "(" + strings.Join(res, ", ") + ")"
+		}
+
+		call := fmt.Sprintf("W.W%s(%s)", method.Name(), strings.Join(args, ", "))
+		if results != "" {
+			call = "return " + call
+		}
+
+		fields = append(fields, fmt.Sprintf("W%s func(%s) %s", method.Name(), strings.Join(params, ", "), results))
+		methods = append(methods, fmt.Sprintf("func (W %s) %s(%s) %s {\n%s\n}", name, method.Name(), strings.Join(params, ", "), results, call))
+	}
+
+	if !named {
+		return "", false
+	}
+
+	maps.Copy(imports, added)
+
+	return fmt.Sprintf("// %s is the go-vm wrapper of the %s interface.\ntype %s struct {\nIValue any\n%s\n}\n\n%s\n",
+		name, o.Name(), name, strings.Join(fields, "\n"), strings.Join(methods, "\n\n")), true
+}
+
+// exportedOnly reports whether the type only names exported types: the generated package cannot name the others.
+func exportedOnly(t types.Type) bool {
+	switch t := t.(type) {
+	case *types.Named:
+		if !t.Obj().Exported() && t.Obj().Pkg() != nil {
+			return false
+		}
+		for arg := range t.TypeArgs().Types() {
+			if !exportedOnly(arg) {
+				return false
+			}
+		}
+		return true
+	case *types.Alias:
+		return t.Obj().Exported() || t.Obj().Pkg() == nil
+	case *types.Pointer:
+		return exportedOnly(t.Elem())
+	case *types.Slice:
+		return exportedOnly(t.Elem())
+	case *types.Array:
+		return exportedOnly(t.Elem())
+	case *types.Map:
+		return exportedOnly(t.Key()) && exportedOnly(t.Elem())
+	case *types.Chan:
+		return exportedOnly(t.Elem())
+	case *types.Signature:
+		return exportedOnly(t.Params()) && exportedOnly(t.Results())
+	case *types.Tuple:
+		for v := range t.Variables() {
+			if !exportedOnly(v.Type()) {
+				return false
+			}
+		}
+		return true
+	case *types.Struct:
+		for field := range t.Fields() {
+			if !field.Exported() || !exportedOnly(field.Type()) {
+				return false
+			}
+		}
+		return true
+	case *types.Interface:
+		for method := range t.Methods() {
+			if !method.Exported() || !exportedOnly(method.Type()) {
+				return false
+			}
+		}
+		return true
+	case *types.TypeParam:
+		return false
+	default:
+		return true
+	}
 }
 
 func isGeneric(o *types.TypeName) bool {

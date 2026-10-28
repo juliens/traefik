@@ -5,18 +5,37 @@ package hostsyms
 import (
 	"reflect"
 
+	p5 "github.com/rs/zerolog/log"
 	"github.com/traefik/go-vm/vm"
-	p5 "github.com/traefik/paerser/file"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/traefik/paerser/file",
+		Path: "github.com/rs/zerolog/log",
 		Funcs: map[string]reflect.Value{
-			"Decode":        reflect.ValueOf(p5.Decode),
-			"DecodeContent": reflect.ValueOf(p5.DecodeContent),
+			"Ctx":       reflect.ValueOf(p5.Ctx),
+			"Debug":     reflect.ValueOf(p5.Debug),
+			"Err":       reflect.ValueOf(p5.Err),
+			"Error":     reflect.ValueOf(p5.Error),
+			"Fatal":     reflect.ValueOf(p5.Fatal),
+			"Hook":      reflect.ValueOf(p5.Hook),
+			"Info":      reflect.ValueOf(p5.Info),
+			"Level":     reflect.ValueOf(p5.Level),
+			"Log":       reflect.ValueOf(p5.Log),
+			"Output":    reflect.ValueOf(p5.Output),
+			"Panic":     reflect.ValueOf(p5.Panic),
+			"Print":     reflect.ValueOf(p5.Print),
+			"Printf":    reflect.ValueOf(p5.Printf),
+			"Sample":    reflect.ValueOf(p5.Sample),
+			"Trace":     reflect.ValueOf(p5.Trace),
+			"Warn":      reflect.ValueOf(p5.Warn),
+			"With":      reflect.ValueOf(p5.With),
+			"WithLevel": reflect.ValueOf(p5.WithLevel),
 		},
 		Types: map[string]reflect.Type{},
-		Vars:  map[string]reflect.Value{},
+		Vars: map[string]reflect.Value{
+			"Logger": reflect.ValueOf(&p5.Logger),
+		},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

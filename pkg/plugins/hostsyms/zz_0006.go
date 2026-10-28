@@ -5,18 +5,596 @@ package hostsyms
 import (
 	"reflect"
 
+	p6_1 "bytes"
+	p6 "github.com/sirupsen/logrus"
 	"github.com/traefik/go-vm/vm"
-	p6 "github.com/traefik/traefik/dynamic/ext"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path:  "github.com/traefik/traefik/dynamic/ext",
-		Funcs: map[string]reflect.Value{},
-		Types: map[string]reflect.Type{
-			"HTTP":   reflect.TypeFor[p6.HTTP](),
-			"Router": reflect.TypeFor[p6.Router](),
+		Path: "github.com/sirupsen/logrus",
+		Funcs: map[string]reflect.Value{
+			"AddHook":             reflect.ValueOf(p6.AddHook),
+			"Debug":               reflect.ValueOf(p6.Debug),
+			"DebugFn":             reflect.ValueOf(p6.DebugFn),
+			"Debugf":              reflect.ValueOf(p6.Debugf),
+			"Debugln":             reflect.ValueOf(p6.Debugln),
+			"DeferExitHandler":    reflect.ValueOf(p6.DeferExitHandler),
+			"Error":               reflect.ValueOf(p6.Error),
+			"ErrorFn":             reflect.ValueOf(p6.ErrorFn),
+			"Errorf":              reflect.ValueOf(p6.Errorf),
+			"Errorln":             reflect.ValueOf(p6.Errorln),
+			"Exit":                reflect.ValueOf(p6.Exit),
+			"Fatal":               reflect.ValueOf(p6.Fatal),
+			"FatalFn":             reflect.ValueOf(p6.FatalFn),
+			"Fatalf":              reflect.ValueOf(p6.Fatalf),
+			"Fatalln":             reflect.ValueOf(p6.Fatalln),
+			"GetLevel":            reflect.ValueOf(p6.GetLevel),
+			"Info":                reflect.ValueOf(p6.Info),
+			"InfoFn":              reflect.ValueOf(p6.InfoFn),
+			"Infof":               reflect.ValueOf(p6.Infof),
+			"Infoln":              reflect.ValueOf(p6.Infoln),
+			"IsLevelEnabled":      reflect.ValueOf(p6.IsLevelEnabled),
+			"New":                 reflect.ValueOf(p6.New),
+			"NewEntry":            reflect.ValueOf(p6.NewEntry),
+			"Panic":               reflect.ValueOf(p6.Panic),
+			"PanicFn":             reflect.ValueOf(p6.PanicFn),
+			"Panicf":              reflect.ValueOf(p6.Panicf),
+			"Panicln":             reflect.ValueOf(p6.Panicln),
+			"ParseLevel":          reflect.ValueOf(p6.ParseLevel),
+			"Print":               reflect.ValueOf(p6.Print),
+			"PrintFn":             reflect.ValueOf(p6.PrintFn),
+			"Printf":              reflect.ValueOf(p6.Printf),
+			"Println":             reflect.ValueOf(p6.Println),
+			"RegisterExitHandler": reflect.ValueOf(p6.RegisterExitHandler),
+			"SetBufferPool":       reflect.ValueOf(p6.SetBufferPool),
+			"SetFormatter":        reflect.ValueOf(p6.SetFormatter),
+			"SetLevel":            reflect.ValueOf(p6.SetLevel),
+			"SetOutput":           reflect.ValueOf(p6.SetOutput),
+			"SetReportCaller":     reflect.ValueOf(p6.SetReportCaller),
+			"StandardLogger":      reflect.ValueOf(p6.StandardLogger),
+			"Trace":               reflect.ValueOf(p6.Trace),
+			"TraceFn":             reflect.ValueOf(p6.TraceFn),
+			"Tracef":              reflect.ValueOf(p6.Tracef),
+			"Traceln":             reflect.ValueOf(p6.Traceln),
+			"Warn":                reflect.ValueOf(p6.Warn),
+			"WarnFn":              reflect.ValueOf(p6.WarnFn),
+			"Warnf":               reflect.ValueOf(p6.Warnf),
+			"Warning":             reflect.ValueOf(p6.Warning),
+			"WarningFn":           reflect.ValueOf(p6.WarningFn),
+			"Warningf":            reflect.ValueOf(p6.Warningf),
+			"Warningln":           reflect.ValueOf(p6.Warningln),
+			"Warnln":              reflect.ValueOf(p6.Warnln),
+			"WithContext":         reflect.ValueOf(p6.WithContext),
+			"WithError":           reflect.ValueOf(p6.WithError),
+			"WithField":           reflect.ValueOf(p6.WithField),
+			"WithFields":          reflect.ValueOf(p6.WithFields),
+			"WithTime":            reflect.ValueOf(p6.WithTime),
 		},
-		Vars: map[string]reflect.Value{},
+		Types: map[string]reflect.Type{
+			"BufferPool":      reflect.TypeFor[p6.BufferPool](),
+			"DebugLogger":     reflect.TypeFor[p6.DebugLogger](),
+			"Entry":           reflect.TypeFor[p6.Entry](),
+			"ErrorLogger":     reflect.TypeFor[p6.ErrorLogger](),
+			"Ext1FieldLogger": reflect.TypeFor[p6.Ext1FieldLogger](),
+			"FieldLogger":     reflect.TypeFor[p6.FieldLogger](),
+			"FieldMap":        reflect.TypeFor[p6.FieldMap](),
+			"Fields":          reflect.TypeFor[p6.Fields](),
+			"Formatter":       reflect.TypeFor[p6.Formatter](),
+			"Hook":            reflect.TypeFor[p6.Hook](),
+			"InfoLogger":      reflect.TypeFor[p6.InfoLogger](),
+			"JSONFormatter":   reflect.TypeFor[p6.JSONFormatter](),
+			"Level":           reflect.TypeFor[p6.Level](),
+			"LevelHooks":      reflect.TypeFor[p6.LevelHooks](),
+			"LogFunction":     reflect.TypeFor[p6.LogFunction](),
+			"Logger":          reflect.TypeFor[p6.Logger](),
+			"MutexWrap":       reflect.TypeFor[p6.MutexWrap](),
+			"StdLogger":       reflect.TypeFor[p6.StdLogger](),
+			"TextFormatter":   reflect.TypeFor[p6.TextFormatter](),
+			"TraceLogger":     reflect.TypeFor[p6.TraceLogger](),
+			"WarnLogger":      reflect.TypeFor[p6.WarnLogger](),
+		},
+		Vars: map[string]reflect.Value{
+			"AllLevels": reflect.ValueOf(&p6.AllLevels),
+			"ErrorKey":  reflect.ValueOf(&p6.ErrorKey),
+		},
+		Wrappers: map[string]reflect.Type{
+			"BufferPool":      reflect.TypeFor[_p6_BufferPool](),
+			"DebugLogger":     reflect.TypeFor[_p6_DebugLogger](),
+			"ErrorLogger":     reflect.TypeFor[_p6_ErrorLogger](),
+			"Ext1FieldLogger": reflect.TypeFor[_p6_Ext1FieldLogger](),
+			"FieldLogger":     reflect.TypeFor[_p6_FieldLogger](),
+			"Formatter":       reflect.TypeFor[_p6_Formatter](),
+			"Hook":            reflect.TypeFor[_p6_Hook](),
+			"InfoLogger":      reflect.TypeFor[_p6_InfoLogger](),
+			"StdLogger":       reflect.TypeFor[_p6_StdLogger](),
+			"TraceLogger":     reflect.TypeFor[_p6_TraceLogger](),
+			"WarnLogger":      reflect.TypeFor[_p6_WarnLogger](),
+		},
 	})
+}
+
+// _p6_BufferPool is the go-vm wrapper of the BufferPool interface.
+type _p6_BufferPool struct {
+	IValue any
+	WGet   func() *p6_1.Buffer
+	WPut   func(a0 *p6_1.Buffer)
+}
+
+func (W _p6_BufferPool) Get() *p6_1.Buffer {
+	return W.WGet()
+}
+
+func (W _p6_BufferPool) Put(a0 *p6_1.Buffer) {
+	W.WPut(a0)
+}
+
+// _p6_DebugLogger is the go-vm wrapper of the DebugLogger interface.
+type _p6_DebugLogger struct {
+	IValue   any
+	WDebug   func(a0 ...any)
+	WDebugf  func(a0 string, a1 ...any)
+	WDebugln func(a0 ...any)
+}
+
+func (W _p6_DebugLogger) Debug(a0 ...any) {
+	W.WDebug(a0...)
+}
+
+func (W _p6_DebugLogger) Debugf(a0 string, a1 ...any) {
+	W.WDebugf(a0, a1...)
+}
+
+func (W _p6_DebugLogger) Debugln(a0 ...any) {
+	W.WDebugln(a0...)
+}
+
+// _p6_ErrorLogger is the go-vm wrapper of the ErrorLogger interface.
+type _p6_ErrorLogger struct {
+	IValue   any
+	WError   func(a0 ...any)
+	WErrorf  func(a0 string, a1 ...any)
+	WErrorln func(a0 ...any)
+}
+
+func (W _p6_ErrorLogger) Error(a0 ...any) {
+	W.WError(a0...)
+}
+
+func (W _p6_ErrorLogger) Errorf(a0 string, a1 ...any) {
+	W.WErrorf(a0, a1...)
+}
+
+func (W _p6_ErrorLogger) Errorln(a0 ...any) {
+	W.WErrorln(a0...)
+}
+
+// _p6_Ext1FieldLogger is the go-vm wrapper of the Ext1FieldLogger interface.
+type _p6_Ext1FieldLogger struct {
+	IValue      any
+	WDebug      func(a0 ...any)
+	WDebugf     func(a0 string, a1 ...any)
+	WDebugln    func(a0 ...any)
+	WError      func(a0 ...any)
+	WErrorf     func(a0 string, a1 ...any)
+	WErrorln    func(a0 ...any)
+	WFatal      func(a0 ...any)
+	WFatalf     func(a0 string, a1 ...any)
+	WFatalln    func(a0 ...any)
+	WInfo       func(a0 ...any)
+	WInfof      func(a0 string, a1 ...any)
+	WInfoln     func(a0 ...any)
+	WPanic      func(a0 ...any)
+	WPanicf     func(a0 string, a1 ...any)
+	WPanicln    func(a0 ...any)
+	WPrint      func(a0 ...any)
+	WPrintf     func(a0 string, a1 ...any)
+	WPrintln    func(a0 ...any)
+	WTrace      func(a0 ...any)
+	WTracef     func(a0 string, a1 ...any)
+	WTraceln    func(a0 ...any)
+	WWarn       func(a0 ...any)
+	WWarnf      func(a0 string, a1 ...any)
+	WWarning    func(a0 ...any)
+	WWarningf   func(a0 string, a1 ...any)
+	WWarningln  func(a0 ...any)
+	WWarnln     func(a0 ...any)
+	WWithError  func(a0 error) *p6.Entry
+	WWithField  func(a0 string, a1 any) *p6.Entry
+	WWithFields func(a0 p6.Fields) *p6.Entry
+}
+
+func (W _p6_Ext1FieldLogger) Debug(a0 ...any) {
+	W.WDebug(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Debugf(a0 string, a1 ...any) {
+	W.WDebugf(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Debugln(a0 ...any) {
+	W.WDebugln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Error(a0 ...any) {
+	W.WError(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Errorf(a0 string, a1 ...any) {
+	W.WErrorf(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Errorln(a0 ...any) {
+	W.WErrorln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Fatal(a0 ...any) {
+	W.WFatal(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Fatalf(a0 string, a1 ...any) {
+	W.WFatalf(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Fatalln(a0 ...any) {
+	W.WFatalln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Info(a0 ...any) {
+	W.WInfo(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Infof(a0 string, a1 ...any) {
+	W.WInfof(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Infoln(a0 ...any) {
+	W.WInfoln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Panic(a0 ...any) {
+	W.WPanic(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Panicf(a0 string, a1 ...any) {
+	W.WPanicf(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Panicln(a0 ...any) {
+	W.WPanicln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Print(a0 ...any) {
+	W.WPrint(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Printf(a0 string, a1 ...any) {
+	W.WPrintf(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Println(a0 ...any) {
+	W.WPrintln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Trace(a0 ...any) {
+	W.WTrace(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Tracef(a0 string, a1 ...any) {
+	W.WTracef(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Traceln(a0 ...any) {
+	W.WTraceln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Warn(a0 ...any) {
+	W.WWarn(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Warnf(a0 string, a1 ...any) {
+	W.WWarnf(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Warning(a0 ...any) {
+	W.WWarning(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Warningf(a0 string, a1 ...any) {
+	W.WWarningf(a0, a1...)
+}
+
+func (W _p6_Ext1FieldLogger) Warningln(a0 ...any) {
+	W.WWarningln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) Warnln(a0 ...any) {
+	W.WWarnln(a0...)
+}
+
+func (W _p6_Ext1FieldLogger) WithError(a0 error) *p6.Entry {
+	return W.WWithError(a0)
+}
+
+func (W _p6_Ext1FieldLogger) WithField(a0 string, a1 any) *p6.Entry {
+	return W.WWithField(a0, a1)
+}
+
+func (W _p6_Ext1FieldLogger) WithFields(a0 p6.Fields) *p6.Entry {
+	return W.WWithFields(a0)
+}
+
+// _p6_FieldLogger is the go-vm wrapper of the FieldLogger interface.
+type _p6_FieldLogger struct {
+	IValue      any
+	WDebug      func(a0 ...any)
+	WDebugf     func(a0 string, a1 ...any)
+	WDebugln    func(a0 ...any)
+	WError      func(a0 ...any)
+	WErrorf     func(a0 string, a1 ...any)
+	WErrorln    func(a0 ...any)
+	WFatal      func(a0 ...any)
+	WFatalf     func(a0 string, a1 ...any)
+	WFatalln    func(a0 ...any)
+	WInfo       func(a0 ...any)
+	WInfof      func(a0 string, a1 ...any)
+	WInfoln     func(a0 ...any)
+	WPanic      func(a0 ...any)
+	WPanicf     func(a0 string, a1 ...any)
+	WPanicln    func(a0 ...any)
+	WPrint      func(a0 ...any)
+	WPrintf     func(a0 string, a1 ...any)
+	WPrintln    func(a0 ...any)
+	WWarn       func(a0 ...any)
+	WWarnf      func(a0 string, a1 ...any)
+	WWarning    func(a0 ...any)
+	WWarningf   func(a0 string, a1 ...any)
+	WWarningln  func(a0 ...any)
+	WWarnln     func(a0 ...any)
+	WWithError  func(a0 error) *p6.Entry
+	WWithField  func(a0 string, a1 any) *p6.Entry
+	WWithFields func(a0 p6.Fields) *p6.Entry
+}
+
+func (W _p6_FieldLogger) Debug(a0 ...any) {
+	W.WDebug(a0...)
+}
+
+func (W _p6_FieldLogger) Debugf(a0 string, a1 ...any) {
+	W.WDebugf(a0, a1...)
+}
+
+func (W _p6_FieldLogger) Debugln(a0 ...any) {
+	W.WDebugln(a0...)
+}
+
+func (W _p6_FieldLogger) Error(a0 ...any) {
+	W.WError(a0...)
+}
+
+func (W _p6_FieldLogger) Errorf(a0 string, a1 ...any) {
+	W.WErrorf(a0, a1...)
+}
+
+func (W _p6_FieldLogger) Errorln(a0 ...any) {
+	W.WErrorln(a0...)
+}
+
+func (W _p6_FieldLogger) Fatal(a0 ...any) {
+	W.WFatal(a0...)
+}
+
+func (W _p6_FieldLogger) Fatalf(a0 string, a1 ...any) {
+	W.WFatalf(a0, a1...)
+}
+
+func (W _p6_FieldLogger) Fatalln(a0 ...any) {
+	W.WFatalln(a0...)
+}
+
+func (W _p6_FieldLogger) Info(a0 ...any) {
+	W.WInfo(a0...)
+}
+
+func (W _p6_FieldLogger) Infof(a0 string, a1 ...any) {
+	W.WInfof(a0, a1...)
+}
+
+func (W _p6_FieldLogger) Infoln(a0 ...any) {
+	W.WInfoln(a0...)
+}
+
+func (W _p6_FieldLogger) Panic(a0 ...any) {
+	W.WPanic(a0...)
+}
+
+func (W _p6_FieldLogger) Panicf(a0 string, a1 ...any) {
+	W.WPanicf(a0, a1...)
+}
+
+func (W _p6_FieldLogger) Panicln(a0 ...any) {
+	W.WPanicln(a0...)
+}
+
+func (W _p6_FieldLogger) Print(a0 ...any) {
+	W.WPrint(a0...)
+}
+
+func (W _p6_FieldLogger) Printf(a0 string, a1 ...any) {
+	W.WPrintf(a0, a1...)
+}
+
+func (W _p6_FieldLogger) Println(a0 ...any) {
+	W.WPrintln(a0...)
+}
+
+func (W _p6_FieldLogger) Warn(a0 ...any) {
+	W.WWarn(a0...)
+}
+
+func (W _p6_FieldLogger) Warnf(a0 string, a1 ...any) {
+	W.WWarnf(a0, a1...)
+}
+
+func (W _p6_FieldLogger) Warning(a0 ...any) {
+	W.WWarning(a0...)
+}
+
+func (W _p6_FieldLogger) Warningf(a0 string, a1 ...any) {
+	W.WWarningf(a0, a1...)
+}
+
+func (W _p6_FieldLogger) Warningln(a0 ...any) {
+	W.WWarningln(a0...)
+}
+
+func (W _p6_FieldLogger) Warnln(a0 ...any) {
+	W.WWarnln(a0...)
+}
+
+func (W _p6_FieldLogger) WithError(a0 error) *p6.Entry {
+	return W.WWithError(a0)
+}
+
+func (W _p6_FieldLogger) WithField(a0 string, a1 any) *p6.Entry {
+	return W.WWithField(a0, a1)
+}
+
+func (W _p6_FieldLogger) WithFields(a0 p6.Fields) *p6.Entry {
+	return W.WWithFields(a0)
+}
+
+// _p6_Formatter is the go-vm wrapper of the Formatter interface.
+type _p6_Formatter struct {
+	IValue  any
+	WFormat func(a0 *p6.Entry) ([]byte, error)
+}
+
+func (W _p6_Formatter) Format(a0 *p6.Entry) ([]byte, error) {
+	return W.WFormat(a0)
+}
+
+// _p6_Hook is the go-vm wrapper of the Hook interface.
+type _p6_Hook struct {
+	IValue  any
+	WFire   func(a0 *p6.Entry) error
+	WLevels func() []p6.Level
+}
+
+func (W _p6_Hook) Fire(a0 *p6.Entry) error {
+	return W.WFire(a0)
+}
+
+func (W _p6_Hook) Levels() []p6.Level {
+	return W.WLevels()
+}
+
+// _p6_InfoLogger is the go-vm wrapper of the InfoLogger interface.
+type _p6_InfoLogger struct {
+	IValue  any
+	WInfo   func(a0 ...any)
+	WInfof  func(a0 string, a1 ...any)
+	WInfoln func(a0 ...any)
+}
+
+func (W _p6_InfoLogger) Info(a0 ...any) {
+	W.WInfo(a0...)
+}
+
+func (W _p6_InfoLogger) Infof(a0 string, a1 ...any) {
+	W.WInfof(a0, a1...)
+}
+
+func (W _p6_InfoLogger) Infoln(a0 ...any) {
+	W.WInfoln(a0...)
+}
+
+// _p6_StdLogger is the go-vm wrapper of the StdLogger interface.
+type _p6_StdLogger struct {
+	IValue   any
+	WFatal   func(a0 ...any)
+	WFatalf  func(a0 string, a1 ...any)
+	WFatalln func(a0 ...any)
+	WPanic   func(a0 ...any)
+	WPanicf  func(a0 string, a1 ...any)
+	WPanicln func(a0 ...any)
+	WPrint   func(a0 ...any)
+	WPrintf  func(a0 string, a1 ...any)
+	WPrintln func(a0 ...any)
+}
+
+func (W _p6_StdLogger) Fatal(a0 ...any) {
+	W.WFatal(a0...)
+}
+
+func (W _p6_StdLogger) Fatalf(a0 string, a1 ...any) {
+	W.WFatalf(a0, a1...)
+}
+
+func (W _p6_StdLogger) Fatalln(a0 ...any) {
+	W.WFatalln(a0...)
+}
+
+func (W _p6_StdLogger) Panic(a0 ...any) {
+	W.WPanic(a0...)
+}
+
+func (W _p6_StdLogger) Panicf(a0 string, a1 ...any) {
+	W.WPanicf(a0, a1...)
+}
+
+func (W _p6_StdLogger) Panicln(a0 ...any) {
+	W.WPanicln(a0...)
+}
+
+func (W _p6_StdLogger) Print(a0 ...any) {
+	W.WPrint(a0...)
+}
+
+func (W _p6_StdLogger) Printf(a0 string, a1 ...any) {
+	W.WPrintf(a0, a1...)
+}
+
+func (W _p6_StdLogger) Println(a0 ...any) {
+	W.WPrintln(a0...)
+}
+
+// _p6_TraceLogger is the go-vm wrapper of the TraceLogger interface.
+type _p6_TraceLogger struct {
+	IValue   any
+	WTrace   func(a0 ...any)
+	WTracef  func(a0 string, a1 ...any)
+	WTraceln func(a0 ...any)
+}
+
+func (W _p6_TraceLogger) Trace(a0 ...any) {
+	W.WTrace(a0...)
+}
+
+func (W _p6_TraceLogger) Tracef(a0 string, a1 ...any) {
+	W.WTracef(a0, a1...)
+}
+
+func (W _p6_TraceLogger) Traceln(a0 ...any) {
+	W.WTraceln(a0...)
+}
+
+// _p6_WarnLogger is the go-vm wrapper of the WarnLogger interface.
+type _p6_WarnLogger struct {
+	IValue  any
+	WWarn   func(a0 ...any)
+	WWarnf  func(a0 string, a1 ...any)
+	WWarnln func(a0 ...any)
+}
+
+func (W _p6_WarnLogger) Warn(a0 ...any) {
+	W.WWarn(a0...)
+}
+
+func (W _p6_WarnLogger) Warnf(a0 string, a1 ...any) {
+	W.WWarnf(a0, a1...)
+}
+
+func (W _p6_WarnLogger) Warnln(a0 ...any) {
+	W.WWarnln(a0...)
 }

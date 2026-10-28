@@ -6,11 +6,10 @@ import (
 	"slices"
 	"strings"
 
-	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
-
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/ip"
 	"github.com/traefik/traefik/v3/pkg/muxer"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 )
 
 var tcpFuncs = map[string]func(*matchersTree, ...string) error{

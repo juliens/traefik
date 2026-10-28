@@ -8,8 +8,18 @@
 [api]
   insecure = true
 
-[providers.docker]
+[experimental.localPlugins.docker]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+  [experimental.localPlugins.docker.settings.goVM]
+    trusted = true
+
+[providers.plugin.docker]
 
 [entryPoints]
   [entryPoints.webHost]
     address = ":8000"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

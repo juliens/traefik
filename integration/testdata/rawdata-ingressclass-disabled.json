@@ -23,10 +23,6 @@
 			"entryPoints": [
 				"traefik"
 			],
-			"middlewares": [
-				"dashboard_redirect@internal",
-				"dashboard_stripprefix@internal"
-			],
 			"service": "dashboard@internal",
 			"rule": "PathPrefix(`/`)",
 			"ruleSyntax": "default",
@@ -40,31 +36,6 @@
 			"status": "enabled",
 			"using": [
 				"traefik"
-			]
-		}
-	},
-	"middlewares": {
-		"dashboard_redirect@internal": {
-			"redirectRegex": {
-				"regex": "^(http:\\/\\/(\\[[\\w:.]+\\]|[\\w\\._-]+)(:\\d+)?)\\/$",
-				"replacement": "${1}/dashboard/",
-				"permanent": true
-			},
-			"status": "enabled",
-			"usedBy": [
-				"dashboard@internal"
-			]
-		},
-		"dashboard_stripprefix@internal": {
-			"stripPrefix": {
-				"prefixes": [
-					"/dashboard/",
-					"/dashboard"
-				]
-			},
-			"status": "enabled",
-			"usedBy": [
-				"dashboard@internal"
 			]
 		}
 	},

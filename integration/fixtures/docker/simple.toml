@@ -14,7 +14,17 @@
   insecure = true
 
 [providers]
-  [providers.docker]
+  [experimental.localPlugins.docker]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+    [experimental.localPlugins.docker.settings.goVM]
+      trusted = true
+
+  [providers.plugin.docker]
     endpoint = "{{ .DockerHost }}"
     defaultRule = "{{ .DefaultRule }}"
     exposedByDefault = true
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

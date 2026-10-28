@@ -94,12 +94,17 @@ func SetupLocalPlugins(plugins map[string]LocalDescriptor) error {
 			continue
 		}
 
+		// A local plugin has one version: several names can use it, like the certificates resolvers of the ACME plugin.
 		if _, ok := uniq[descriptor.ModuleName]; ok {
-			errs = append(errs, fmt.Errorf("only one version of a plugin is allowed, there is a duplicate of %s", descriptor.ModuleName))
 			continue
 		}
 
 		uniq[descriptor.ModuleName] = struct{}{}
+
+		// The plugins running natively have no sources in plugins-local, their manifest is checked when they are loaded.
+		if runsNatively(descriptor.ModuleName) {
+			continue
+		}
 
 		if err := checkLocalPluginManifest(descriptor); err != nil {
 			errs = append(errs, err)

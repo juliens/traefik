@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -17,6 +18,20 @@ const (
 )
 
 type timedAction func(timeout time.Duration, operation DoCondition) error
+
+// startupEnd is the time (Unix nanoseconds) until which Traefik may still be starting (see SetStartup).
+var startupEnd atomic.Int64
+
+// SetStartup gives the operations of the next d the time for Traefik to start: after it listens,
+// it loads its providers and its middlewares, which are plugins, and only then serves the configuration.
+func SetStartup(d time.Duration) {
+	startupEnd.Store(time.Now().Add(d).UnixNano())
+}
+
+// startupRemaining returns the time Traefik may still need to start.
+func startupRemaining() time.Duration {
+	return max(time.Until(time.Unix(0, startupEnd.Load())), 0)
+}
 
 // Sleep pauses the current goroutine for at least the duration d.
 //
@@ -95,7 +110,7 @@ func Do(timeout time.Duration, operation DoCondition) error {
 
 	interval := min(time.Duration(math.Ceil(float64(timeout)/15.0)), maxInterval)
 
-	timeout = applyCIMultiplier(timeout)
+	timeout = applyCIMultiplier(timeout) + startupRemaining()
 
 	var err error
 	if err = operation(); err == nil {

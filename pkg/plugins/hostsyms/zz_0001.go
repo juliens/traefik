@@ -5,21 +5,169 @@ package hostsyms
 import (
 	"reflect"
 
-	p1 "github.com/patrickmn/go-cache"
+	p1_1 "context"
+	p1 "github.com/go-logr/logr"
 	"github.com/traefik/go-vm/vm"
+	p1_2 "log/slog"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/patrickmn/go-cache",
+		Path: "github.com/go-logr/logr",
 		Funcs: map[string]reflect.Value{
-			"New":     reflect.ValueOf(p1.New),
-			"NewFrom": reflect.ValueOf(p1.NewFrom),
+			"Discard":                  reflect.ValueOf(p1.Discard),
+			"FromContext":              reflect.ValueOf(p1.FromContext),
+			"FromContextAsSlogLogger":  reflect.ValueOf(p1.FromContextAsSlogLogger),
+			"FromContextOrDiscard":     reflect.ValueOf(p1.FromContextOrDiscard),
+			"FromSlogHandler":          reflect.ValueOf(p1.FromSlogHandler),
+			"New":                      reflect.ValueOf(p1.New),
+			"NewContext":               reflect.ValueOf(p1.NewContext),
+			"NewContextWithSlogLogger": reflect.ValueOf(p1.NewContextWithSlogLogger),
+			"ToSlogHandler":            reflect.ValueOf(p1.ToSlogHandler),
 		},
 		Types: map[string]reflect.Type{
-			"Cache": reflect.TypeFor[p1.Cache](),
-			"Item":  reflect.TypeFor[p1.Item](),
+			"CallDepthLogSink":       reflect.TypeFor[p1.CallDepthLogSink](),
+			"CallStackHelperLogSink": reflect.TypeFor[p1.CallStackHelperLogSink](),
+			"LogSink":                reflect.TypeFor[p1.LogSink](),
+			"Logger":                 reflect.TypeFor[p1.Logger](),
+			"Marshaler":              reflect.TypeFor[p1.Marshaler](),
+			"RuntimeInfo":            reflect.TypeFor[p1.RuntimeInfo](),
+			"SlogSink":               reflect.TypeFor[p1.SlogSink](),
+			"Underlier":              reflect.TypeFor[p1.Underlier](),
 		},
 		Vars: map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{
+			"CallDepthLogSink":       reflect.TypeFor[_p1_CallDepthLogSink](),
+			"CallStackHelperLogSink": reflect.TypeFor[_p1_CallStackHelperLogSink](),
+			"LogSink":                reflect.TypeFor[_p1_LogSink](),
+			"Marshaler":              reflect.TypeFor[_p1_Marshaler](),
+			"SlogSink":               reflect.TypeFor[_p1_SlogSink](),
+			"Underlier":              reflect.TypeFor[_p1_Underlier](),
+		},
 	})
+}
+
+// _p1_CallDepthLogSink is the go-vm wrapper of the CallDepthLogSink interface.
+type _p1_CallDepthLogSink struct {
+	IValue         any
+	WWithCallDepth func(a0 int) p1.LogSink
+}
+
+func (W _p1_CallDepthLogSink) WithCallDepth(a0 int) p1.LogSink {
+	return W.WWithCallDepth(a0)
+}
+
+// _p1_CallStackHelperLogSink is the go-vm wrapper of the CallStackHelperLogSink interface.
+type _p1_CallStackHelperLogSink struct {
+	IValue              any
+	WGetCallStackHelper func() func()
+}
+
+func (W _p1_CallStackHelperLogSink) GetCallStackHelper() func() {
+	return W.WGetCallStackHelper()
+}
+
+// _p1_LogSink is the go-vm wrapper of the LogSink interface.
+type _p1_LogSink struct {
+	IValue      any
+	WEnabled    func(a0 int) bool
+	WError      func(a0 error, a1 string, a2 ...any)
+	WInfo       func(a0 int, a1 string, a2 ...any)
+	WInit       func(a0 p1.RuntimeInfo)
+	WWithName   func(a0 string) p1.LogSink
+	WWithValues func(a0 ...any) p1.LogSink
+}
+
+func (W _p1_LogSink) Enabled(a0 int) bool {
+	return W.WEnabled(a0)
+}
+
+func (W _p1_LogSink) Error(a0 error, a1 string, a2 ...any) {
+	W.WError(a0, a1, a2...)
+}
+
+func (W _p1_LogSink) Info(a0 int, a1 string, a2 ...any) {
+	W.WInfo(a0, a1, a2...)
+}
+
+func (W _p1_LogSink) Init(a0 p1.RuntimeInfo) {
+	W.WInit(a0)
+}
+
+func (W _p1_LogSink) WithName(a0 string) p1.LogSink {
+	return W.WWithName(a0)
+}
+
+func (W _p1_LogSink) WithValues(a0 ...any) p1.LogSink {
+	return W.WWithValues(a0...)
+}
+
+// _p1_Marshaler is the go-vm wrapper of the Marshaler interface.
+type _p1_Marshaler struct {
+	IValue      any
+	WMarshalLog func() any
+}
+
+func (W _p1_Marshaler) MarshalLog() any {
+	return W.WMarshalLog()
+}
+
+// _p1_SlogSink is the go-vm wrapper of the SlogSink interface.
+type _p1_SlogSink struct {
+	IValue      any
+	WEnabled    func(a0 int) bool
+	WError      func(a0 error, a1 string, a2 ...any)
+	WHandle     func(a0 p1_1.Context, a1 p1_2.Record) error
+	WInfo       func(a0 int, a1 string, a2 ...any)
+	WInit       func(a0 p1.RuntimeInfo)
+	WWithAttrs  func(a0 []p1_2.Attr) p1.SlogSink
+	WWithGroup  func(a0 string) p1.SlogSink
+	WWithName   func(a0 string) p1.LogSink
+	WWithValues func(a0 ...any) p1.LogSink
+}
+
+func (W _p1_SlogSink) Enabled(a0 int) bool {
+	return W.WEnabled(a0)
+}
+
+func (W _p1_SlogSink) Error(a0 error, a1 string, a2 ...any) {
+	W.WError(a0, a1, a2...)
+}
+
+func (W _p1_SlogSink) Handle(a0 p1_1.Context, a1 p1_2.Record) error {
+	return W.WHandle(a0, a1)
+}
+
+func (W _p1_SlogSink) Info(a0 int, a1 string, a2 ...any) {
+	W.WInfo(a0, a1, a2...)
+}
+
+func (W _p1_SlogSink) Init(a0 p1.RuntimeInfo) {
+	W.WInit(a0)
+}
+
+func (W _p1_SlogSink) WithAttrs(a0 []p1_2.Attr) p1.SlogSink {
+	return W.WWithAttrs(a0)
+}
+
+func (W _p1_SlogSink) WithGroup(a0 string) p1.SlogSink {
+	return W.WWithGroup(a0)
+}
+
+func (W _p1_SlogSink) WithName(a0 string) p1.LogSink {
+	return W.WWithName(a0)
+}
+
+func (W _p1_SlogSink) WithValues(a0 ...any) p1.LogSink {
+	return W.WWithValues(a0...)
+}
+
+// _p1_Underlier is the go-vm wrapper of the Underlier interface.
+type _p1_Underlier struct {
+	IValue         any
+	WGetUnderlying func() p1_2.Handler
+}
+
+func (W _p1_Underlier) GetUnderlying() p1_2.Handler {
+	return W.WGetUnderlying()
 }

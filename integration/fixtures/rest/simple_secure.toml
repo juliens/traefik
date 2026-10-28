@@ -13,9 +13,19 @@
 [api]
   insecure = true
 
-[providers.rest]
+[experimental.localPlugins.rest]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/rest"
+  [experimental.localPlugins.rest.settings.goVM]
+    trusted = true
 
-[providers.file]
+[providers.plugin.rest]
+
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
+
+[providers.plugin.file]
   filename = "{{ .SelfFilename }}"
 
 [http.routers.rest]
@@ -26,3 +36,8 @@
 [http.middlewares.strip.stripPrefix]
     prefixes = [ "/secure" ]
     
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

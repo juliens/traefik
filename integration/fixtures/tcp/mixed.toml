@@ -13,7 +13,12 @@
 [api]
   insecure = true
 
-[providers.file]
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
+
+[providers.plugin.file]
   filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##
@@ -76,3 +81,8 @@
 [[tls.certificates]]
   certFile = "fixtures/tcp/whoami-c.crt"
   keyFile = "fixtures/tcp/whoami-c.key"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

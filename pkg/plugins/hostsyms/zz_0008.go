@@ -6,22 +6,18 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p8 "github.com/traefik/traefik/v3/pkg/safe"
+	p8 "github.com/traefik/paerser/file"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/traefik/traefik/v3/pkg/safe",
+		Path: "github.com/traefik/paerser/file",
 		Funcs: map[string]reflect.Value{
-			"Go":            reflect.ValueOf(p8.Go),
-			"GoWithRecover": reflect.ValueOf(p8.GoWithRecover),
-			"New":           reflect.ValueOf(p8.New),
-			"NewPool":       reflect.ValueOf(p8.NewPool),
+			"Decode":        reflect.ValueOf(p8.Decode),
+			"DecodeContent": reflect.ValueOf(p8.DecodeContent),
 		},
-		Types: map[string]reflect.Type{
-			"Pool": reflect.TypeFor[p8.Pool](),
-			"Safe": reflect.TypeFor[p8.Safe](),
-		},
-		Vars: map[string]reflect.Value{},
+		Types:    map[string]reflect.Type{},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

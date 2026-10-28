@@ -6,42 +6,30 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p10 "github.com/traefik/traefik/v3/pkg/tls"
+	p10 "github.com/traefik/traefik/v3/pkg/observability/logs"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "github.com/traefik/traefik/v3/pkg/tls",
+		Path: "github.com/traefik/traefik/v3/pkg/observability/logs",
 		Funcs: map[string]reflect.Value{
-			"GetCipherName":         reflect.ValueOf(p10.GetCipherName),
-			"GetVersion":            reflect.ValueOf(p10.GetVersion),
-			"NewCertificateStore":   reflect.ValueOf(p10.NewCertificateStore),
-			"NewManager":            reflect.ValueOf(p10.NewManager),
-			"VerifyPeerCertificate": reflect.ValueOf(p10.VerifyPeerCertificate),
+			"NewDatadogLogger":       reflect.ValueOf(p10.NewDatadogLogger),
+			"NewElasticLogger":       reflect.ValueOf(p10.NewElasticLogger),
+			"NewInstanaLogger":       reflect.ValueOf(p10.NewInstanaLogger),
+			"NewNoLevelHook":         reflect.ValueOf(p10.NewNoLevelHook),
+			"NewOxyWrapper":          reflect.ValueOf(p10.NewOxyWrapper),
+			"NewRetryableHTTPLogger": reflect.ValueOf(p10.NewRetryableHTTPLogger),
+			"NoLevel":                reflect.ValueOf(p10.NoLevel),
 		},
 		Types: map[string]reflect.Type{
-			"CertAndStores":    reflect.TypeFor[p10.CertAndStores](),
-			"Certificate":      reflect.TypeFor[p10.Certificate](),
-			"CertificateData":  reflect.TypeFor[p10.CertificateData](),
-			"CertificateStore": reflect.TypeFor[p10.CertificateStore](),
-			"Certificates":     reflect.TypeFor[p10.Certificates](),
-			"ClientAuth":       reflect.TypeFor[p10.ClientAuth](),
-			"FileOrContent":    reflect.TypeFor[p10.FileOrContent](),
-			"GeneratedCert":    reflect.TypeFor[p10.GeneratedCert](),
-			"Manager":          reflect.TypeFor[p10.Manager](),
-			"OCSPConfig":       reflect.TypeFor[p10.OCSPConfig](),
-			"Options":          reflect.TypeFor[p10.Options](),
-			"SAN":              reflect.TypeFor[p10.SAN](),
-			"SANType":          reflect.TypeFor[p10.SANType](),
-			"Store":            reflect.TypeFor[p10.Store](),
+			"DatadogLogger":       reflect.TypeFor[p10.DatadogLogger](),
+			"ElasticLogger":       reflect.TypeFor[p10.ElasticLogger](),
+			"InstanaLogger":       reflect.TypeFor[p10.InstanaLogger](),
+			"NoLevelHook":         reflect.TypeFor[p10.NoLevelHook](),
+			"OxyWrapper":          reflect.TypeFor[p10.OxyWrapper](),
+			"RetryableHTTPLogger": reflect.TypeFor[p10.RetryableHTTPLogger](),
 		},
-		Vars: map[string]reflect.Value{
-			"CipherSuites":         reflect.ValueOf(&p10.CipherSuites),
-			"CipherSuitesReversed": reflect.ValueOf(&p10.CipherSuitesReversed),
-			"CurveIDs":             reflect.ValueOf(&p10.CurveIDs),
-			"DefaultTLSOptions":    reflect.ValueOf(&p10.DefaultTLSOptions),
-			"MaxVersion":           reflect.ValueOf(&p10.MaxVersion),
-			"MinVersion":           reflect.ValueOf(&p10.MinVersion),
-		},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

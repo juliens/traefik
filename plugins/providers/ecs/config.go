@@ -10,8 +10,6 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/traefik/traefik/v3/plugins/providers/common"
-
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	ecstypes "github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	networktypes "github.com/moby/moby/api/types/network"
@@ -19,6 +17,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/plugins/config/label"
+	"github.com/traefik/traefik/v3/plugins/providers/common"
 	"github.com/traefik/traefik/v3/plugins/providers/constraints"
 )
 

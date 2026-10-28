@@ -66,10 +66,11 @@ type Manifest struct {
 	UseUnsafe     bool           `yaml:"useUnsafe"`
 	TestData      map[string]any `yaml:"testData"`
 
-	// Implements is the option of the dynamic configuration of the middlewares that the middleware plugin implements
-	// (headers, stripPrefix, ...): its New function takes the configuration of this option,
-	// a pointer to its type in pkg/config/dynamic. The middlewares of Traefik other than chain are such plugins.
-	Implements string `yaml:"implements"`
+	// Implements are the options of the dynamic configuration of the middlewares that the middleware plugin implements
+	// (headers, stripPrefix, ...). For each option, the plugin has a New<Option> function (NewHeaders, NewStripPrefix, ...)
+	// taking the configuration of the option, a pointer to its type in pkg/config/dynamic.
+	// The middlewares of Traefik other than chain are such a plugin: loaded once, it implements all of them.
+	Implements []string `yaml:"implements"`
 }
 
 // IsYaegiPlugin returns true if the plugin is a Yaegi plugin.

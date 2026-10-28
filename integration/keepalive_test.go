@@ -45,8 +45,9 @@ func (s *KeepAliveSuite) TestShouldRespectConfiguredBackendHttpKeepAliveTime() {
 		idlePeriodStartMap := make(map[string]time.Time)
 		idlePeriodLengthMap := make(map[string]time.Duration)
 
+		// The wait starts after the requests: Traefik takes several seconds to load its plugins.
 		maxWaitDuration := 5 * time.Second
-		maxWaitTimeExceeded := time.After(maxWaitDuration)
+		var maxWaitTimeExceeded <-chan time.Time
 		moreRequestsExpected := true
 
 		// Ensure that all idle HTTP connections are closed before verification phase
@@ -62,7 +63,10 @@ func (s *KeepAliveSuite) TestShouldRespectConfiguredBackendHttpKeepAliveTime() {
 					idlePeriodLengthMap[event.key] = time.Since(idlePeriodStartMap[event.key])
 				}
 			case <-noMoreRequests:
-				moreRequestsExpected = false
+				if moreRequestsExpected {
+					moreRequestsExpected = false
+					maxWaitTimeExceeded = time.After(maxWaitDuration)
+				}
 			case <-maxWaitTimeExceeded:
 				log.Info().Msgf("timeout waiting for all connections to close, waited for %v, configured idle timeout was %v", maxWaitDuration, idleTimeout)
 				s.T().Fail()

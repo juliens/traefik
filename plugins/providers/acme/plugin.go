@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"sync"
 
 	legolog "github.com/go-acme/lego/v5/log"
 	"github.com/rs/zerolog/log"
@@ -40,13 +41,6 @@ func New(ctx context.Context, config *Configuration, name string) (*PluginProvid
 		return nil, fmt.Errorf("unable to initialize certificates resolver %q with no storage location for the certificates", resolverName)
 	}
 
-	// The resolvers are plugins running apart: two resolvers would overwrite the storage file of each other.
-	storageKey := "acme-storage/" + config.Storage
-	if other, ok := host.Lookup(storageKey); ok && other != resolverName {
-		return nil, fmt.Errorf("the certificates resolvers %q and %q use the same storage %q: each resolver needs its own storage", other, resolverName, config.Storage)
-	}
-	host.Register(storageKey, resolverName)
-
 	setEffectiveConfiguration(config)
 
 	legolog.SetDefault(
@@ -64,7 +58,7 @@ func New(ctx context.Context, config *Configuration, name string) (*PluginProvid
 		Provider: &Provider{
 			Configuration:          config,
 			ResolverName:           resolverName,
-			Store:                  NewLocalStore(config.Storage, safe.NewPool(ctx)),
+			Store:                  sharedLocalStore(ctx, config.Storage),
 			HTTPChallengeProvider:  httpChallenge,
 			TLSChallengeProvider:   tlsChallenge,
 			HTTPChallengeRouters:   httpChallengeRouters(resolverName, config.HTTPChallenge, host.EntryPoints()),
@@ -73,6 +67,28 @@ func New(ctx context.Context, config *Configuration, name string) (*PluginProvid
 		httpChallenge: httpChallenge,
 		tlsChallenge:  tlsChallenge,
 	}, nil
+}
+
+var (
+	localStoresMu sync.Mutex
+	localStores   = map[string]*LocalStore{}
+)
+
+// sharedLocalStore returns the store of a storage file: the resolvers using the same file share its store,
+// which keeps the data of each resolver, as two stores would overwrite the file of each other.
+// Traefik loads the module of the plugin once for all its resolvers, so they share this package.
+func sharedLocalStore(ctx context.Context, filename string) *LocalStore {
+	localStoresMu.Lock()
+	defer localStoresMu.Unlock()
+
+	if store, ok := localStores[filename]; ok {
+		return store
+	}
+
+	store := NewLocalStore(filename, safe.NewPool(ctx))
+	localStores[filename] = store
+
+	return store
 }
 
 // PluginProvider is the ACME provider of the plugin.

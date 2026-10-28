@@ -26,4 +26,14 @@
   [entryPoints.websecure]
     address = ":8443"
 
-[providers.kubernetesGateway]
+[experimental.localPlugins.kubernetesGateway]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway"
+  [experimental.localPlugins.kubernetesGateway.settings.goVM]
+    trusted = true
+
+[providers.plugin.kubernetesGateway]
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

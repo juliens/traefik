@@ -6,16 +6,23 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p11 "google.golang.org/grpc/codes"
+	p11 "github.com/traefik/traefik/v3/pkg/safe"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path:  "google.golang.org/grpc/codes",
-		Funcs: map[string]reflect.Value{},
-		Types: map[string]reflect.Type{
-			"Code": reflect.TypeFor[p11.Code](),
+		Path: "github.com/traefik/traefik/v3/pkg/safe",
+		Funcs: map[string]reflect.Value{
+			"Go":            reflect.ValueOf(p11.Go),
+			"GoWithRecover": reflect.ValueOf(p11.GoWithRecover),
+			"New":           reflect.ValueOf(p11.New),
+			"NewPool":       reflect.ValueOf(p11.NewPool),
 		},
-		Vars: map[string]reflect.Value{},
+		Types: map[string]reflect.Type{
+			"Pool": reflect.TypeFor[p11.Pool](),
+			"Safe": reflect.TypeFor[p11.Safe](),
+		},
+		Vars:     map[string]reflect.Value{},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

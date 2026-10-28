@@ -9,10 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
-
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/ip"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 )
 
 var tcpFuncsV2 = map[string]func(*matchersTree, ...string) error{

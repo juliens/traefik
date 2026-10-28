@@ -13,5 +13,15 @@
   [entryPoints.web]
     address = ":8000"
 
-[providers.kubernetesIngress]
+[experimental.localPlugins.kubernetesIngress]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress"
+  [experimental.localPlugins.kubernetesIngress.settings.goVM]
+    trusted = true
+
+[providers.plugin.kubernetesIngress]
   labelSelector = "app=traefik"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true

@@ -6,30 +6,26 @@ import (
 	"reflect"
 
 	"github.com/traefik/go-vm/vm"
-	p16 "golang.org/x/net/http2/hpack"
+	p16 "github.com/traefik/traefik/v3/pkg/version"
 )
 
 func init() {
 	vm.RegisterNativePackage(&vm.Package{
-		Path: "golang.org/x/net/http2/hpack",
+		Path: "github.com/traefik/traefik/v3/pkg/version",
 		Funcs: map[string]reflect.Value{
-			"AppendHuffmanString":   reflect.ValueOf(p16.AppendHuffmanString),
-			"HuffmanDecode":         reflect.ValueOf(p16.HuffmanDecode),
-			"HuffmanDecodeToString": reflect.ValueOf(p16.HuffmanDecodeToString),
-			"HuffmanEncodeLength":   reflect.ValueOf(p16.HuffmanEncodeLength),
-			"NewDecoder":            reflect.ValueOf(p16.NewDecoder),
-			"NewEncoder":            reflect.ValueOf(p16.NewEncoder),
+			"CheckNewVersion": reflect.ValueOf(p16.CheckNewVersion),
 		},
 		Types: map[string]reflect.Type{
-			"Decoder":           reflect.TypeFor[p16.Decoder](),
-			"DecodingError":     reflect.TypeFor[p16.DecodingError](),
-			"Encoder":           reflect.TypeFor[p16.Encoder](),
-			"HeaderField":       reflect.TypeFor[p16.HeaderField](),
-			"InvalidIndexError": reflect.TypeFor[p16.InvalidIndexError](),
+			"Handler": reflect.TypeFor[p16.Handler](),
 		},
 		Vars: map[string]reflect.Value{
-			"ErrInvalidHuffman": reflect.ValueOf(&p16.ErrInvalidHuffman),
-			"ErrStringLength":   reflect.ValueOf(&p16.ErrStringLength),
+			"BuildDate":          reflect.ValueOf(&p16.BuildDate),
+			"Codename":           reflect.ValueOf(&p16.Codename),
+			"DashboardName":      reflect.ValueOf(&p16.DashboardName),
+			"DisableDashboardAd": reflect.ValueOf(&p16.DisableDashboardAd),
+			"StartDate":          reflect.ValueOf(&p16.StartDate),
+			"Version":            reflect.ValueOf(&p16.Version),
 		},
+		Wrappers: map[string]reflect.Type{},
 	})
 }

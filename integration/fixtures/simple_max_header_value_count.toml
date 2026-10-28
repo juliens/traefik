@@ -8,7 +8,12 @@
   [entryPoints.web.http]
     maxHeaderValueCount = 10
 
-[providers.file]
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
+
+[providers.plugin.file]
   filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##
@@ -23,3 +28,8 @@
   [http.services.test-service]
     [[http.services.test-service.loadBalancer.servers]]
       url = "{{ .TestServer }}"
+
+[experimental.localPlugins.middlewares]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
+  [experimental.localPlugins.middlewares.settings.goVM]
+    trusted = true
