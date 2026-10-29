@@ -110,8 +110,8 @@ func configValue(v reflect.Value) any {
 	}
 }
 
-// decodePluginConfig decodes the configuration of a plugin compiled into Traefik.
-func decodePluginConfig(config map[string]any, result any) error {
+// decodeBuiltinConfig decodes the configuration of a plugin compiled into Traefik.
+func decodeBuiltinConfig(config map[string]any, result any) error {
 	cfg := &mapstructure.DecoderConfig{
 		// The static configuration gives the durations as text ("1s"): ptypes.Duration decodes it.
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(

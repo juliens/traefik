@@ -131,7 +131,7 @@ func (p *nativePlugin) createConfig(config map[string]any) (any, error) {
 		return cfg, nil
 	}
 
-	if err := decodePluginConfig(config, cfg); err != nil {
+	if err := decodeBuiltinConfig(config, cfg); err != nil {
 		return nil, err
 	}
 
