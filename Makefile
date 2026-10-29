@@ -15,7 +15,7 @@ GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 GOGC ?=
 # CGO_ENABLED is 1 for the binary loading the plugins built as shared objects (plugins-so): Go loads them with cgo.
-CGO_ENABLED ?= 0
+CGO_ENABLED := 0
 
 LINT_EXECUTABLES = misspell shellcheck
 
@@ -97,17 +97,19 @@ test-unit:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./pkg/... ./cmd/...
 	cd plugins && GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./...
 
-# The providers and middlewares of Traefik are plugins, which Traefik finds by module name in this order:
-# compiled in (binary-builtin), as shared objects next to the binary (plugins-so), or as sources run by go-vm (binary, plugins-local).
+# The providers and middlewares of Traefik are plugins, compiled in by default.
+# The light binary finds them by module name as shared objects next to the binary (plugins-so),
+# or as sources run by go-vm (plugins-local).
 
-.PHONY: binary-builtin
-#? binary-builtin: Build the binary with the providers and middlewares of Traefik compiled in
-binary-builtin: FLAGS += -tags=builtinplugins
-binary-builtin: binary
+.PHONY: binary-light
+#? binary-light: Build the binary without the providers and middlewares of Traefik
+binary-light: FLAGS += -tags=nobuiltinplugins
+binary-light: binary
 
 .PHONY: plugins-so
-#? plugins-so: Build the binary, and the providers and middlewares of Traefik as shared objects (.so) in dist/<os>/<arch>/plugins
+#? plugins-so: Build the light binary, and the providers and middlewares of Traefik as shared objects (.so) in dist/<os>/<arch>/plugins
 plugins-so: export CGO_ENABLED := 1
+plugins-so: FLAGS += -tags=nobuiltinplugins
 plugins-so: binary
 	GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go run ./cmd/internal/nativeplugins -so "./dist/${GOOS}/${GOARCH}/plugins" -- ${FLAGS}
 

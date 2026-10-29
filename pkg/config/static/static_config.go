@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -287,7 +288,8 @@ func (c *Configuration) SetEffectiveConfiguration() {
 	// Creates the internal traefik entry point if needed
 	if (c.API != nil && c.API.Insecure) ||
 		(c.Ping != nil && !c.Ping.ManualRouting && c.Ping.EntryPoint == DefaultInternalEntryPointName) ||
-		(c.Metrics != nil && c.Metrics.Prometheus != nil && !c.Metrics.Prometheus.ManualRouting && c.Metrics.Prometheus.EntryPoint == DefaultInternalEntryPointName) {
+		(c.Metrics != nil && c.Metrics.Prometheus != nil && !c.Metrics.Prometheus.ManualRouting && c.Metrics.Prometheus.EntryPoint == DefaultInternalEntryPointName) ||
+		(c.Providers != nil && c.Providers.Rest != nil && c.Providers.Rest.Insecure) {
 		if _, ok := c.EntryPoints[DefaultInternalEntryPointName]; !ok {
 			ep := &EntryPoint{Address: ":8080"}
 			ep.SetDefaults()
@@ -332,9 +334,15 @@ func (c *Configuration) ValidateConfiguration() error {
 
 	if c.Providers != nil {
 		for _, providerName := range c.Providers.Precedence {
-			if providerName == "" {
+			if _, ok := c.Providers.Plugin[providerName]; !ok && !slices.Contains(providerNames, providerName) {
 				return fmt.Errorf("provider %q is not a valid provider name", providerName)
 			}
+		}
+	}
+
+	if c.Providers != nil && c.Providers.Knative != nil {
+		if c.Experimental == nil || !c.Experimental.Knative {
+			return errors.New("the experimental Knative feature must be enabled to use the Knative provider")
 		}
 	}
 

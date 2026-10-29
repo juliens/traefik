@@ -194,6 +194,7 @@ func (b *goVMMiddlewareBuilder) newMiddleware(config map[string]any, middlewareN
 		middlewareName: middlewareName,
 		config:         cfg,
 		plugin:         b.plugin,
+		constructor:    "New",
 	}, nil
 }
 
@@ -427,9 +428,6 @@ func asTraceable(handler http.Handler) (t traceable) {
 
 func (m *GoVMMiddleware) newPluginHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
 	constructor := m.constructor
-	if constructor == "" {
-		constructor = "New"
-	}
 
 	res, err := m.plugin.Call(ctx, constructor, ctx, next, m.config, m.middlewareName)
 	if err != nil {

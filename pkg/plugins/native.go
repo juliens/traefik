@@ -16,7 +16,7 @@ import (
 )
 
 // nativePlugin is a plugin of the plugins module of Traefik that runs natively:
-//   - compiled into Traefik (go build -tags builtinplugins), it registers itself with RegisterBuiltin;
+//   - compiled into Traefik (unless built with -tags nobuiltinplugins), it registers itself with RegisterBuiltin;
 //   - built with -buildmode=plugin (make plugins-so), Traefik opens its shared object.
 //
 // Either way, it is built from the same sources and module versions as Traefik, so it shares the packages of Traefik:
@@ -35,7 +35,7 @@ var builtinPlugins = map[string]nativePlugin{}
 var builtinManifests = map[string]string{}
 
 // RegisterBuiltin registers a plugin compiled into Traefik, with its manifest and its functions by name.
-// The generated file of cmd/internal/nativeplugins calls it, with the builtinplugins build tag.
+// The generated file of cmd/internal/nativeplugins calls it, unless Traefik is built with the nobuiltinplugins build tag.
 func RegisterBuiltin(moduleName, manifest string, functions map[string]any) {
 	builtinManifests[moduleName] = manifest
 	builtinPlugins[moduleName] = nativePlugin{
@@ -163,11 +163,6 @@ func (p *nativePlugin) call(name string, args ...any) ([]reflect.Value, error) {
 
 	in := make([]reflect.Value, len(args))
 	for i, arg := range args {
-		if arg == nil {
-			in[i] = reflect.Zero(ft.In(i))
-			continue
-		}
-
 		in[i] = reflect.ValueOf(arg)
 		if !in[i].Type().AssignableTo(ft.In(i)) {
 			return nil, fmt.Errorf("the argument %d of %s of the plugin %s is a %s, a %s is expected", i, name, p.source, in[i].Type(), ft.In(i))
@@ -188,13 +183,8 @@ func (p *nativePlugin) callNew(name string, args ...any) (any, error) {
 		return nil, fmt.Errorf("invalid number of return for the %s function: %d", name, len(res))
 	}
 
-	if !res[1].IsNil() {
-		resErr, ok := reflect.TypeAssert[error](res[1])
-		if !ok {
-			return nil, fmt.Errorf("invalid error type: %s", res[1].Type())
-		}
-
-		return nil, resErr
+	if err, _ := reflect.TypeAssert[error](res[1]); err != nil {
+		return nil, err
 	}
 
 	return res[0].Interface(), nil
@@ -224,13 +214,13 @@ func (p *nativePlugin) createConfig(config map[string]any) (any, error) {
 }
 
 // newNativeProvider creates the provider of a native plugin, which implements the provider interface of Traefik.
-func newNativeProvider(p *nativePlugin, config map[string]any, pName string) (provider.Provider, error) {
+func newNativeProvider(p *nativePlugin, config map[string]any, newName string) (provider.Provider, error) {
 	cfg, err := p.createConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
-	v, err := p.callNew("New", context.Background(), cfg, "plugin-"+pName)
+	v, err := p.callNew("New", context.Background(), cfg, newName)
 	if err != nil {
 		return nil, err
 	}
@@ -240,70 +230,23 @@ func newNativeProvider(p *nativePlugin, config map[string]any, pName string) (pr
 		return nil, fmt.Errorf("the provider of the plugin %s, a %T, does not implement the provider interface of Traefik", p.source, v)
 	}
 
-	np := &nativeProvider{Provider: prd, name: pName, throttle: -1}
+	pp := &pluginProvider{Provider: prd, throttle: -1}
 
 	if throttled, ok := prd.(interface{ ThrottleDuration() time.Duration }); ok {
-		np.throttle = throttled.ThrottleDuration()
+		pp.throttle = throttled.ThrottleDuration()
 	}
 
-	handler, ok := prd.(http.Handler)
-	if !ok {
-		return np, nil
-	}
-
-	hp := &nativeHandlerProvider{nativeProvider: np, handler: handler}
-	if internal, ok := prd.(interface{ InternalRule() string }); ok {
-		hp.rule = internal.InternalRule()
-	}
-
-	return hp, nil
-}
-
-// nativeProvider is the provider of a native plugin.
-type nativeProvider struct {
-	provider.Provider
-
-	name string
-
-	// throttle is the throttle duration of the plugin, negative when the plugin uses the providersThrottleDuration option.
-	throttle time.Duration
-}
-
-// ThrottleDuration returns the throttle duration of the plugin, negative when the plugin uses the providersThrottleDuration option.
-func (p *nativeProvider) ThrottleDuration() time.Duration {
-	return p.throttle
-}
-
-// Name returns the name of the plugin.
-func (p *nativeProvider) Name() string {
-	return p.name
-}
-
-// configurationListener returns the ListenConfiguration method of the plugin, when it has one.
-func (p *nativeProvider) configurationListener() (func(dynamic.Configuration), bool) {
-	listener, ok := p.Provider.(interface {
+	if listener, ok := prd.(interface {
 		ListenConfiguration(conf dynamic.Configuration)
-	})
-	if !ok {
-		return nil, false
+	}); ok {
+		pp.listen = listener.ListenConfiguration
 	}
 
-	return listener.ListenConfiguration, true
-}
+	if handler, ok := prd.(http.Handler); ok {
+		pp.handler = handler
+	}
 
-type nativeHandlerProvider struct {
-	*nativeProvider
-
-	handler http.Handler
-	rule    string
-}
-
-func (p *nativeHandlerProvider) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	p.handler.ServeHTTP(rw, req)
-}
-
-func (p *nativeHandlerProvider) InternalRule() string {
-	return p.rule
+	return pp, nil
 }
 
 // nativeMiddlewareBuilder is the builder of the middlewares of a native plugin.

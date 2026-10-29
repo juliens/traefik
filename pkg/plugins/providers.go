@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/go-vm/vm"
@@ -33,7 +35,8 @@ func (b Builder) BuildProvider(pName string, config map[string]any) (provider.Pr
 		return nil, fmt.Errorf("unknown plugin type: %s", pName)
 	}
 
-	return builder.build(config, pName)
+	// The plugins of providers.plugin got this name before the plugins could implement the Traefik provider interface.
+	return builder.build(config, pName, "plugin-"+pName)
 }
 
 // BuildTypedProvider builds the provider plugin implementing the given option of the static configuration,
@@ -51,7 +54,7 @@ func (b Builder) BuildTypedProvider(option, name string, config any) (provider.P
 		return nil, fmt.Errorf("the configuration of the %q option is a %T, a pointer to a struct is expected", option, config)
 	}
 
-	return builder.build(cfg, name)
+	return builder.build(cfg, name, name)
 }
 
 // configValue returns a configuration of the static configuration as the configuration of a plugin, which the plugin decodes.
@@ -132,12 +135,53 @@ type providerBuilder struct {
 	native *nativePlugin
 }
 
-func (b providerBuilder) build(config map[string]any, pName string) (provider.Provider, error) {
+// build builds the provider named pName, whose New function gets newName.
+func (b providerBuilder) build(config map[string]any, pName, newName string) (provider.Provider, error) {
 	if b.native != nil {
-		return newNativeProvider(b.native, config, pName)
+		return newNativeProvider(b.native, config, newName)
 	}
 
-	return newGoVMProvider(b.plugin, config, pName)
+	return newGoVMProvider(b.plugin, config, pName, newName)
+}
+
+// pluginProvider is a provider plugin that implements the Traefik provider interface.
+type pluginProvider struct {
+	provider.Provider
+
+	// throttle is the throttle duration of the plugin, negative when the plugin uses the providersThrottleDuration option.
+	throttle time.Duration
+
+	// listen gives each new configuration of Traefik to the plugin, as the ACME provider resolves the certificates of the routers.
+	listen func(dynamic.Configuration)
+
+	// handler serves the requests of the plugin, as the REST provider gets its configuration this way.
+	handler http.Handler
+}
+
+// ThrottleDuration returns the throttle duration of the plugin, negative when the plugin uses the providersThrottleDuration option.
+func (p *pluginProvider) ThrottleDuration() time.Duration {
+	return p.throttle
+}
+
+// ConfigurationListener returns the function giving the new configurations of Traefik to a provider plugin,
+// when the plugin listens to them.
+func ConfigurationListener(p provider.Provider) (func(dynamic.Configuration), bool) {
+	pp, ok := p.(*pluginProvider)
+	if !ok || pp.listen == nil {
+		return nil, false
+	}
+
+	return pp.listen, true
+}
+
+// Handler returns the handler of a provider plugin that serves HTTP requests.
+func Handler(p provider.Provider) (http.Handler, bool) {
+	pp, ok := p.(*pluginProvider)
+	if !ok || pp.handler == nil {
+		return nil, false
+	}
+
+	return pp.handler, true
 }
 
 // Provider is a plugin's provider wrapper.

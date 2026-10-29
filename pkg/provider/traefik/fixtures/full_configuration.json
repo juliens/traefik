@@ -14,6 +14,10 @@
         "entryPoints": [
           "traefik"
         ],
+        "middlewares": [
+          "dashboard_redirect@internal",
+          "dashboard_stripprefix@internal"
+        ],
         "service": "dashboard@internal",
         "rule": "PathPrefix(`/`)",
         "ruleSyntax": "default",
@@ -63,6 +67,23 @@
       "ping": {},
       "prometheus": {},
       "rest": {}
+    },
+    "middlewares": {
+      "dashboard_redirect": {
+        "redirectRegex": {
+          "regex": "^(http:\\/\\/(\\[[\\w:.]+\\]|[\\w\\._-]+)(:\\d+)?)\\/$",
+          "replacement": "${1}/dashboard/",
+          "permanent": true
+        }
+      },
+      "dashboard_stripprefix": {
+        "stripPrefix": {
+          "prefixes": [
+            "/dashboard/",
+            "/dashboard"
+          ]
+        }
+      }
     }
   },
   "tcp": {},

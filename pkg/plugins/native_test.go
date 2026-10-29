@@ -141,10 +141,17 @@ func TestBuiltinPlugins_typedProvider(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, &typedProviderConfig{Watch: false, Names: []string{"foo"}, Throttle: "2s"}, got)
-	assert.Equal(t, "docker", prov.(*nativeProvider).Name())
+	assert.Equal(t, "docker", prov.(*pluginProvider).Provider.(*builtinProvider).name)
 
 	_, err = builder.BuildTypedProvider("file", "file", config)
 	require.ErrorContains(t, err, `the "file" option is a plugin`)
+
+	// A plugin compiled into Traefik implements its options without a declaration in the static configuration.
+	builder, err = NewBuilder(nil, nil, nil)
+	require.NoError(t, err)
+
+	_, err = builder.BuildTypedProvider("docker", "docker", config)
+	require.NoError(t, err)
 }
 
 func TestBuiltinPlugins_wrongTypedConstructor(t *testing.T) {
@@ -160,15 +167,4 @@ func TestBuiltinPlugins_wrongTypedConstructor(t *testing.T) {
 
 	_, err := NewBuilder(nil, nil, map[string]LocalDescriptor{"wrong": {ModuleName: "example.com/builtin/wrong"}})
 	require.ErrorContains(t, err, "must take a *dynamic.AddPrefix configuration")
-}
-
-func TestSetupLocalPlugins_builtin(t *testing.T) {
-	registerBuiltinTestPlugins(t)
-
-	// The plugins compiled into Traefik have no sources in plugins-local, and two names can use the same module.
-	err := SetupLocalPlugins(map[string]LocalDescriptor{
-		"resolver1": {ModuleName: "example.com/builtin/provider"},
-		"resolver2": {ModuleName: "example.com/builtin/provider"},
-	})
-	require.NoError(t, err)
 }

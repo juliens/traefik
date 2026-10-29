@@ -8,34 +8,57 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/go-acme/lego/v5/challenge/http01"
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
-	"github.com/traefik/traefik/v3/pkg/plugins/host"
 )
 
 // ChallengeHTTP HTTP challenge provider implements challenge.Provider.
-// The challenges are registered in Traefik (see pkg/plugins/host): the ACME resolvers are plugins,
-// and the router of any of them on an entry point answers the challenges of all of them.
-type ChallengeHTTP struct{}
+type ChallengeHTTP struct {
+	httpChallenges map[string]map[string][]byte
+	lock           sync.RWMutex
+}
 
 // NewChallengeHTTP creates a new ChallengeHTTP.
 func NewChallengeHTTP() *ChallengeHTTP {
-	return &ChallengeHTTP{}
+	return &ChallengeHTTP{
+		httpChallenges: make(map[string]map[string][]byte),
+	}
 }
 
 // Present presents a challenge to obtain new ACME certificate.
 func (c *ChallengeHTTP) Present(ctx context.Context, domain, token, keyAuth string) error {
-	host.Register(challengeKey(token, domain), keyAuth)
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if _, ok := c.httpChallenges[token]; !ok {
+		c.httpChallenges[token] = map[string][]byte{}
+	}
+
+	c.httpChallenges[token][domain] = []byte(keyAuth)
 
 	return nil
 }
 
 // CleanUp cleans the challenges when certificate is obtained.
 func (c *ChallengeHTTP) CleanUp(ctx context.Context, domain, token, _ string) error {
-	host.Unregister(challengeKey(token, domain))
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if c.httpChallenges == nil && len(c.httpChallenges) == 0 {
+		return nil
+	}
+
+	if _, ok := c.httpChallenges[token]; ok {
+		delete(c.httpChallenges[token], domain)
+
+		if len(c.httpChallenges[token]) == 0 {
+			delete(c.httpChallenges, token)
+		}
+	}
 
 	return nil
 }
@@ -80,19 +103,21 @@ func (c *ChallengeHTTP) getTokenValue(ctx context.Context, token, domain string)
 	logger := log.Ctx(ctx)
 	logger.Debug().Msgf("Retrieving the ACME challenge for %s (token %q)...", domain, token)
 
-	value, ok := host.Lookup(challengeKey(token, domain))
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	if _, ok := c.httpChallenges[token]; !ok {
+		logger.Error().Msgf("Cannot retrieve the ACME challenge for %s (token %q)", domain, token)
+		return nil
+	}
+
+	result, ok := c.httpChallenges[token][domain]
 	if !ok {
 		logger.Error().Msgf("Cannot retrieve the ACME challenge for %s (token %q)", domain, token)
 		return nil
 	}
 
-	keyAuth, _ := value.(string)
-
-	return []byte(keyAuth)
-}
-
-func challengeKey(token, domain string) string {
-	return "acme-http-challenge/" + token + "/" + domain
+	return result
 }
 
 func getPathParam(uri *url.URL) (string, error) {

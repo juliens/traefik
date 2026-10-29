@@ -1,6 +1,15 @@
 {
   "http": {
     "routers": {
+      "acme-http": {
+        "entryPoints": [
+          "web"
+        ],
+        "service": "acme-http@internal",
+        "rule": "PathPrefix(`/.well-known/acme-challenge/`)",
+        "ruleSyntax": "default",
+        "priority": 9223372036854775807
+      },
       "web-to-websecure": {
         "entryPoints": [
           "web"
@@ -14,6 +23,7 @@
       }
     },
     "services": {
+      "acme-http": {},
       "noop": {}
     },
     "middlewares": {

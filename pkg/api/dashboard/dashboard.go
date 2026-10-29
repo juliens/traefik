@@ -24,21 +24,7 @@ type Handler struct {
 	assets fs.FS // optional assets, to override the webui.FS default
 }
 
-// dashboardPrefix is the path of the dashboard on the service dashboard@internal.
-const dashboardPrefix = "/dashboard"
-
-// ServeHTTP serves the dashboard under /dashboard/, and redirects the root path to it.
-// The handler routes itself: the middlewares (stripPrefix, redirectRegex) are plugins, which the dashboard does not need.
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch {
-	case r.URL.Path == "/":
-		http.Redirect(w, r, dashboardPrefix+"/", http.StatusMovedPermanently)
-		return
-
-	case r.URL.Path == dashboardPrefix || strings.HasPrefix(r.URL.Path, dashboardPrefix+"/"):
-		r = stripDashboardPrefix(r)
-	}
-
 	assets := h.assets
 	if assets == nil {
 		assets = webui.FS
@@ -73,21 +59,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Del("Content-Type")
 
 	http.FileServerFS(assets).ServeHTTP(w, r)
-}
-
-// stripDashboardPrefix removes the prefix of the dashboard from the path of the request, as the stripPrefix middleware does.
-func stripDashboardPrefix(r *http.Request) *http.Request {
-	r2 := r.Clone(r.Context())
-
-	r2.URL.Path = "/" + strings.TrimPrefix(strings.TrimPrefix(r.URL.Path, dashboardPrefix), "/")
-	if r.URL.RawPath != "" {
-		r2.URL.RawPath = "/" + strings.TrimPrefix(strings.TrimPrefix(r.URL.RawPath, dashboardPrefix), "/")
-	}
-
-	r2.RequestURI = r2.URL.RequestURI()
-	r2.Header.Set("X-Forwarded-Prefix", dashboardPrefix)
-
-	return r2
 }
 
 // Append adds dashboard routes on the given router, optionally using the given

@@ -62,6 +62,7 @@ func maybeThrottledProvide(prd provider.Provider, defaultDuration time.Duration)
 // ProviderAggregator aggregates providers.
 type ProviderAggregator struct {
 	internalProvider          provider.Provider
+	fileProvider              provider.Provider
 	providers                 []provider.Provider
 	providersThrottleDuration time.Duration
 }
@@ -91,6 +92,17 @@ func (p *ProviderAggregator) AddProvider(provider provider.Provider) error {
 	return nil
 }
 
+// AddFileProvider adds the file provider, which starts before the other providers.
+func (p *ProviderAggregator) AddFileProvider(provider provider.Provider) error {
+	if err := provider.Init(); err != nil {
+		return err
+	}
+
+	p.fileProvider = provider
+
+	return nil
+}
+
 // Init the provider.
 func (p *ProviderAggregator) Init() error {
 	return nil
@@ -98,6 +110,10 @@ func (p *ProviderAggregator) Init() error {
 
 // Provide calls the provide method of every providers.
 func (p *ProviderAggregator) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
+	if p.fileProvider != nil {
+		p.launchProvider(configurationChan, pool, p.fileProvider)
+	}
+
 	for _, prd := range p.providers {
 		safe.Go(func() {
 			p.launchProvider(configurationChan, pool, prd)

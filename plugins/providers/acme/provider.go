@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"maps"
 	"net"
 	"net/http"
 	"net/url"
@@ -141,9 +140,6 @@ type Provider struct {
 
 	ResolverName string
 	Store        Store `json:"store,omitempty" toml:"store,omitempty" yaml:"store,omitempty"`
-
-	// HTTPChallengeRouters are the routers of the HTTP challenges, sent with the certificates.
-	HTTPChallengeRouters map[string]*dynamic.Router
 
 	TLSChallengeProvider  challenge.Provider
 	HTTPChallengeProvider challenge.Provider
@@ -894,12 +890,6 @@ func (p *Provider) buildMessage() dynamic.Message {
 			},
 			TLS: &dynamic.TLSConfiguration{},
 		},
-	}
-
-	maps.Copy(conf.Configuration.HTTP.Routers, p.HTTPChallengeRouters)
-	if len(p.HTTPChallengeRouters) > 0 {
-		// The routers send the challenges to the service <resolver>@internal, the plugin itself.
-		conf.Configuration.HTTP.Services = map[string]*dynamic.Service{}
 	}
 
 	for _, cert := range p.certificates {

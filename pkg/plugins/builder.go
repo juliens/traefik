@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -102,22 +103,30 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 			return nil, plugin.err
 		}
 
-		switch plugin.manifest.Type {
-		case typeMiddleware:
-			if err := pb.addMiddlewareBuilder(plugin.name, plugin.manifest, plugin.middleware); err != nil {
-				return nil, fmt.Errorf("%s: %w", plugin.moduleName, err)
-			}
+		if err := pb.add(plugin); err != nil {
+			return nil, fmt.Errorf("%s: %w", plugin.moduleName, err)
+		}
+	}
 
-		case typeProvider:
-			pb.providerBuilders[plugin.name] = plugin.provider
+	// The plugins compiled into Traefik implement the options that no plugin of the static configuration implements,
+	// so that Traefik works as before without plugin declarations.
+	declared := map[string]struct{}{}
+	for _, plugin := range toLoad {
+		declared[plugin.moduleName] = struct{}{}
+	}
 
-			for _, option := range plugin.manifest.Implements {
-				if _, exists := pb.typedProviderBuilders[option]; exists {
-					return nil, fmt.Errorf("%s: two plugins implement the %q option", plugin.moduleName, option)
-				}
+	for _, moduleName := range slices.Sorted(maps.Keys(builtinPlugins)) {
+		if _, ok := declared[moduleName]; ok {
+			continue
+		}
 
-				pb.typedProviderBuilders[option] = plugin.provider
-			}
+		native, manifest, _, err := loadBuiltinPlugin(moduleName)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := pb.addBuiltin(&pluginToLoad{manifest: manifest, moduleName: moduleName, native: native}); err != nil {
+			return nil, fmt.Errorf("%s: %w", moduleName, err)
 		}
 	}
 
@@ -131,7 +140,7 @@ const (
 )
 
 // resolveLocalPlugin finds a local plugin by its module name, in this order:
-// compiled into Traefik (go build -tags builtinplugins), as a shared object next to the binary (make plugins-so),
+// compiled into Traefik (unless built with -tags nobuiltinplugins), as a shared object next to the binary (make plugins-so),
 // or as sources in plugins-local, run by go-vm.
 // The configuration of the plugin is the same in the three modes.
 func resolveLocalPlugin(pName string, desc LocalDescriptor) (*pluginToLoad, error) {
@@ -166,29 +175,13 @@ func resolveLocalPlugin(pName string, desc LocalDescriptor) (*pluginToLoad, erro
 }
 
 // loadPlugins loads the plugins concurrently, each module in its own interpreter.
-// The plugins declared several times with the same module and settings (the ACME resolvers) share one load:
-// they share the state of their packages, as when they are compiled into Traefik.
 func loadPlugins(toLoad []*pluginToLoad) {
 	ctx := context.Background()
-
-	first := map[string]*pluginToLoad{}
-	var unique []*pluginToLoad
-	sameAs := map[*pluginToLoad]*pluginToLoad{}
-	for _, plugin := range toLoad {
-		key := fmt.Sprintf("%s\x00%s\x00%t\x00%+v", plugin.moduleName, plugin.goPath, plugin.local, plugin.settings)
-		if loaded, ok := first[key]; ok && plugin.native == nil {
-			sameAs[plugin] = loaded
-			continue
-		}
-
-		first[key] = plugin
-		unique = append(unique, plugin)
-	}
 
 	sem := make(chan struct{}, runtime.GOMAXPROCS(0))
 
 	var wg sync.WaitGroup
-	for _, plugin := range unique {
+	for _, plugin := range toLoad {
 		wg.Go(func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
@@ -226,10 +219,6 @@ func loadPlugins(toLoad []*pluginToLoad) {
 	}
 
 	wg.Wait()
-
-	for plugin, loaded := range sameAs {
-		plugin.middleware, plugin.provider, plugin.err = loaded.middleware, loaded.provider, loaded.err
-	}
 }
 
 // Build builds a middleware plugin.
@@ -285,6 +274,55 @@ func (b Builder) addMiddlewareBuilder(pName string, manifest *Manifest, builder 
 		}
 
 		b.typedMiddlewareBuilders[option] = typedBuilder
+	}
+
+	return nil
+}
+
+// add adds a plugin of the static configuration.
+func (b Builder) add(plugin *pluginToLoad) error {
+	switch plugin.manifest.Type {
+	case typeMiddleware:
+		return b.addMiddlewareBuilder(plugin.name, plugin.manifest, plugin.middleware)
+
+	case typeProvider:
+		b.providerBuilders[plugin.name] = plugin.provider
+
+		for _, option := range plugin.manifest.Implements {
+			if _, exists := b.typedProviderBuilders[option]; exists {
+				return fmt.Errorf("two plugins implement the %q option", option)
+			}
+
+			b.typedProviderBuilders[option] = plugin.provider
+		}
+	}
+
+	return nil
+}
+
+// addBuiltin adds a plugin compiled into Traefik for the options that no plugin of the static configuration implements.
+func (b Builder) addBuiltin(plugin *pluginToLoad) error {
+	switch plugin.manifest.Type {
+	case typeMiddleware:
+		builder := &nativeMiddlewareBuilder{plugin: plugin.native}
+		for _, option := range plugin.manifest.Implements {
+			if _, exists := b.typedMiddlewareBuilders[option]; exists {
+				continue
+			}
+
+			if err := builder.checkTypedMiddleware(option); err != nil {
+				return err
+			}
+
+			b.typedMiddlewareBuilders[option] = builder
+		}
+
+	case typeProvider:
+		for _, option := range plugin.manifest.Implements {
+			if _, exists := b.typedProviderBuilders[option]; !exists {
+				b.typedProviderBuilders[option] = providerBuilder{native: plugin.native}
+			}
+		}
 	}
 
 	return nil

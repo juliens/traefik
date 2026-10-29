@@ -184,6 +184,11 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	ctx := context.Background()
 	routinesPool := safe.NewPool(ctx)
 
+	err := providerAggregator.AddProvider(traefik.New(*staticConfiguration))
+	if err != nil {
+		return nil, err
+	}
+
 	// TLS
 
 	tlsManager := traefiktls.NewManager(staticConfiguration.OCSP)
@@ -237,50 +242,65 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		pluginLogger.Info().Msg("Loading plugins...")
 	}
 
+	// The plugins read the static configuration when they are loaded.
+	setPluginsHost(staticConfiguration, tlsManager)
+
 	pluginBuilder, err := createPluginBuilder(staticConfiguration)
 	if err != nil && staticConfiguration.Experimental != nil && staticConfiguration.Experimental.AbortOnPluginFailure {
 		return nil, fmt.Errorf("plugin: failed to create plugin builder: %w", err)
 	}
 	if err != nil {
 		pluginLogger.Err(err).Msg("Plugins are disabled because an error has occurred.")
+
+		// The providers and middlewares compiled into Traefik keep working.
+		pluginBuilder, err = plugins.NewBuilder(nil, nil, nil)
+		if err != nil {
+			return nil, err
+		}
 	} else if hasPlugins {
 		pluginLogger.Info().Msg("Plugins loaded.")
 	}
 
 	// Providers plugins
 
-	setPluginsHost(staticConfiguration, tlsManager)
+	pluginProviders, err := buildPluginProviders(staticConfiguration, pluginBuilder)
+	if err != nil {
+		return nil, err
+	}
 
 	pluginHandlers := map[string]http.Handler{}
-	var internalPluginHandlers []traefik.PluginHandler
 	var pluginListeners []func(dynamic.Configuration)
-	if pluginBuilder != nil {
-		pluginProviders, err := buildPluginProviders(staticConfiguration, pluginBuilder)
-		if err != nil {
-			return nil, err
+	acmeResolverNames := map[string]struct{}{}
+	for _, p := range pluginProviders {
+		add := providerAggregator.AddProvider
+		if p.option == "file" {
+			add = providerAggregator.AddFileProvider
 		}
 
-		for _, p := range pluginProviders {
-			err := providerAggregator.AddProvider(p)
-			if err != nil {
+		if err := add(p.Provider); err != nil {
+			if p.option == "" {
 				return nil, fmt.Errorf("plugin: failed to add provider: %w", err)
 			}
 
-			if hp, ok := p.(plugins.HandlerProvider); ok {
-				pluginHandlers[hp.Name()] = hp
-				internalPluginHandlers = append(internalPluginHandlers, traefik.PluginHandler{Name: hp.Name(), Rule: hp.InternalRule()})
-			}
-
-			if listener, ok := plugins.ConfigurationListener(p); ok {
-				pluginListeners = append(pluginListeners, listener)
-			}
+			log.Error().Err(err).Str(logs.ProviderName, p.name).Msg("Error while initializing provider")
+			continue
 		}
-	}
 
-	// The internal provider comes after the provider plugins, as it routes to the services of the plugins.
-	err = providerAggregator.AddProvider(traefik.New(*staticConfiguration, internalPluginHandlers))
-	if err != nil {
-		return nil, err
+		handlerName := p.name
+		if p.option == acmeOption {
+			acmeResolverNames[p.name] = struct{}{}
+
+			// The ACME resolvers share the HTTP challenges: any of them answers them.
+			handlerName = "acme-http"
+		}
+
+		if handler, ok := plugins.Handler(p.Provider); ok {
+			pluginHandlers[handlerName] = handler
+		}
+
+		if listener, ok := plugins.ConfigurationListener(p.Provider); ok {
+			pluginListeners = append(pluginListeners, listener)
+		}
 	}
 
 	// Service manager factory
@@ -376,18 +396,7 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 
 	// Certificate Resolvers
 
-	// The ACME resolvers are provider plugins: a router uses the name of the resolver,
-	// or of the plugin when it is declared in providers.plugin, as certificate resolver.
-	resolverNames := map[string]struct{}{}
-	for name, resolver := range staticConfiguration.CertificatesResolvers {
-		if resolver.ACME != nil {
-			resolverNames[name] = struct{}{}
-		}
-	}
-
-	for name := range staticConfiguration.Providers.Plugin {
-		resolverNames[name] = struct{}{}
-	}
+	resolverNames := acmeResolverNames
 
 	// Tailscale
 	for _, p := range tsProviders {
@@ -457,10 +466,21 @@ func switchRouter(routerFactory *server.RouterFactory, serverEntryPointsTCP serv
 	}
 }
 
+// acmeOption is the option of the certificates resolvers implemented by the ACME provider plugin.
+const acmeOption = "certificatesResolvers.acme"
+
+// pluginProvider is a provider plugin, with the option it implements, empty for a plugin of providers.plugin.
+type pluginProvider struct {
+	provider.Provider
+
+	name   string
+	option string
+}
+
 // buildPluginProviders builds the provider plugins: the plugins implementing the options of the providers (docker, kubernetesCRD, ...)
 // and the ACME option of the certificates resolvers, and the plugins of providers.plugin.
-func buildPluginProviders(staticConfiguration *static.Configuration, pluginBuilder *plugins.Builder) ([]provider.Provider, error) {
-	var providers []provider.Provider
+func buildPluginProviders(staticConfiguration *static.Configuration, pluginBuilder *plugins.Builder) ([]pluginProvider, error) {
+	var providers []pluginProvider
 
 	options := staticConfiguration.Providers.Options()
 	for _, option := range slices.Sorted(maps.Keys(options)) {
@@ -473,39 +493,31 @@ func buildPluginProviders(staticConfiguration *static.Configuration, pluginBuild
 			return nil, fmt.Errorf("plugin: failed to build provider: %w", err)
 		}
 
-		providers = append(providers, p)
+		providers = append(providers, pluginProvider{Provider: p, name: option, option: option})
 	}
 
-	// An ACME provider is named after its resolver, which names its service (<resolver>@internal).
 	for _, name := range slices.Sorted(maps.Keys(staticConfiguration.CertificatesResolvers)) {
 		resolver := staticConfiguration.CertificatesResolvers[name]
 		if resolver.ACME == nil {
 			continue
 		}
 
-		if _, exists := options[name]; exists {
-			return nil, fmt.Errorf("plugin: the %q certificates resolver has the name of an option of the providers", name)
-		}
-
-		if _, exists := staticConfiguration.Providers.Plugin[name]; exists {
-			return nil, fmt.Errorf("plugin: the %q certificates resolver has the name of a provider plugin", name)
-		}
-
-		p, err := pluginBuilder.BuildTypedProvider("certificatesResolvers.acme", name, resolver.ACME)
+		p, err := pluginBuilder.BuildTypedProvider(acmeOption, name, resolver.ACME)
 		if err != nil {
-			return nil, fmt.Errorf("plugin: failed to build the %q certificates resolver: %w", name, err)
+			log.Error().Err(err).Str("resolver", name).Msg("The ACME resolve is skipped from the resolvers list")
+			continue
 		}
 
-		providers = append(providers, p)
+		providers = append(providers, pluginProvider{Provider: p, name: name, option: acmeOption})
 	}
 
-	for name, conf := range staticConfiguration.Providers.Plugin {
-		p, err := pluginBuilder.BuildProvider(name, conf)
+	for _, name := range slices.Sorted(maps.Keys(staticConfiguration.Providers.Plugin)) {
+		p, err := pluginBuilder.BuildProvider(name, staticConfiguration.Providers.Plugin[name])
 		if err != nil {
 			return nil, fmt.Errorf("plugin: failed to build provider: %w", err)
 		}
 
-		providers = append(providers, p)
+		providers = append(providers, pluginProvider{Provider: p, name: name})
 	}
 
 	return providers, nil
