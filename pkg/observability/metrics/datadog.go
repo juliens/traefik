@@ -65,7 +65,7 @@ func RegisterDatadog(ctx context.Context, config *otypes.Datadog) Registry {
 		config.Prefix = defaultMetricsPrefix
 	}
 
-	datadogLogger := logs.NewGoKitWrapper(log.Logger.With().Str(logs.MetricsProviderName, "datadog").Logger())
+	datadogLogger := NewGoKitWrapper(log.Logger.With().Str(logs.MetricsProviderName, "datadog").Logger())
 	datadogClient = dogstatsd.New(config.Prefix+".", datadogLogger)
 
 	initDatadogClient(ctx, config, datadogLogger)

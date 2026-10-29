@@ -6,7 +6,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/traefik/traefik/v3/pkg/types"
 	"github.com/traefik/traefik/v3/pkg/version"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -30,7 +29,7 @@ var detectedResource = sync.OnceValues(func() (*resource.Resource, error) {
 		resource.WithOS(),
 		resource.WithProcess(),
 		resource.WithTelemetrySDK(),
-		resource.WithDetectors(types.K8sAttributesDetector{}),
+		resource.WithDetectors(K8sAttributesDetector{}),
 	)
 })
 

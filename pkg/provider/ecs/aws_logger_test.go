@@ -1,4 +1,4 @@
-package logs
+package ecs
 
 import (
 	"bytes"
@@ -21,5 +21,5 @@ func TestNewAWSWrapper(t *testing.T) {
 
 	logger.Logf(logging.Debug, "%s", "foo")
 
-	assert.Equal(t, "<nil> DBG aws_test.go:22 > foo\n", buf.String())
+	assert.Equal(t, "<nil> DBG aws_logger_test.go:22 > foo\n", buf.String())
 }

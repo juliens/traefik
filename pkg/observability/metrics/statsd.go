@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-kit/kit/metrics/statsd"
 	"github.com/rs/zerolog/log"
-	"github.com/traefik/traefik/v3/pkg/observability/logs"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	"github.com/traefik/traefik/v3/pkg/safe"
 )
@@ -51,7 +50,7 @@ func RegisterStatsd(ctx context.Context, config *otypes.Statsd) Registry {
 		config.Prefix = defaultMetricsPrefix
 	}
 
-	statsdClient = statsd.New(config.Prefix+".", logs.NewGoKitWrapper(*log.Ctx(ctx)))
+	statsdClient = statsd.New(config.Prefix+".", NewGoKitWrapper(*log.Ctx(ctx)))
 
 	if statsdTicker == nil {
 		statsdTicker = initStatsdTicker(ctx, config)

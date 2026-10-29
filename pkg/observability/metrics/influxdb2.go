@@ -68,7 +68,7 @@ func RegisterInfluxDB2(ctx context.Context, config *otypes.InfluxDB2) Registry {
 		influxDB2Store = influx.New(
 			config.AdditionalLabels,
 			influxdb.BatchPointsConfig{},
-			logs.NewGoKitWrapper(*logger),
+			NewGoKitWrapper(*logger),
 		)
 
 		influxDB2Ticker = time.NewTicker(time.Duration(config.PushInterval))

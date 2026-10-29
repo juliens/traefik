@@ -1,4 +1,4 @@
-package logs
+package metrics
 
 import (
 	"bytes"
@@ -20,5 +20,5 @@ func TestNewGoKitWrapper(t *testing.T) {
 
 	_ = logger.Log("foo")
 
-	assert.Equal(t, "<nil> DBG gokit_test.go:21 > foo\n", buf.String())
+	assert.Equal(t, "<nil> DBG gokit_logger_test.go:21 > foo\n", buf.String())
 }

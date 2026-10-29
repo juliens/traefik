@@ -155,7 +155,7 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 
 func (p *Provider) createClient(ctx context.Context, logger zerolog.Logger) (*awsClient, error) {
 	optFns := []func(*config.LoadOptions) error{
-		config.WithLogger(logs.NewAWSWrapper(logger)),
+		config.WithLogger(NewAWSWrapper(logger)),
 	}
 	if p.Region != "" {
 		optFns = append(optFns, config.WithRegion(p.Region))

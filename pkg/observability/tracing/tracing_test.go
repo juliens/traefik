@@ -1,11 +1,10 @@
-package tracing
+package tracing_test
 
 import (
 	"compress/gzip"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
@@ -13,62 +12,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/config/static"
+	"github.com/traefik/traefik/v3/pkg/observability/tracing"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.opentelemetry.io/collector/pdata/ptrace/ptraceotlp"
 	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel/trace/noop"
 )
 
-func Test_safeFullURL(t *testing.T) {
-	testCases := []struct {
-		desc            string
-		safeQueryParams []string
-		originalURL     *url.URL
-		expectedURL     *url.URL
-	}{
-		{
-			desc:        "Nil URL",
-			originalURL: nil,
-			expectedURL: nil,
-		},
-		{
-			desc:        "No query parameters",
-			originalURL: &url.URL{Scheme: "https", Host: "example.com"},
-			expectedURL: &url.URL{Scheme: "https", Host: "example.com"},
-		},
-		{
-			desc:        "All query parameters redacted",
-			originalURL: &url.URL{Scheme: "https", Host: "example.com", RawQuery: "foo=bar&baz=qux"},
-			expectedURL: &url.URL{Scheme: "https", Host: "example.com", RawQuery: "baz=REDACTED&foo=REDACTED"},
-		},
-		{
-			desc:            "Some query parameters unredacted",
-			safeQueryParams: []string{"foo"},
-			originalURL:     &url.URL{Scheme: "https", Host: "example.com", RawQuery: "foo=bar&baz=qux"},
-			expectedURL:     &url.URL{Scheme: "https", Host: "example.com", RawQuery: "baz=REDACTED&foo=bar"},
-		},
-		{
-			desc:            "User info and some query parameters redacted",
-			safeQueryParams: []string{"foo"},
-			originalURL:     &url.URL{Scheme: "https", Host: "example.com", User: url.UserPassword("username", "password"), RawQuery: "foo=bar&baz=qux"},
-			expectedURL:     &url.URL{Scheme: "https", Host: "example.com", User: url.UserPassword("REDACTED", "REDACTED"), RawQuery: "baz=REDACTED&foo=bar"},
-		},
-	}
-
-	for _, test := range testCases {
-		t.Run(test.desc, func(t *testing.T) {
-			t.Parallel()
-
-			tr := NewTracer(nil, nil, nil, test.safeQueryParams)
-
-			gotURL := tr.safeURL(test.originalURL)
-
-			assert.Equal(t, test.expectedURL, gotURL)
-		})
-	}
-}
+// These tests are in tracing_test: the static configuration imports pkg/plugins, whose native SDK imports this package.
 
 func TestTracing(t *testing.T) {
 	tests := []struct {
@@ -338,13 +290,13 @@ func TestTracing(t *testing.T) {
 			t.Setenv("OTEL_PROPAGATORS", test.propagators)
 
 			service := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				tracer := TracerFromContext(r.Context())
+				tracer := tracing.TracerFromContext(r.Context())
 				ctx, span := tracer.Start(r.Context(), "service")
 				defer span.End()
 
 				r = r.WithContext(ctx)
 
-				InjectContextIntoCarrier(r)
+				tracing.InjectContextIntoCarrier(r)
 
 				if test.wantServiceHeadersFn != nil {
 					test.wantServiceHeadersFn(t, r.Header)
@@ -362,7 +314,7 @@ func TestTracing(t *testing.T) {
 				},
 			}
 
-			tracer, closer, err := NewTracing(t.Context(), tracingConfig)
+			tracer, closer, err := tracing.NewTracing(t.Context(), tracingConfig)
 			require.NoError(t, err)
 			t.Cleanup(func() {
 				_ = closer.Close()
@@ -370,7 +322,7 @@ func TestTracing(t *testing.T) {
 
 			chain := alice.New(func(next http.Handler) (http.Handler, error) {
 				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					tracingCtx := ExtractCarrierIntoContext(r.Context(), r.Header)
+					tracingCtx := tracing.ExtractCarrierIntoContext(r.Context(), r.Header)
 					start := time.Now()
 					tracingCtx, span := tracer.Start(tracingCtx, "test", trace.WithSpanKind(trace.SpanKindServer), trace.WithTimestamp(start))
 					end := time.Now()
@@ -414,7 +366,7 @@ func TestTracerProvider(t *testing.T) {
 	otlpConfig.SetDefaults()
 
 	config := &static.Tracing{OTLP: otlpConfig}
-	tracer, closer, err := NewTracing(t.Context(), config)
+	tracer, closer, err := tracing.NewTracing(t.Context(), config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -425,55 +377,6 @@ func TestTracerProvider(t *testing.T) {
 
 	span.TracerProvider().Tracer("github.com/traefik/traefik")
 	span.TracerProvider().Tracer("other")
-}
-
-// TestNewTracer_HeadersCanonicalization tests that NewTracer properly canonicalizes headers.
-func TestNewTracer_HeadersCanonicalization(t *testing.T) {
-	testCases := []struct {
-		desc                     string
-		inputHeaders             []string
-		expectedCanonicalHeaders []string
-	}{
-		{
-			desc:                     "Empty headers",
-			inputHeaders:             []string{},
-			expectedCanonicalHeaders: []string{},
-		},
-		{
-			desc:                     "Already canonical headers",
-			inputHeaders:             []string{"Content-Type", "User-Agent", "Accept-Encoding"},
-			expectedCanonicalHeaders: []string{"Content-Type", "User-Agent", "Accept-Encoding"},
-		},
-		{
-			desc:                     "Lowercase headers",
-			inputHeaders:             []string{"content-type", "user-agent", "accept-encoding"},
-			expectedCanonicalHeaders: []string{"Content-Type", "User-Agent", "Accept-Encoding"},
-		},
-		{
-			desc:                     "Mixed case headers",
-			inputHeaders:             []string{"CoNtEnT-tYpE", "uSeR-aGeNt", "aCcEpT-eNcOdInG"},
-			expectedCanonicalHeaders: []string{"Content-Type", "User-Agent", "Accept-Encoding"},
-		},
-	}
-
-	for _, test := range testCases {
-		t.Run(test.desc, func(t *testing.T) {
-			t.Parallel()
-
-			// Create a mock tracer using a no-op tracer from OpenTelemetry
-			mockTracer := noop.NewTracerProvider().Tracer("test")
-
-			// Test capturedRequestHeaders
-			tracer := NewTracer(mockTracer, test.inputHeaders, nil, nil)
-			assert.Equal(t, test.expectedCanonicalHeaders, tracer.capturedRequestHeaders)
-			assert.Nil(t, tracer.capturedResponseHeaders)
-
-			// Test capturedResponseHeaders
-			tracer = NewTracer(mockTracer, nil, test.inputHeaders, nil)
-			assert.Equal(t, test.expectedCanonicalHeaders, tracer.capturedResponseHeaders)
-			assert.Nil(t, tracer.capturedRequestHeaders)
-		})
-	}
 }
 
 // resourceAttributes extracts resource attributes as a map.

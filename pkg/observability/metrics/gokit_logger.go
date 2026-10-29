@@ -1,6 +1,8 @@
-package logs
+package metrics
 
 import (
+	"fmt"
+
 	kitlog "github.com/go-kit/log"
 	"github.com/rs/zerolog"
 )
@@ -11,7 +13,7 @@ func NewGoKitWrapper(logger zerolog.Logger) kitlog.LoggerFunc {
 	}
 
 	return func(args ...any) error {
-		logger.Debug().CallerSkipFrame(2).MsgFunc(msgFunc(args...))
+		logger.Debug().CallerSkipFrame(2).MsgFunc(func() string { return fmt.Sprint(args...) })
 		return nil
 	}
 }

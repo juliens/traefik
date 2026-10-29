@@ -6,7 +6,6 @@ import (
 
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/dynamic/ext"
-	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
 	"google.golang.org/grpc/codes"
@@ -187,7 +186,7 @@ type RouterObservabilityConfig struct {
 	// TraceVerbosity defines the verbosity level of the tracing for this router.
 	// +kubebuilder:validation:Enum=minimal;detailed
 	// +kubebuilder:default=minimal
-	TraceVerbosity otypes.TracingVerbosity `json:"traceVerbosity,omitempty" toml:"traceVerbosity,omitempty" yaml:"traceVerbosity,omitempty" export:"true"`
+	TraceVerbosity types.TracingVerbosity `json:"traceVerbosity,omitempty" toml:"traceVerbosity,omitempty" yaml:"traceVerbosity,omitempty" export:"true"`
 
 	// Metadata holds the metadata for this router.
 	// Metadata cannot be user-defined for now.
@@ -196,7 +195,7 @@ type RouterObservabilityConfig struct {
 
 // SetDefaults Default values for a RouterObservabilityConfig.
 func (r *RouterObservabilityConfig) SetDefaults() {
-	r.TraceVerbosity = otypes.MinimalVerbosity
+	r.TraceVerbosity = types.MinimalVerbosity
 }
 
 // IsMetadataOnly returns whether the observability configuration only holds metadata,
