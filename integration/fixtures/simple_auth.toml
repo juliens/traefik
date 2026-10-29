@@ -33,7 +33,7 @@
   [http.middlewares.authentication.basicAuth]
     users = ["test:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/", "test2:$apr1$d9hr9HBB$4HxwgUir3HP4EsggP/QNo0"]
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.basicauth]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/basicauth"
+  [experimental.localPlugins.basicauth.settings.goVM]
     trusted = true

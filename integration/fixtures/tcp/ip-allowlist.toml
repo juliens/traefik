@@ -57,7 +57,7 @@
   [tcp.middlewares.blocking-ipallowlist.ipAllowList]
     sourceRange = ["127.127.127.127/32"]
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.ipallowlist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+  [experimental.localPlugins.ipallowlist.settings.goVM]
     trusted = true

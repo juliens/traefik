@@ -49,7 +49,7 @@
     [[http.services.error.loadBalancer.servers]]
       url = "http://{{.Server2}}:80"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.errors]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/errors"
+  [experimental.localPlugins.errors.settings.goVM]
     trusted = true

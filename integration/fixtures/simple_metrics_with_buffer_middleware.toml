@@ -70,7 +70,7 @@
     [[http.services.service-resp.loadBalancer.servers]]
       url = "http://{{ .IP }}"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.buffering]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/buffering"
+  [experimental.localPlugins.buffering.settings.goVM]
     trusted = true

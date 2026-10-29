@@ -42,7 +42,7 @@
       [[http.services.acme-solver.loadBalancer.servers]]
         url = "{{ .AcmeSolverURL }}"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.redirectscheme]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectscheme"
+  [experimental.localPlugins.redirectscheme.settings.goVM]
     trusted = true

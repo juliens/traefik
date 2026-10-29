@@ -36,7 +36,32 @@
     defaultRule = "Host(`{{ normalize .Name }}.docker.local`)"
     watch = true
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.basicauth]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/basicauth"
+  [experimental.localPlugins.basicauth.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.digestauth]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/digestauth"
+  [experimental.localPlugins.digestauth.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.headers]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers"
+  [experimental.localPlugins.headers.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.ipallowlist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+  [experimental.localPlugins.ipallowlist.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.ratelimit]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit"
+  [experimental.localPlugins.ratelimit.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.redirectscheme]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectscheme"
+  [experimental.localPlugins.redirectscheme.settings.goVM]
     trusted = true

@@ -1,0 +1,7 @@
+displayName: snippet middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/snippet
+summary: The snippet middleware of Traefik, as a plugin.
+implements:
+  - snippet
+testData: {}

@@ -44,8 +44,3 @@
 [[tls.certificates]]
   certFile = "fixtures/https/snitest.com.cert"
   keyFile = "fixtures/https/snitest.com.key"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

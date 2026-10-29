@@ -1,0 +1,7 @@
+displayName: passTLSClientCert middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/passtlsclientcert
+summary: The passTLSClientCert middleware of Traefik, as a plugin.
+implements:
+  - passTLSClientCert
+testData: {}

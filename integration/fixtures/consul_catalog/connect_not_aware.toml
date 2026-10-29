@@ -25,8 +25,3 @@
     connectAware = false
   [providers.plugin.consulCatalog.endpoint]
     address = "{{ .ConsulAddress }}"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

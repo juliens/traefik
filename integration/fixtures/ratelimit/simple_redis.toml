@@ -43,7 +43,7 @@
       [[http.services.service1.loadBalancer.servers]]
         url = "http://{{.Server1}}:80"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.ratelimit]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit"
+  [experimental.localPlugins.ratelimit.settings.goVM]
     trusted = true

@@ -56,8 +56,3 @@
   [tls.options.default.clientAuth]
     caFiles = ["fixtures/https/clientca/ca1.crt", "fixtures/https/clientca/ca2.crt"]
     clientAuthType = "RequireAndVerifyClientCert"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

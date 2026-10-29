@@ -122,7 +122,17 @@
       [[http.services.service4.loadBalancer.servers]]
         url = "http://{{.WhoamiIP}}:{{.WhoamiPort}}"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.basicauth]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/basicauth"
+  [experimental.localPlugins.basicauth.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.ratelimit]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit"
+  [experimental.localPlugins.ratelimit.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.retry]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/retry"
+  [experimental.localPlugins.retry.settings.goVM]
     trusted = true

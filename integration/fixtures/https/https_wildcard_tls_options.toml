@@ -67,8 +67,3 @@
   [tls.options.default]
     minVersion = "VersionTLS11"
     maxVersion = "VersionTLS11"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

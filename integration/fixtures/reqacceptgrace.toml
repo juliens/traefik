@@ -39,9 +39,3 @@
     [http.services.service.loadBalancer]
       [[http.services.service.loadBalancer.servers]]
         url = "{{ .Server }}"
-
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

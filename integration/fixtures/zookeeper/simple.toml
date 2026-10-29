@@ -21,7 +21,17 @@
   rootKey = "traefik"
   endpoints = ["{{ .ZkAddress }}"]
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.compress]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/compress"
+  [experimental.localPlugins.compress.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.redirectregex]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectregex"
+  [experimental.localPlugins.redirectregex.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.stripprefix]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"
+  [experimental.localPlugins.stripprefix.settings.goVM]
     trusted = true

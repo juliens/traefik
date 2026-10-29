@@ -81,8 +81,3 @@
 [[tls.certificates]]
   certFile = "fixtures/tcp/whoami-c.crt"
   keyFile = "fixtures/tcp/whoami-c.key"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

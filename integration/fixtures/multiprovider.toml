@@ -41,7 +41,17 @@
   [http.middlewares.customheader.headers.customRequestHeaders]
     X-Custom="CustomValue"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.headers]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers"
+  [experimental.localPlugins.headers.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.ipallowlist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+  [experimental.localPlugins.ipallowlist.settings.goVM]
+    trusted = true
+
+[experimental.localPlugins.ipwhitelist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"
+  [experimental.localPlugins.ipwhitelist.settings.goVM]
     trusted = true

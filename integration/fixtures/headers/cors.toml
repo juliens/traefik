@@ -47,7 +47,7 @@
     [[http.services.service1.loadBalancer.servers]]
       url = "http://127.0.0.1:9000"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.headers]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers"
+  [experimental.localPlugins.headers.settings.goVM]
     trusted = true

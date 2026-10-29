@@ -1,0 +1,7 @@
+displayName: errors middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/errors
+summary: The errors middleware of Traefik, as a plugin.
+implements:
+  - errors
+testData: {}

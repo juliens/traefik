@@ -24,8 +24,3 @@
   [providers.plugin.http]
     endpoint = "http://127.0.0.1:9000"
     pollInterval = "100ms"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

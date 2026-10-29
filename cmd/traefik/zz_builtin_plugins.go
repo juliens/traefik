@@ -6,135 +6,234 @@ package main
 
 import (
 	"github.com/traefik/traefik/v3/pkg/plugins"
-	p0 "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-	p1 "github.com/traefik/traefik/v3/plugins/providers/acme"
-	p2 "github.com/traefik/traefik/v3/plugins/providers/consulcatalog"
-	p3 "github.com/traefik/traefik/v3/plugins/providers/docker"
-	p4 "github.com/traefik/traefik/v3/plugins/providers/ecs"
-	p5 "github.com/traefik/traefik/v3/plugins/providers/file"
-	p6 "github.com/traefik/traefik/v3/plugins/providers/http"
-	p7 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd"
-	p8 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway/plugin"
-	p9 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress"
-	p10 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx"
-	p11 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative"
-	p12 "github.com/traefik/traefik/v3/plugins/providers/kv/consul"
-	p13 "github.com/traefik/traefik/v3/plugins/providers/kv/etcd"
-	p14 "github.com/traefik/traefik/v3/plugins/providers/kv/redis"
-	p15 "github.com/traefik/traefik/v3/plugins/providers/kv/zk"
-	p16 "github.com/traefik/traefik/v3/plugins/providers/nomad"
-	p17 "github.com/traefik/traefik/v3/plugins/providers/rest"
-	p18 "github.com/traefik/traefik/v3/plugins/providers/swarm"
+	p0 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/addprefix"
+	p1 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/approot"
+	p2 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/authtlspasscertificatetoupstream"
+	p3 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/basicauth"
+	p4 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/buffering"
+	p5 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/circuitbreaker"
+	p6 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/compress"
+	p7 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/contenttype"
+	p8 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/digestauth"
+	p9 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/encodedcharacters"
+	p10 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/errors"
+	p11 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/forwardauth"
+	p12 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/grpcweb"
+	p13 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers"
+	p14 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/inflightreq"
+	p15 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+	p16 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"
+	p17 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/passtlsclientcert"
+	p18 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit"
+	p19 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectregex"
+	p20 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectscheme"
+	p21 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepath"
+	p22 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepathregex"
+	p23 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/requestheadermodifier"
+	p24 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/requestredirect"
+	p25 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/responseheadermodifier"
+	p26 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/retry"
+	p27 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/rewritetarget"
+	p28 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/snippet"
+	p29 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"
+	p30 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefixregex"
+	p31 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/tap"
+	p32 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/upstreamvhost"
+	p33 "github.com/traefik/traefik/v3/plugins/middlewares/plugin/urlrewrite"
+	p34 "github.com/traefik/traefik/v3/plugins/providers/acme"
+	p35 "github.com/traefik/traefik/v3/plugins/providers/consulcatalog"
+	p36 "github.com/traefik/traefik/v3/plugins/providers/docker"
+	p37 "github.com/traefik/traefik/v3/plugins/providers/ecs"
+	p38 "github.com/traefik/traefik/v3/plugins/providers/file"
+	p39 "github.com/traefik/traefik/v3/plugins/providers/http"
+	p40 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd"
+	p41 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway/plugin"
+	p42 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress"
+	p43 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx"
+	p44 "github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative"
+	p45 "github.com/traefik/traefik/v3/plugins/providers/kv/consul"
+	p46 "github.com/traefik/traefik/v3/plugins/providers/kv/etcd"
+	p47 "github.com/traefik/traefik/v3/plugins/providers/kv/redis"
+	p48 "github.com/traefik/traefik/v3/plugins/providers/kv/zk"
+	p49 "github.com/traefik/traefik/v3/plugins/providers/nomad"
+	p50 "github.com/traefik/traefik/v3/plugins/providers/rest"
+	p51 "github.com/traefik/traefik/v3/plugins/providers/swarm"
 )
 
 // The plugins of Traefik, compiled into Traefik: they run natively, and are found by their module name.
 func init() {
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin", "displayName: Middlewares of Traefik\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin\nsummary: The middlewares of Traefik other than chain, as one plugin.\nimplements:\n  - addPrefix\n  - stripPrefix\n  - stripPrefixRegex\n  - replacePath\n  - replacePathRegex\n  - ipWhiteList\n  - ipAllowList\n  - headers\n  - encodedCharacters\n  - errors\n  - rateLimit\n  - redirectRegex\n  - redirectScheme\n  - basicAuth\n  - digestAuth\n  - forwardAuth\n  - inFlightReq\n  - buffering\n  - circuitBreaker\n  - compress\n  - passTLSClientCert\n  - retry\n  - contentType\n  - grpcWeb\n  - tap\n  - requestHeaderModifier\n  - responseHeaderModifier\n  - requestRedirect\n  - URLRewrite\n  - authTLSPassCertificateToUpstream\n  - snippet\n  - rewriteTarget\n  - upstreamVHost\n  - appRoot\ntestData: {}\n", map[string]any{
-		"NewAddPrefix":                        p0.NewAddPrefix,
-		"NewStripPrefix":                      p0.NewStripPrefix,
-		"NewStripPrefixRegex":                 p0.NewStripPrefixRegex,
-		"NewReplacePath":                      p0.NewReplacePath,
-		"NewReplacePathRegex":                 p0.NewReplacePathRegex,
-		"NewIpWhiteList":                      p0.NewIpWhiteList,
-		"NewIpAllowList":                      p0.NewIpAllowList,
-		"NewHeaders":                          p0.NewHeaders,
-		"NewEncodedCharacters":                p0.NewEncodedCharacters,
-		"NewErrors":                           p0.NewErrors,
-		"NewRateLimit":                        p0.NewRateLimit,
-		"NewRedirectRegex":                    p0.NewRedirectRegex,
-		"NewRedirectScheme":                   p0.NewRedirectScheme,
-		"NewBasicAuth":                        p0.NewBasicAuth,
-		"NewDigestAuth":                       p0.NewDigestAuth,
-		"NewForwardAuth":                      p0.NewForwardAuth,
-		"NewInFlightReq":                      p0.NewInFlightReq,
-		"NewBuffering":                        p0.NewBuffering,
-		"NewCircuitBreaker":                   p0.NewCircuitBreaker,
-		"NewCompress":                         p0.NewCompress,
-		"NewPassTLSClientCert":                p0.NewPassTLSClientCert,
-		"NewRetry":                            p0.NewRetry,
-		"NewContentType":                      p0.NewContentType,
-		"NewGrpcWeb":                          p0.NewGrpcWeb,
-		"NewTap":                              p0.NewTap,
-		"NewRequestHeaderModifier":            p0.NewRequestHeaderModifier,
-		"NewResponseHeaderModifier":           p0.NewResponseHeaderModifier,
-		"NewRequestRedirect":                  p0.NewRequestRedirect,
-		"NewURLRewrite":                       p0.NewURLRewrite,
-		"NewAuthTLSPassCertificateToUpstream": p0.NewAuthTLSPassCertificateToUpstream,
-		"NewSnippet":                          p0.NewSnippet,
-		"NewRewriteTarget":                    p0.NewRewriteTarget,
-		"NewUpstreamVHost":                    p0.NewUpstreamVHost,
-		"NewAppRoot":                          p0.NewAppRoot,
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/addprefix", "displayName: addPrefix middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/addprefix\nsummary: The addPrefix middleware of Traefik, as a plugin.\nimplements:\n  - addPrefix\ntestData: {}\n", map[string]any{
+		"NewAddPrefix": p0.NewAddPrefix,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/approot", "displayName: appRoot middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/approot\nsummary: The appRoot middleware of Traefik, as a plugin.\nimplements:\n  - appRoot\ntestData: {}\n", map[string]any{
+		"NewAppRoot": p1.NewAppRoot,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/authtlspasscertificatetoupstream", "displayName: authTLSPassCertificateToUpstream middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/authtlspasscertificatetoupstream\nsummary: The authTLSPassCertificateToUpstream middleware of Traefik, as a plugin.\nimplements:\n  - authTLSPassCertificateToUpstream\ntestData: {}\n", map[string]any{
+		"NewAuthTLSPassCertificateToUpstream": p2.NewAuthTLSPassCertificateToUpstream,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/basicauth", "displayName: basicAuth middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/basicauth\nsummary: The basicAuth middleware of Traefik, as a plugin.\nimplements:\n  - basicAuth\ntestData: {}\n", map[string]any{
+		"NewBasicAuth": p3.NewBasicAuth,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/buffering", "displayName: buffering middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/buffering\nsummary: The buffering middleware of Traefik, as a plugin.\nimplements:\n  - buffering\ntestData: {}\n", map[string]any{
+		"NewBuffering": p4.NewBuffering,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/circuitbreaker", "displayName: circuitBreaker middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/circuitbreaker\nsummary: The circuitBreaker middleware of Traefik, as a plugin.\nimplements:\n  - circuitBreaker\ntestData: {}\n", map[string]any{
+		"NewCircuitBreaker": p5.NewCircuitBreaker,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/compress", "displayName: compress middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/compress\nsummary: The compress middleware of Traefik, as a plugin.\nimplements:\n  - compress\ntestData: {}\n", map[string]any{
+		"NewCompress": p6.NewCompress,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/contenttype", "displayName: contentType middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/contenttype\nsummary: The contentType middleware of Traefik, as a plugin.\nimplements:\n  - contentType\ntestData: {}\n", map[string]any{
+		"NewContentType": p7.NewContentType,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/digestauth", "displayName: digestAuth middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/digestauth\nsummary: The digestAuth middleware of Traefik, as a plugin.\nimplements:\n  - digestAuth\ntestData: {}\n", map[string]any{
+		"NewDigestAuth": p8.NewDigestAuth,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/encodedcharacters", "displayName: encodedCharacters middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/encodedcharacters\nsummary: The encodedCharacters middleware of Traefik, as a plugin.\nimplements:\n  - encodedCharacters\ntestData: {}\n", map[string]any{
+		"NewEncodedCharacters": p9.NewEncodedCharacters,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/errors", "displayName: errors middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/errors\nsummary: The errors middleware of Traefik, as a plugin.\nimplements:\n  - errors\ntestData: {}\n", map[string]any{
+		"NewErrors": p10.NewErrors,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/forwardauth", "displayName: forwardAuth middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/forwardauth\nsummary: The forwardAuth middleware of Traefik, as a plugin.\nimplements:\n  - forwardAuth\ntestData: {}\n", map[string]any{
+		"NewForwardAuth": p11.NewForwardAuth,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/grpcweb", "displayName: grpcWeb middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/grpcweb\nsummary: The grpcWeb middleware of Traefik, as a plugin.\nimplements:\n  - grpcWeb\ntestData: {}\n", map[string]any{
+		"NewGrpcWeb": p12.NewGrpcWeb,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers", "displayName: headers middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers\nsummary: The headers middleware of Traefik, as a plugin.\nimplements:\n  - headers\ntestData: {}\n", map[string]any{
+		"NewHeaders": p13.NewHeaders,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/inflightreq", "displayName: inFlightReq middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/inflightreq\nsummary: The inFlightReq middleware of Traefik, as a plugin.\nimplements:\n  - inFlightReq\ntestData: {}\n", map[string]any{
+		"NewInFlightReq": p14.NewInFlightReq,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist", "displayName: ipAllowList middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist\nsummary: The ipAllowList middleware of Traefik, as a plugin.\nimplements:\n  - ipAllowList\ntestData: {}\n", map[string]any{
+		"NewIpAllowList": p15.NewIpAllowList,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist", "displayName: ipWhiteList middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist\nsummary: The ipWhiteList middleware of Traefik, as a plugin.\nimplements:\n  - ipWhiteList\ntestData: {}\n", map[string]any{
+		"NewIpWhiteList": p16.NewIpWhiteList,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/passtlsclientcert", "displayName: passTLSClientCert middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/passtlsclientcert\nsummary: The passTLSClientCert middleware of Traefik, as a plugin.\nimplements:\n  - passTLSClientCert\ntestData: {}\n", map[string]any{
+		"NewPassTLSClientCert": p17.NewPassTLSClientCert,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit", "displayName: rateLimit middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit\nsummary: The rateLimit middleware of Traefik, as a plugin.\nimplements:\n  - rateLimit\ntestData: {}\n", map[string]any{
+		"NewRateLimit": p18.NewRateLimit,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectregex", "displayName: redirectRegex middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectregex\nsummary: The redirectRegex middleware of Traefik, as a plugin.\nimplements:\n  - redirectRegex\ntestData: {}\n", map[string]any{
+		"NewRedirectRegex": p19.NewRedirectRegex,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectscheme", "displayName: redirectScheme middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectscheme\nsummary: The redirectScheme middleware of Traefik, as a plugin.\nimplements:\n  - redirectScheme\ntestData: {}\n", map[string]any{
+		"NewRedirectScheme": p20.NewRedirectScheme,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepath", "displayName: replacePath middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepath\nsummary: The replacePath middleware of Traefik, as a plugin.\nimplements:\n  - replacePath\ntestData: {}\n", map[string]any{
+		"NewReplacePath": p21.NewReplacePath,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepathregex", "displayName: replacePathRegex middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepathregex\nsummary: The replacePathRegex middleware of Traefik, as a plugin.\nimplements:\n  - replacePathRegex\ntestData: {}\n", map[string]any{
+		"NewReplacePathRegex": p22.NewReplacePathRegex,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/requestheadermodifier", "displayName: requestHeaderModifier middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/requestheadermodifier\nsummary: The requestHeaderModifier middleware of Traefik, as a plugin.\nimplements:\n  - requestHeaderModifier\ntestData: {}\n", map[string]any{
+		"NewRequestHeaderModifier": p23.NewRequestHeaderModifier,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/requestredirect", "displayName: requestRedirect middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/requestredirect\nsummary: The requestRedirect middleware of Traefik, as a plugin.\nimplements:\n  - requestRedirect\ntestData: {}\n", map[string]any{
+		"NewRequestRedirect": p24.NewRequestRedirect,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/responseheadermodifier", "displayName: responseHeaderModifier middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/responseheadermodifier\nsummary: The responseHeaderModifier middleware of Traefik, as a plugin.\nimplements:\n  - responseHeaderModifier\ntestData: {}\n", map[string]any{
+		"NewResponseHeaderModifier": p25.NewResponseHeaderModifier,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/retry", "displayName: retry middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/retry\nsummary: The retry middleware of Traefik, as a plugin.\nimplements:\n  - retry\ntestData: {}\n", map[string]any{
+		"NewRetry": p26.NewRetry,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/rewritetarget", "displayName: rewriteTarget middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/rewritetarget\nsummary: The rewriteTarget middleware of Traefik, as a plugin.\nimplements:\n  - rewriteTarget\ntestData: {}\n", map[string]any{
+		"NewRewriteTarget": p27.NewRewriteTarget,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/snippet", "displayName: snippet middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/snippet\nsummary: The snippet middleware of Traefik, as a plugin.\nimplements:\n  - snippet\ntestData: {}\n", map[string]any{
+		"NewSnippet": p28.NewSnippet,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix", "displayName: stripPrefix middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix\nsummary: The stripPrefix middleware of Traefik, as a plugin.\nimplements:\n  - stripPrefix\ntestData: {}\n", map[string]any{
+		"NewStripPrefix": p29.NewStripPrefix,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefixregex", "displayName: stripPrefixRegex middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefixregex\nsummary: The stripPrefixRegex middleware of Traefik, as a plugin.\nimplements:\n  - stripPrefixRegex\ntestData: {}\n", map[string]any{
+		"NewStripPrefixRegex": p30.NewStripPrefixRegex,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/tap", "displayName: tap middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/tap\nsummary: The tap middleware of Traefik, as a plugin.\nimplements:\n  - tap\ntestData: {}\n", map[string]any{
+		"NewTap": p31.NewTap,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/upstreamvhost", "displayName: upstreamVHost middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/upstreamvhost\nsummary: The upstreamVHost middleware of Traefik, as a plugin.\nimplements:\n  - upstreamVHost\ntestData: {}\n", map[string]any{
+		"NewUpstreamVHost": p32.NewUpstreamVHost,
+	})
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/urlrewrite", "displayName: URLRewrite middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/urlrewrite\nsummary: The URLRewrite middleware of Traefik, as a plugin.\nimplements:\n  - URLRewrite\ntestData: {}\n", map[string]any{
+		"NewURLRewrite": p33.NewURLRewrite,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/acme", "displayName: ACME provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/acme\nsummary: The ACME (Let's Encrypt) certificate resolver of Traefik, as a plugin. The routers use the name of the plugin as certificate resolver.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p1.CreateConfig,
-		"New":          p1.New,
+		"CreateConfig": p34.CreateConfig,
+		"New":          p34.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/consulcatalog", "displayName: Consul Catalog provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/consulcatalog\nsummary: The Consul Catalog provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p2.CreateConfig,
-		"New":          p2.New,
+		"CreateConfig": p35.CreateConfig,
+		"New":          p35.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/docker", "displayName: Docker provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/docker\nsummary: The Docker provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p3.CreateConfig,
-		"New":          p3.New,
+		"CreateConfig": p36.CreateConfig,
+		"New":          p36.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/ecs", "displayName: AWS ECS provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/ecs\nsummary: The AWS ECS provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p4.CreateConfig,
-		"New":          p4.New,
+		"CreateConfig": p37.CreateConfig,
+		"New":          p37.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/file", "displayName: File provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/file\nsummary: The File provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p5.CreateConfig,
-		"New":          p5.New,
+		"CreateConfig": p38.CreateConfig,
+		"New":          p38.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/http", "displayName: HTTP provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/http\nsummary: The HTTP provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p6.CreateConfig,
-		"New":          p6.New,
+		"CreateConfig": p39.CreateConfig,
+		"New":          p39.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd", "displayName: Kubernetes CRD provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd\nsummary: The Kubernetes CRD provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p7.CreateConfig,
-		"New":          p7.New,
+		"CreateConfig": p40.CreateConfig,
+		"New":          p40.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway", "displayName: Kubernetes Gateway API provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway/plugin\nsummary: The Kubernetes Gateway API provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p8.CreateConfig,
-		"New":          p8.New,
+		"CreateConfig": p41.CreateConfig,
+		"New":          p41.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress", "displayName: Kubernetes Ingress provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress\nsummary: The Kubernetes Ingress provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p9.CreateConfig,
-		"New":          p9.New,
+		"CreateConfig": p42.CreateConfig,
+		"New":          p42.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx", "displayName: Kubernetes Ingress NGINX provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx\nsummary: The Kubernetes Ingress NGINX provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p10.CreateConfig,
-		"New":          p10.New,
+		"CreateConfig": p43.CreateConfig,
+		"New":          p43.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative", "displayName: Knative provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative\nsummary: The Knative provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p11.CreateConfig,
-		"New":          p11.New,
+		"CreateConfig": p44.CreateConfig,
+		"New":          p44.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/consul", "displayName: Consul provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/consul\nsummary: The Consul provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p12.CreateConfig,
-		"New":          p12.New,
+		"CreateConfig": p45.CreateConfig,
+		"New":          p45.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/etcd", "displayName: Etcd provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/etcd\nsummary: The Etcd provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p13.CreateConfig,
-		"New":          p13.New,
+		"CreateConfig": p46.CreateConfig,
+		"New":          p46.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/redis", "displayName: Redis provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/redis\nsummary: The Redis provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p14.CreateConfig,
-		"New":          p14.New,
+		"CreateConfig": p47.CreateConfig,
+		"New":          p47.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/zk", "displayName: ZooKeeper provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/zk\nsummary: The ZooKeeper provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p15.CreateConfig,
-		"New":          p15.New,
+		"CreateConfig": p48.CreateConfig,
+		"New":          p48.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/nomad", "displayName: Nomad provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/nomad\nsummary: The Nomad provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p16.CreateConfig,
-		"New":          p16.New,
+		"CreateConfig": p49.CreateConfig,
+		"New":          p49.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/rest", "displayName: REST provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/rest\nsummary: The REST provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p17.CreateConfig,
-		"New":          p17.New,
+		"CreateConfig": p50.CreateConfig,
+		"New":          p50.New,
 	})
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/swarm", "displayName: Docker Swarm provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/swarm\nsummary: The Docker Swarm provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
-		"CreateConfig": p18.CreateConfig,
-		"New":          p18.New,
+		"CreateConfig": p51.CreateConfig,
+		"New":          p51.New,
 	})
 }

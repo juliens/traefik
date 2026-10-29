@@ -41,7 +41,7 @@
       [[http.services.service1.loadBalancer.servers]]
         url = "http://{{ .WhoamiIP }}:80"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.retry]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/retry"
+  [experimental.localPlugins.retry.settings.goVM]
     trusted = true

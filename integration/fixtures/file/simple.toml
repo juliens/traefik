@@ -48,7 +48,7 @@
       [[http.services.service2.loadBalancer.servers]]
         url = "http://172.17.0.5:80"
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.circuitbreaker]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/circuitbreaker"
+  [experimental.localPlugins.circuitbreaker.settings.goVM]
     trusted = true

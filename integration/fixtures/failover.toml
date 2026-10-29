@@ -56,8 +56,3 @@
         timeout = "0.9s"
       [[http.services.fallback-service.loadBalancer.servers]]
         url = "http://{{ .FallbackServer }}:80"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

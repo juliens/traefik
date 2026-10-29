@@ -38,8 +38,3 @@
   [tls.stores.default.defaultCertificate]
     certFile = """{{ .CertContent }}"""
     keyFile  = """{{ .KeyContent }}"""
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

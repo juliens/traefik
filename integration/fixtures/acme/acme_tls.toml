@@ -64,8 +64,3 @@
   [tls.stores.default.defaultCertificate]
     certFile = "fixtures/acme/ssl/wildcard.crt"
     keyFile = "fixtures/acme/ssl/wildcard.key"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

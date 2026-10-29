@@ -1,0 +1,7 @@
+displayName: redirectScheme middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectscheme
+summary: The redirectScheme middleware of Traefik, as a plugin.
+implements:
+  - redirectScheme
+testData: {}

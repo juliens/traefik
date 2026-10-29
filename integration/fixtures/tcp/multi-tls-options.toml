@@ -62,8 +62,3 @@
   [tls.options.invalid.clientAuth]
     # Missing CA files to have an invalid mTLS configuration.
     clientAuthType = "RequireAndVerifyClientCert"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

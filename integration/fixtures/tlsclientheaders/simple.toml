@@ -44,7 +44,7 @@
     certFile = """{{ .ServerCertContent }}"""
     keyFile  = """{{ .ServerKeyContent }}"""
 
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
+[experimental.localPlugins.passtlsclientcert]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/passtlsclientcert"
+  [experimental.localPlugins.passtlsclientcert.settings.goVM]
     trusted = true

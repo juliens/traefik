@@ -50,8 +50,3 @@
     [http.services.fallback-service.loadBalancer]
       [[http.services.fallback-service.loadBalancer.servers]]
         url = "{{ .FallbackServer }}"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

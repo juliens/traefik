@@ -36,8 +36,3 @@
     [tcp.services.postgres-ssl.loadBalancer]
       [[tcp.services.postgres-ssl.loadBalancer.servers]]
         address = "{{ .PostgresSSLAddr }}"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true

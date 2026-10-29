@@ -42,8 +42,3 @@
   [http.services.wsp1.loadBalancer]
     [[http.services.wsp1.loadBalancer.servers]]
       url = "http://{{.Server1}}:80"
-
-[experimental.localPlugins.middlewares]
-  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin"
-  [experimental.localPlugins.middlewares.settings.goVM]
-    trusted = true
