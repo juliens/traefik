@@ -1,0 +1,7 @@
+displayName: redirectRegex middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectregex
+summary: The redirectRegex middleware of Traefik, as a plugin.
+implements:
+  - redirectRegex
+testData: {}

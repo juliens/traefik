@@ -1,0 +1,7 @@
+displayName: tap middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/tap
+summary: The tap middleware of Traefik, as a plugin.
+implements:
+  - tap
+testData: {}

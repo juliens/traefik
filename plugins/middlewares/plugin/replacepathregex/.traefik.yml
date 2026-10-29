@@ -1,0 +1,7 @@
+displayName: replacePathRegex middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepathregex
+summary: The replacePathRegex middleware of Traefik, as a plugin.
+implements:
+  - replacePathRegex
+testData: {}

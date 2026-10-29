@@ -1,0 +1,7 @@
+displayName: rateLimit middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit
+summary: The rateLimit middleware of Traefik, as a plugin.
+implements:
+  - rateLimit
+testData: {}

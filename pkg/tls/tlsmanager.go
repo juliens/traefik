@@ -223,6 +223,21 @@ func sanitizeDomains(domain types.Domain) ([]string, error) {
 	return cleanDomains, nil
 }
 
+// HasACMETLSCertificates reports whether the store of the ACME TLS-ALPN challenges has certificates:
+// a challenge is in progress, and the ACME-TLS/1 connections are for Traefik.
+func (m *Manager) HasACMETLSCertificates() bool {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	store := m.getStore(ACMETLS1Protocol)
+	if store == nil || store.DynamicCerts == nil {
+		return false
+	}
+
+	certs, _ := store.DynamicCerts.Get().(map[string]*CertificateData)
+	return len(certs) > 0
+}
+
 // Get gets the TLS configuration to use for a given store / configuration.
 func (m *Manager) Get(storeName, configName string) (*tls.Config, error) {
 	m.lock.RLock()

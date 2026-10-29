@@ -14,9 +14,7 @@ const typeName = "Plugin"
 // PluginsBuilder the plugin's builder interface.
 type PluginsBuilder interface {
 	Build(pName string, config map[string]any, middlewareName string) (plugins.Constructor, error)
-	// ImplementsMiddleware reports whether a plugin implements the option of the dynamic configuration (headers, stripPrefix, ...).
-	ImplementsMiddleware(option string) bool
-	// BuildTyped builds the middleware plugin implementing an option of the dynamic configuration.
+	// BuildTyped builds the middleware plugin implementing an option of the dynamic configuration (headers, stripPrefix, ...).
 	BuildTyped(option string, config any, middlewareName string) (plugins.Constructor, error)
 }
 

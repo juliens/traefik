@@ -1,0 +1,7 @@
+displayName: stripPrefix middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix
+summary: The stripPrefix middleware of Traefik, as a plugin.
+implements:
+  - stripPrefix
+testData: {}

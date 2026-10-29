@@ -1,0 +1,7 @@
+displayName: encodedCharacters middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/encodedcharacters
+summary: The encodedCharacters middleware of Traefik, as a plugin.
+implements:
+  - encodedCharacters
+testData: {}

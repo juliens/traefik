@@ -12,8 +12,6 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/static"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	"github.com/traefik/traefik/v3/pkg/ping"
-	acmeprovider "github.com/traefik/traefik/v3/pkg/provider/acme"
-	"github.com/traefik/traefik/v3/pkg/provider/rest"
 	"github.com/traefik/traefik/v3/pkg/types"
 )
 
@@ -37,7 +35,7 @@ func Test_createConfiguration(t *testing.T) {
 					ManualRouting: false,
 				},
 				Providers: &static.Providers{
-					Rest: &rest.Provider{
+					Rest: &static.RestProvider{
 						Insecure: true,
 					},
 				},
@@ -61,7 +59,7 @@ func Test_createConfiguration(t *testing.T) {
 					ManualRouting: true,
 				},
 				Providers: &static.Providers{
-					Rest: &rest.Provider{
+					Rest: &static.RestProvider{
 						Insecure: false,
 					},
 				},
@@ -131,7 +129,7 @@ func Test_createConfiguration(t *testing.T) {
 			desc: "rest_insecure.json",
 			staticCfg: static.Configuration{
 				Providers: &static.Providers{
-					Rest: &rest.Provider{
+					Rest: &static.RestProvider{
 						Insecure: true,
 					},
 				},
@@ -141,7 +139,7 @@ func Test_createConfiguration(t *testing.T) {
 			desc: "rest_secure.json",
 			staticCfg: static.Configuration{
 				Providers: &static.Providers{
-					Rest: &rest.Provider{
+					Rest: &static.RestProvider{
 						Insecure: false,
 					},
 				},
@@ -305,8 +303,8 @@ func Test_createConfiguration(t *testing.T) {
 				},
 				CertificatesResolvers: map[string]static.CertificateResolver{
 					"default": {
-						ACME: &acmeprovider.Configuration{
-							HTTPChallenge: &acmeprovider.HTTPChallenge{
+						ACME: &static.ACMEResolver{
+							HTTPChallenge: &static.ACMEHTTPChallenge{
 								EntryPoint: "web",
 							},
 						},

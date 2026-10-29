@@ -15,20 +15,6 @@ import (
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	"github.com/traefik/traefik/v3/pkg/ping"
 	"github.com/traefik/traefik/v3/pkg/plugins"
-	"github.com/traefik/traefik/v3/pkg/provider/acme"
-	"github.com/traefik/traefik/v3/pkg/provider/consulcatalog"
-	"github.com/traefik/traefik/v3/pkg/provider/docker"
-	"github.com/traefik/traefik/v3/pkg/provider/ecs"
-	"github.com/traefik/traefik/v3/pkg/provider/file"
-	"github.com/traefik/traefik/v3/pkg/provider/http"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/crd"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/gateway"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/ingress"
-	"github.com/traefik/traefik/v3/pkg/provider/kv/consul"
-	"github.com/traefik/traefik/v3/pkg/provider/kv/etcd"
-	"github.com/traefik/traefik/v3/pkg/provider/kv/redis"
-	"github.com/traefik/traefik/v3/pkg/provider/kv/zk"
-	"github.com/traefik/traefik/v3/pkg/provider/rest"
 	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
 )
@@ -595,183 +581,17 @@ func TestDo_staticConfiguration(t *testing.T) {
 		},
 	}
 
-	config.Providers.File = &file.Provider{
-		Directory:                 "file Directory",
-		Watch:                     true,
-		Filename:                  "file Filename",
-		DebugLogGeneratedTemplate: true,
-	}
-
-	config.Providers.Docker = &docker.Provider{
-		ExposedByDefault:   true,
-		Constraints:        `Label("foo", "bar")`,
-		AllowEmptyServices: true,
-		Network:            "MyNetwork",
-		UseBindPortIP:      true,
-		Watch:              true,
-		DefaultRule:        "PathPrefix(`/`)",
-		Endpoint:           "MyEndPoint", TLS: &types.ClientTLS{
-			CA:                 "myCa",
-			Cert:               "mycert.pem",
-			Key:                "mycert.key",
-			InsecureSkipVerify: true,
-		},
-		HTTPClientTimeout: 42,
-	}
-
-	config.Providers.Swarm = &docker.SwarmProvider{
-		ExposedByDefault:   true,
-		Constraints:        `Label("foo", "bar")`,
-		AllowEmptyServices: true,
-		Network:            "MyNetwork",
-		UseBindPortIP:      true,
-		Watch:              true,
-		DefaultRule:        "PathPrefix(`/`)",
-		Endpoint:           "MyEndPoint", TLS: &types.ClientTLS{
-			CA:                 "myCa",
-			Cert:               "mycert.pem",
-			Key:                "mycert.key",
-			InsecureSkipVerify: true,
-		},
-		HTTPClientTimeout: 42,
-		RefreshSeconds:    42,
-	}
-
-	config.Providers.KubernetesIngress = &ingress.Provider{
-		Endpoint:         "MyEndpoint",
-		Token:            "MyToken",
-		CertAuthFilePath: "MyCertAuthPath",
-		Namespaces:       []string{"a", "b"},
-		LabelSelector:    "myLabelSelector",
-		IngressClass:     "MyIngressClass",
-		IngressEndpoint: &ingress.EndpointIngress{
-			IP:               "IP",
-			Hostname:         "Hostname",
-			PublishedService: "PublishedService",
-		},
-		ThrottleDuration: ptypes.Duration(111 * time.Second),
-	}
-
-	config.Providers.KubernetesCRD = &crd.Provider{
-		Endpoint:         "MyEndpoint",
-		Token:            "MyToken",
-		CertAuthFilePath: "MyCertAuthPath",
-		Namespaces:       []string{"a", "b"},
-		LabelSelector:    "myLabelSelector",
-		IngressClass:     "MyIngressClass",
-		ThrottleDuration: ptypes.Duration(111 * time.Second),
-	}
-
-	config.Providers.KubernetesGateway = &gateway.Provider{
-		Endpoint:         "MyEndpoint",
-		Token:            "MyToken",
-		CertAuthFilePath: "MyCertAuthPath",
-		Namespaces:       []string{"a", "b"},
-		LabelSelector:    "myLabelSelector",
-		ThrottleDuration: ptypes.Duration(111 * time.Second),
-	}
-
-	config.Providers.Rest = &rest.Provider{
-		Insecure: true,
-	}
-
-	config.Providers.ConsulCatalog = &consulcatalog.ProviderBuilder{
-		Constraints: `Label("foo", "bar")`,
-		Endpoint: &consulcatalog.EndpointConfig{
-			Address:    "MyAddress",
-			Scheme:     "MyScheme",
-			DataCenter: "MyDatacenter",
-			Token:      "MyToken",
-			TLS: &types.ClientTLS{
-				CA:                 "myCa",
-				Cert:               "mycert.pem",
-				Key:                "mycert.key",
-				InsecureSkipVerify: true,
+	// The configuration of the provider plugins is not exported: it may hold credentials that Traefik cannot find.
+	config.Providers.Plugin = map[string]static.PluginConf{
+		"docker": {
+			"endpoint": "MyEndPoint",
+			"tls": map[string]any{
+				"key": "mycert.key",
 			},
-			HTTPAuth: &consulcatalog.EndpointHTTPAuthConfig{
-				Username: "MyUsername",
-				Password: "MyPassword",
-			},
-			EndpointWaitTime: 42,
 		},
-		Prefix:            "MyPrefix",
-		RefreshInterval:   42,
-		RequireConsistent: true,
-		Stale:             true,
-		Cache:             true,
-		ExposedByDefault:  true,
-		DefaultRule:       "PathPrefix(`/`)",
-		Namespaces:        []string{"ns1", "ns2"},
-	}
-
-	config.Providers.Ecs = &ecs.Provider{
-		Constraints:          `Label("foo", "bar")`,
-		ExposedByDefault:     true,
-		RefreshSeconds:       42,
-		DefaultRule:          "PathPrefix(`/`)",
-		Clusters:             []string{"Cluster1", "Cluster2"},
-		AutoDiscoverClusters: true,
-		ECSAnywhere:          true,
-		Region:               "Awsregion",
-		AccessKeyID:          "AwsAccessKeyID",
-		SecretAccessKey:      "AwsSecretAccessKey",
-	}
-
-	config.Providers.Consul = &consul.ProviderBuilder{
-		RootKey:   "RootKey",
-		Endpoints: nil,
-		Token:     "secret",
-		TLS: &types.ClientTLS{
-			CA:                 "myCa",
-			Cert:               "mycert.pem",
-			Key:                "mycert.key",
-			InsecureSkipVerify: true,
-		},
-		Namespaces: []string{"ns1", "ns2"},
-	}
-
-	config.Providers.Etcd = &etcd.Provider{
-		RootKey:   "RootKey",
-		Endpoints: nil,
-		Username:  "username",
-		Password:  "password",
-		TLS: &types.ClientTLS{
-			CA:                 "myCa",
-			Cert:               "mycert.pem",
-			Key:                "mycert.key",
-			InsecureSkipVerify: true,
-		},
-	}
-
-	config.Providers.ZooKeeper = &zk.Provider{
-		RootKey:   "RootKey",
-		Endpoints: nil,
-		Username:  "username",
-		Password:  "password",
-	}
-
-	config.Providers.Redis = &redis.Provider{
-		RootKey:   "RootKey",
-		Endpoints: nil,
-		Username:  "username",
-		Password:  "password",
-		TLS: &types.ClientTLS{
-			CA:                 "myCa",
-			Cert:               "mycert.pem",
-			Key:                "mycert.key",
-			InsecureSkipVerify: true,
-		},
-	}
-
-	config.Providers.HTTP = &http.Provider{
-		Endpoint:     "Myendpoint",
-		PollInterval: 42,
-		PollTimeout:  42,
-		TLS: &types.ClientTLS{
-			CA:                 "myCa",
-			Cert:               "mycert.pem",
-			Key:                "mycert.key",
-			InsecureSkipVerify: true,
+		"etcd": {
+			"username": "username",
+			"password": "password",
 		},
 	}
 
@@ -915,30 +735,7 @@ func TestDo_staticConfiguration(t *testing.T) {
 
 	config.CertificatesResolvers = map[string]static.CertificateResolver{
 		"CertificateResolver0": {
-			ACME: &acme.Configuration{
-				Email:                "acme Email",
-				CAServer:             "CAServer",
-				CertificatesDuration: 42,
-				PreferredChain:       "foobar",
-				Storage:              "Storage",
-				KeyType:              "MyKeyType",
-				DNSChallenge: &acme.DNSChallenge{
-					Provider:                "DNSProvider",
-					DelayBeforeCheck:        42,
-					Resolvers:               []string{"resolver1", "resolver2"},
-					DisablePropagationCheck: true,
-					Propagation: acme.Propagation{
-						DisableChecks:     true,
-						DisableANSChecks:  true,
-						RequireAllRNS:     true,
-						DelayBeforeChecks: 42,
-					},
-				},
-				HTTPChallenge: &acme.HTTPChallenge{
-					EntryPoint: "MyEntryPoint",
-				},
-				TLSChallenge: &acme.TLSChallenge{},
-			},
+			Tailscale: &struct{}{},
 		},
 	}
 

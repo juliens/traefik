@@ -1,0 +1,7 @@
+displayName: digestAuth middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/digestauth
+summary: The digestAuth middleware of Traefik, as a plugin.
+implements:
+  - digestAuth
+testData: {}

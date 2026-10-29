@@ -1,0 +1,7 @@
+displayName: Kubernetes Gateway API provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway/plugin
+summary: The Kubernetes Gateway API provider of Traefik, as a plugin.
+implements:
+  - kubernetesGateway
+testData: {}

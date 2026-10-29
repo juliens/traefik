@@ -12,12 +12,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// nativePlugin is a plugin compiled into Traefik: it registers itself with RegisterBuiltin.
-// It is built from the same sources and module versions as Traefik, so it shares the packages of Traefik:
+// nativePlugin is a plugin of the plugins module of Traefik that runs natively:
+//   - compiled into Traefik (unless built with -tags nobuiltinplugins), it registers itself with RegisterBuiltin;
+//   - built with -buildmode=plugin (make plugins-so), Traefik opens its shared object.
+//
+// Either way, it is built from the same sources and module versions as Traefik, so it shares the packages of Traefik:
 // its providers send the dynamic.Message of Traefik, and its middlewares take the types of pkg/config/dynamic.
-// It gives its manifest, and its functions (CreateConfig, New, New<Option>).
+// It gives its manifest, and its functions (CreateConfig, New, New<Option>), see cmd/internal/nativeplugins.
 type nativePlugin struct {
-	// source is the module name of the plugin.
+	// source is the module name of a compiled-in plugin, or the path of a shared object.
 	source string
 	lookup func(name string) (any, error)
 }
@@ -29,6 +32,7 @@ var builtinPlugins = map[string]nativePlugin{}
 var builtinManifests = map[string]string{}
 
 // RegisterBuiltin registers a plugin compiled into Traefik, with its manifest and its functions by name.
+// The generated file of cmd/internal/nativeplugins calls it, unless Traefik is built with the nobuiltinplugins build tag.
 func RegisterBuiltin(moduleName, manifest string, functions map[string]any) {
 	builtinManifests[moduleName] = manifest
 	builtinPlugins[moduleName] = nativePlugin{
@@ -51,15 +55,30 @@ func loadBuiltinPlugin(moduleName string) (*nativePlugin, *Manifest, bool, error
 		return nil, nil, false, nil
 	}
 
-	manifest := &Manifest{}
-	if err := yaml.Unmarshal([]byte(builtinManifests[moduleName]), manifest); err != nil {
-		return nil, nil, true, fmt.Errorf("failed to decode the manifest of the plugin %s: %w", moduleName, err)
+	manifest, err := decodeManifest(moduleName, builtinManifests[moduleName])
+	if err != nil {
+		return nil, nil, true, err
 	}
 
 	return &p, manifest, true, nil
 }
 
-// fn returns a function of the plugin.
+// isBuiltin reports whether the plugin with the given module name is compiled into Traefik.
+func isBuiltin(moduleName string) bool {
+	_, ok := builtinPlugins[moduleName]
+	return ok
+}
+
+func decodeManifest(source, content string) (*Manifest, error) {
+	manifest := &Manifest{}
+	if err := yaml.Unmarshal([]byte(content), manifest); err != nil {
+		return nil, fmt.Errorf("failed to decode the manifest of the plugin %s: %w", source, err)
+	}
+
+	return manifest, nil
+}
+
+// fn returns a function of the plugin: a function, or a variable holding a function (the main package of a shared object).
 func (p *nativePlugin) fn(name string) (reflect.Value, error) {
 	sym, err := p.lookup(name)
 	if err != nil {
@@ -67,6 +86,10 @@ func (p *nativePlugin) fn(name string) (reflect.Value, error) {
 	}
 
 	fn := reflect.ValueOf(sym)
+	if fn.Kind() == reflect.Pointer && fn.Elem().Kind() == reflect.Func {
+		fn = fn.Elem()
+	}
+
 	if fn.Kind() != reflect.Func {
 		return reflect.Value{}, fmt.Errorf("%s of the plugin %s is a %T, a function is expected", name, p.source, sym)
 	}
@@ -131,7 +154,7 @@ func (p *nativePlugin) createConfig(config map[string]any) (any, error) {
 		return cfg, nil
 	}
 
-	if err := decodeBuiltinConfig(config, cfg); err != nil {
+	if err := decodePluginConfig(config, cfg); err != nil {
 		return nil, err
 	}
 

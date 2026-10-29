@@ -1,0 +1,7 @@
+displayName: replacePath middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepath
+summary: The replacePath middleware of Traefik, as a plugin.
+implements:
+  - replacePath
+testData: {}

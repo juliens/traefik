@@ -26,7 +26,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/exec"
 	"github.com/testcontainers/testcontainers-go/modules/k3s"
 	"github.com/testcontainers/testcontainers-go/network"
-	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/gateway"
+	"github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

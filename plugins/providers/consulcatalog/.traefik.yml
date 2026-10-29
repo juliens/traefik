@@ -1,0 +1,7 @@
+displayName: Consul Catalog provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/consulcatalog
+summary: The Consul Catalog provider of Traefik, as a plugin.
+implements:
+  - consulCatalog
+testData: {}

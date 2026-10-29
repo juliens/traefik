@@ -6,7 +6,7 @@ on:
       - '*'
     paths:
       - '.github/workflows/test-gateway-api-conformance.yaml'
-      - 'pkg/provider/kubernetes/gateway/**'
+      - 'plugins/providers/kubernetes/gateway/**'
       - 'integration/fixtures/gateway-api-conformance/**'
       - 'integration/gateway_api_conformance_test.go'
       - 'integration/integration_test.go'

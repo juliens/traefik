@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/traefik/traefik/v3/integration/try"
 	"github.com/traefik/traefik/v3/pkg/config/static"
-	"github.com/traefik/traefik/v3/pkg/provider/acme"
 	"github.com/traefik/traefik/v3/pkg/testhelpers"
 	"github.com/traefik/traefik/v3/pkg/types"
 	"k8s.io/utils/strings/slices"
@@ -148,8 +147,8 @@ func (s *AcmeSuite) TestHTTP01Domains() {
 				Main: "traefik.acme.wtf",
 			}},
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 				}},
 			},
 		},
@@ -171,8 +170,8 @@ func (s *AcmeSuite) TestHTTP01StoreDomains() {
 				Main: "traefik.acme.wtf",
 			},
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 				}},
 			},
 		},
@@ -195,8 +194,8 @@ func (s *AcmeSuite) TestHTTP01DomainsInSAN() {
 				SANs: []string{"traefik.acme.wtf"},
 			}},
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 				}},
 			},
 		},
@@ -215,8 +214,8 @@ func (s *AcmeSuite) TestHTTP01OnHostRule() {
 		}},
 		template: templateModel{
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 				}},
 			},
 		},
@@ -242,11 +241,11 @@ func (s *AcmeSuite) TestMultipleResolver() {
 		},
 		template: templateModel{
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 				}},
-				"tchouk": {ACME: &acme.Configuration{
-					TLSChallenge: &acme.TLSChallenge{},
+				"tchouk": {ACME: &static.ACMEResolver{
+					TLSChallenge: &static.ACMETLSChallenge{},
 					KeyType:      "EC256",
 				}},
 			},
@@ -266,8 +265,8 @@ func (s *AcmeSuite) TestHTTP01OnHostRuleECDSA() {
 		}},
 		template: templateModel{
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 					KeyType:       "EC384",
 				}},
 			},
@@ -287,8 +286,8 @@ func (s *AcmeSuite) TestHTTP01OnHostRuleInvalidAlgo() {
 		}},
 		template: templateModel{
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 					KeyType:       "INVALID",
 				}},
 			},
@@ -309,8 +308,8 @@ func (s *AcmeSuite) TestHTTP01OnHostRuleDefaultDynamicCertificatesWithWildcard()
 		}},
 		template: templateModel{
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 				}},
 			},
 		},
@@ -330,8 +329,8 @@ func (s *AcmeSuite) TestHTTP01OnHostRuleDynamicCertificatesWithWildcard() {
 		}},
 		template: templateModel{
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				"default": {ACME: &static.ACMEResolver{
+					HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 				}},
 			},
 		},
@@ -350,8 +349,8 @@ func (s *AcmeSuite) TestTLSALPN01OnHostRuleTCP() {
 		}},
 		template: templateModel{
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					TLSChallenge: &acme.TLSChallenge{},
+				"default": {ACME: &static.ACMEResolver{
+					TLSChallenge: &static.ACMETLSChallenge{},
 				}},
 			},
 		},
@@ -370,8 +369,8 @@ func (s *AcmeSuite) TestTLSALPN01OnHostRule() {
 		}},
 		template: templateModel{
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					TLSChallenge: &acme.TLSChallenge{},
+				"default": {ACME: &static.ACMEResolver{
+					TLSChallenge: &static.ACMETLSChallenge{},
 				}},
 			},
 		},
@@ -393,8 +392,8 @@ func (s *AcmeSuite) TestTLSALPN01Domains() {
 				Main: "traefik.acme.wtf",
 			}},
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					TLSChallenge: &acme.TLSChallenge{},
+				"default": {ACME: &static.ACMEResolver{
+					TLSChallenge: &static.ACMETLSChallenge{},
 				}},
 			},
 		},
@@ -417,8 +416,8 @@ func (s *AcmeSuite) TestTLSALPN01DomainsInSAN() {
 				SANs: []string{"traefik.acme.wtf"},
 			}},
 			Acme: map[string]static.CertificateResolver{
-				"default": {ACME: &acme.Configuration{
-					TLSChallenge: &acme.TLSChallenge{},
+				"default": {ACME: &static.ACMEResolver{
+					TLSChallenge: &static.ACMETLSChallenge{},
 				}},
 			},
 		},
@@ -431,9 +430,9 @@ func (s *AcmeSuite) TestTLSALPN01DomainsInSAN() {
 func (s *AcmeSuite) TestNoValidLetsEncryptServer() {
 	file := s.adaptFile("fixtures/acme/acme_base.toml", templateModel{
 		Acme: map[string]static.CertificateResolver{
-			"default": {ACME: &acme.Configuration{
+			"default": {ACME: &static.ACMEResolver{
 				CAServer:      "http://wrongurl:4001/directory",
-				HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				HTTPChallenge: &static.ACMEHTTPChallenge{EntryPoint: "web"},
 			}},
 		},
 	})

@@ -1,0 +1,7 @@
+displayName: contentType middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/contenttype
+summary: The contentType middleware of Traefik, as a plugin.
+implements:
+  - contentType
+testData: {}

@@ -1,0 +1,7 @@
+displayName: Etcd provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/kv/etcd
+summary: The Etcd provider of Traefik, as a plugin.
+implements:
+  - etcd
+testData: {}

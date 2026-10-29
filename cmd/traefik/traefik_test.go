@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"strings"
@@ -10,12 +9,7 @@ import (
 	"github.com/go-kit/kit/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/config/static"
-	"github.com/traefik/traefik/v3/pkg/plugins"
-	"github.com/traefik/traefik/v3/pkg/provider/docker"
-	"github.com/traefik/traefik/v3/pkg/provider/file"
-	"github.com/traefik/traefik/v3/pkg/safe"
 )
 
 // FooCert is a PEM-encoded TLS cert.
@@ -189,47 +183,4 @@ func TestGetDefaultsEntrypoints(t *testing.T) {
 			assert.ElementsMatch(t, test.expected, actual)
 		})
 	}
-}
-
-type fakeDockerConfig struct {
-	Endpoint string
-}
-
-type fakeDockerProvider struct {
-	name string
-}
-
-func (p *fakeDockerProvider) Init() error { return nil }
-
-func (p *fakeDockerProvider) Provide(_ chan<- dynamic.Message, _ *safe.Pool) error { return nil }
-
-func TestBuildPluginProviders(t *testing.T) {
-	var endpoint string
-	plugins.RegisterBuiltin("example.com/fake/docker", "type: provider\nimport: example.com/fake/docker\nimplements:\n  - docker\n", map[string]any{
-		"CreateConfig": func() *fakeDockerConfig { return &fakeDockerConfig{} },
-		"New": func(_ context.Context, config *fakeDockerConfig, name string) (*fakeDockerProvider, error) {
-			endpoint = config.Endpoint
-			return &fakeDockerProvider{name: name}, nil
-		},
-	})
-
-	pluginBuilder, err := plugins.NewBuilder(nil, nil, nil)
-	require.NoError(t, err)
-
-	conf := static.Providers{
-		Docker: &docker.Provider{Watch: true, Endpoint: "unix:///var/run/docker.sock"},
-		File:   &file.Provider{Filename: "dynamic.yml"},
-	}
-
-	providersConf, pluginProviders, err := buildPluginProviders(conf, pluginBuilder)
-	require.NoError(t, err)
-
-	// The plugin implements the docker option, the file provider of Traefik stays.
-	assert.Nil(t, providersConf.Docker)
-	assert.Equal(t, conf.File, providersConf.File)
-	assert.NotNil(t, conf.Docker)
-
-	require.Len(t, pluginProviders, 1)
-	assert.Equal(t, "docker", pluginProviders[0].option)
-	assert.Equal(t, "unix:///var/run/docker.sock", endpoint)
 }

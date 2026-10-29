@@ -6,7 +6,7 @@ on:
       - '*'
     paths:
       - '.github/workflows/test-knative-conformance.yaml'
-      - 'pkg/provider/kubernetes/knative/**'
+      - 'plugins/providers/kubernetes/knative/**'
       - 'integration/fixtures/knative/**'
       - 'integration/knative_conformance_test.go'
       - 'integration/integration_test.go'

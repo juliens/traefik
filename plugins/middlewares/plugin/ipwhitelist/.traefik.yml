@@ -1,0 +1,7 @@
+displayName: ipWhiteList middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist
+summary: The ipWhiteList middleware of Traefik, as a plugin.
+implements:
+  - ipWhiteList
+testData: {}

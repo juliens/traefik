@@ -1,0 +1,7 @@
+displayName: URLRewrite middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/urlrewrite
+summary: The URLRewrite middleware of Traefik, as a plugin.
+implements:
+  - URLRewrite
+testData: {}

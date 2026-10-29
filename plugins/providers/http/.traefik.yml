@@ -1,0 +1,7 @@
+displayName: HTTP provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/http
+summary: The HTTP provider of Traefik, as a plugin.
+implements:
+  - http
+testData: {}

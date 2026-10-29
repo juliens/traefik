@@ -1,0 +1,7 @@
+displayName: ACME provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/acme
+summary: The ACME (Let's Encrypt) certificate resolver of Traefik, as a plugin. It implements the certificatesResolvers.<name>.acme option.
+implements:
+  - certificatesResolvers.acme
+testData: {}

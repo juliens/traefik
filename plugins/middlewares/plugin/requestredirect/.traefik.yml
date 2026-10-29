@@ -1,0 +1,7 @@
+displayName: requestRedirect middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/requestredirect
+summary: The requestRedirect middleware of Traefik, as a plugin.
+implements:
+  - requestRedirect
+testData: {}

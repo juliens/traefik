@@ -1,0 +1,1038 @@
+package ingress
+
+import (
+	"context"
+	"crypto/sha256"
+	"errors"
+	"fmt"
+	"math"
+	"net"
+	"os"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/cenkalti/backoff/v4"
+	"github.com/rs/zerolog/log"
+	ptypes "github.com/traefik/paerser/types"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/observability/logs"
+	"github.com/traefik/traefik/v3/pkg/provider"
+	"github.com/traefik/traefik/v3/pkg/safe"
+	"github.com/traefik/traefik/v3/pkg/tls"
+	"github.com/traefik/traefik/v3/pkg/types"
+	"github.com/traefik/traefik/v3/plugins/job"
+	"github.com/traefik/traefik/v3/plugins/providers/kubernetes/k8s"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/utils/ptr"
+)
+
+const (
+	annotationKubernetesIngressClass     = "kubernetes.io/ingress.class"
+	traefikDefaultIngressClass           = "traefik"
+	traefikDefaultIngressClassController = "traefik.io/ingress-controller"
+	defaultPathMatcher                   = "PathPrefix"
+)
+
+// Provider holds configurations of the provider.
+type Provider struct {
+	Endpoint                  string              `description:"Kubernetes server endpoint (required for external cluster client)." json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Token                     types.FileOrContent `description:"Kubernetes bearer token (not needed for in-cluster client). It accepts either a token value or a file path to the token." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty" loggable:"false"`
+	CertAuthFilePath          string              `description:"Kubernetes certificate authority file path (not needed for in-cluster client)." json:"certAuthFilePath,omitempty" toml:"certAuthFilePath,omitempty" yaml:"certAuthFilePath,omitempty"`
+	Namespaces                []string            `description:"Kubernetes namespaces." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty" export:"true"`
+	LabelSelector             string              `description:"Kubernetes Ingress label selector to use." json:"labelSelector,omitempty" toml:"labelSelector,omitempty" yaml:"labelSelector,omitempty" export:"true"`
+	IngressClass              string              `description:"Value of kubernetes.io/ingress.class annotation or IngressClass name to watch for." json:"ingressClass,omitempty" toml:"ingressClass,omitempty" yaml:"ingressClass,omitempty" export:"true"`
+	IngressEndpoint           *EndpointIngress    `description:"Kubernetes Ingress Endpoint." json:"ingressEndpoint,omitempty" toml:"ingressEndpoint,omitempty" yaml:"ingressEndpoint,omitempty" export:"true"`
+	ReportNodeInternalIPs     bool                `description:"Report node internal IPs in Ingress status." json:"reportNodeInternalIPs,omitempty" toml:"reportNodeInternalIPs,omitempty" yaml:"reportNodeInternalIPs,omitempty" export:"true"`
+	ThrottleDuration          ptypes.Duration     `description:"Ingress refresh throttle duration" json:"throttleDuration,omitempty" toml:"throttleDuration,omitempty" yaml:"throttleDuration,omitempty" export:"true"`
+	AllowEmptyServices        bool                `description:"Allow creation of services without endpoints." json:"allowEmptyServices,omitempty" toml:"allowEmptyServices,omitempty" yaml:"allowEmptyServices,omitempty" export:"true"`
+	AllowExternalNameServices bool                `description:"Allow ExternalName services." json:"allowExternalNameServices,omitempty" toml:"allowExternalNameServices,omitempty" yaml:"allowExternalNameServices,omitempty" export:"true"`
+	CrossProviderNamespaces   []string            `description:"List of namespaces from which Ingresses or Services are allowed to declare Middlewares, TLSOptions, or ServersTransport references." json:"crossProviderNamespaces,omitempty" toml:"crossProviderNamespaces,omitempty" yaml:"crossProviderNamespaces,omitempty" export:"true"`
+	// Deprecated: please use DisableClusterScopeResources.
+	DisableIngressClassLookup    bool `description:"Disables the lookup of IngressClasses (Deprecated, please use DisableClusterScopeResources)." json:"disableIngressClassLookup,omitempty" toml:"disableIngressClassLookup,omitempty" yaml:"disableIngressClassLookup,omitempty" export:"true"`
+	DisableClusterScopeResources bool `description:"Disables the lookup of cluster scope resources (incompatible with IngressClasses and NodePortLB enabled services)." json:"disableClusterScopeResources,omitempty" toml:"disableClusterScopeResources,omitempty" yaml:"disableClusterScopeResources,omitempty" export:"true"`
+	NativeLBByDefault            bool `description:"Defines whether to use Native Kubernetes load-balancing mode by default." json:"nativeLBByDefault,omitempty" toml:"nativeLBByDefault,omitempty" yaml:"nativeLBByDefault,omitempty" export:"true"`
+	StrictPrefixMatching         bool `description:"Make prefix matching strictly comply with the Kubernetes Ingress specification (path-element-wise matching instead of character-by-character string matching)." json:"strictPrefixMatching,omitempty" toml:"strictPrefixMatching,omitempty" yaml:"strictPrefixMatching,omitempty" export:"true"`
+
+	// The default rule syntax is initialized with the configuration defined by the user with the core.DefaultRuleSyntax option.
+	DefaultRuleSyntax string `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
+
+	routerTransform k8s.RouterTransform
+}
+
+func (p *Provider) SetRouterTransform(routerTransform k8s.RouterTransform) {
+	p.routerTransform = routerTransform
+}
+
+// Init the provider.
+func (p *Provider) Init() error {
+	if p.ReportNodeInternalIPs && p.IngressEndpoint != nil {
+		return errors.New("reportNodeInternalIPs and ingressEndpoint are mutually exclusive")
+	}
+
+	if p.ReportNodeInternalIPs && p.DisableClusterScopeResources {
+		return errors.New("reportNodeInternalIPs and disableClusterScopeResources are mutually exclusive")
+	}
+
+	return nil
+}
+
+// ProviderName is the Kubernetes Ingress provider name.
+const ProviderName = "kubernetes"
+
+// Provide allows the k8s provider to provide configurations to traefik
+// using the given configuration channel.
+func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
+	logger := log.With().Str(logs.ProviderName, ProviderName).Logger()
+	ctxLog := logger.WithContext(context.Background())
+
+	k8sClient, err := p.newK8sClient(ctxLog)
+	if err != nil {
+		return err
+	}
+
+	if p.AllowExternalNameServices {
+		logger.Info().Msg("ExternalName service loading is enabled, please ensure that this is expected (see AllowExternalNameServices option)")
+	}
+
+	if p.CrossProviderNamespaces != nil {
+		logger.Warn().Msgf("Cross-provider Middleware, TLSOption and ServersTransport references are restricted to namespaces %v (see CrossProviderNamespaces option)", p.CrossProviderNamespaces)
+	}
+
+	pool.GoCtx(func(ctxPool context.Context) {
+		operation := func() error {
+			eventsChan, err := k8sClient.WatchAll(p.Namespaces, ctxPool.Done())
+			if err != nil {
+				logger.Error().Err(err).Msg("Error watching kubernetes events")
+				timer := time.NewTimer(1 * time.Second)
+				select {
+				case <-timer.C:
+					return err
+				case <-ctxPool.Done():
+					return nil
+				}
+			}
+
+			throttleDuration := time.Duration(p.ThrottleDuration)
+			throttledChan := throttleEvents(ctxLog, throttleDuration, pool, eventsChan)
+			if throttledChan != nil {
+				eventsChan = throttledChan
+			}
+
+			for {
+				select {
+				case <-ctxPool.Done():
+					return nil
+				case <-eventsChan:
+					// Note that event is the *first* event that came in during this
+					// throttling interval -- if we're hitting our throttle, we may have
+					// dropped events. This is fine, because we don't treat different
+					// event types differently. But if we do in the future, we'll need to
+					// track more information about the dropped events.
+					conf := p.loadConfigurationFromIngresses(ctxLog, k8sClient)
+
+					configurationChan <- dynamic.Message{
+						ProviderName:  ProviderName,
+						Configuration: conf,
+					}
+
+					// If we're throttling, we sleep here for the throttle duration to
+					// enforce that we don't refresh faster than our throttle. time.Sleep
+					// returns immediately if p.ThrottleDuration is 0 (no throttle).
+					time.Sleep(throttleDuration)
+				}
+			}
+		}
+
+		notify := func(err error, time time.Duration) {
+			logger.Error().Err(err).Msgf("Provider error, retrying in %s", time)
+		}
+
+		err := backoff.RetryNotify(job.OperationWithRecover(operation), backoff.WithContext(job.NewBackOff(backoff.NewExponentialBackOff()), ctxPool), notify)
+		if err != nil {
+			logger.Error().Err(err).Msg("Cannot retrieve data")
+		}
+	})
+
+	return nil
+}
+
+func (p *Provider) applyRouterTransform(ctx context.Context, rt *dynamic.Router, ingress *netv1.Ingress) {
+	if p.routerTransform == nil {
+		return
+	}
+
+	err := p.routerTransform.Apply(ctx, rt, ingress)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Apply router transform")
+	}
+}
+
+// EndpointIngress holds the endpoint information for the Kubernetes provider.
+type EndpointIngress struct {
+	IP               string `description:"IP used for Kubernetes Ingress endpoints." json:"ip,omitempty" toml:"ip,omitempty" yaml:"ip,omitempty"`
+	Hostname         string `description:"Hostname used for Kubernetes Ingress endpoints." json:"hostname,omitempty" toml:"hostname,omitempty" yaml:"hostname,omitempty"`
+	PublishedService string `description:"Published Kubernetes Service to copy status from." json:"publishedService,omitempty" toml:"publishedService,omitempty" yaml:"publishedService,omitempty"`
+}
+
+func (p *Provider) newK8sClient(ctx context.Context) (*clientWrapper, error) {
+	_, err := labels.Parse(p.LabelSelector)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ingress label selector: %q", p.LabelSelector)
+	}
+
+	logger := log.Ctx(ctx)
+
+	logger.Info().Msgf("ingress label selector is: %q", p.LabelSelector)
+
+	withEndpoint := ""
+	if p.Endpoint != "" {
+		withEndpoint = fmt.Sprintf(" with endpoint %v", p.Endpoint)
+	}
+
+	var cl *clientWrapper
+	switch {
+	case os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "":
+		logger.Info().Msgf("Creating in-cluster Provider client%s", withEndpoint)
+		cl, err = newInClusterClient(p.Endpoint)
+	case os.Getenv("KUBECONFIG") != "":
+		logger.Info().Msgf("Creating cluster-external Provider client from KUBECONFIG %s", os.Getenv("KUBECONFIG"))
+		cl, err = newExternalClusterClientFromFile(os.Getenv("KUBECONFIG"))
+	default:
+		logger.Info().Msgf("Creating cluster-external Provider client%s", withEndpoint)
+		cl, err = newExternalClusterClient(p.Endpoint, p.CertAuthFilePath, p.Token)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	cl.ingressLabelSelector = p.LabelSelector
+	cl.disableIngressClassInformer = p.DisableIngressClassLookup || p.DisableClusterScopeResources
+	cl.disableClusterScopeInformer = p.DisableClusterScopeResources
+	return cl, nil
+}
+
+func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Client) *dynamic.Configuration {
+	conf := &dynamic.Configuration{
+		HTTP: &dynamic.HTTPConfiguration{
+			Routers:     map[string]*dynamic.Router{},
+			Middlewares: map[string]*dynamic.Middleware{},
+			Services:    map[string]*dynamic.Service{},
+		},
+	}
+
+	var ingressClasses []*netv1.IngressClass
+
+	if !p.DisableIngressClassLookup && !p.DisableClusterScopeResources {
+		ics, err := client.GetIngressClasses()
+		if err != nil {
+			log.Ctx(ctx).Warn().Err(err).Msg("Failed to list ingress classes")
+		}
+
+		if p.IngressClass != "" {
+			ingressClasses = filterIngressClassByName(p.IngressClass, ics)
+		} else {
+			ingressClasses = ics
+		}
+	}
+
+	ingresses := client.GetIngresses()
+
+	var nodeIngressStatus []netv1.IngressLoadBalancerIngress
+	if p.ReportNodeInternalIPs {
+		nodes, _, err := client.GetNodes()
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("Error while getting nodes for ingress status")
+		} else {
+			for _, node := range nodes {
+				for _, address := range node.Status.Addresses {
+					if address.Type == corev1.NodeInternalIP {
+						nodeIngressStatus = append(nodeIngressStatus, netv1.IngressLoadBalancerIngress{IP: address.Address})
+					}
+				}
+			}
+
+			if len(nodeIngressStatus) == 0 {
+				log.Ctx(ctx).Error().Msg("No nodes with internal IP address found for ingress status")
+			}
+		}
+	}
+
+	certConfigs := make(map[string]*tls.CertAndStores)
+	for _, ingress := range ingresses {
+		logger := log.Ctx(ctx).With().Str("ingress", ingress.Name).Str("namespace", ingress.Namespace).Logger()
+		ctxIngress := logger.WithContext(ctx)
+
+		if !p.shouldProcessIngress(ingress, ingressClasses) {
+			continue
+		}
+
+		if err := p.updateIngressStatus(ingress, client, nodeIngressStatus); err != nil {
+			logger.Error().Err(err).Msg("Error while updating ingress status")
+		}
+
+		rtConfig, err := parseRouterConfig(ingress.Annotations)
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to parse annotations")
+			continue
+		}
+
+		// Middlewares and TLS options always contain cross-provider references.
+		if rtConfig != nil && rtConfig.Router != nil && p.CrossProviderNamespaces != nil && !slices.Contains(p.CrossProviderNamespaces, ingress.Namespace) {
+			if len(rtConfig.Router.Middlewares) > 0 {
+				logger.Error().Msgf("Skipping Ingress: cross-provider middleware reference is not allowed from namespace %q", ingress.Namespace)
+				continue
+			}
+
+			if rtConfig.Router.TLS != nil && rtConfig.Router.TLS.Options != "" {
+				logger.Error().Msgf("Skipping Ingress: cross-provider TLS option reference is not allowed from namespace %q", ingress.Namespace)
+				continue
+			}
+		}
+
+		err = getCertificates(ctxIngress, ingress, client, certConfigs)
+		if err != nil {
+			logger.Error().Err(err).Msg("Error configuring TLS")
+		}
+
+		if len(ingress.Spec.Rules) == 0 && ingress.Spec.DefaultBackend != nil {
+			if _, ok := conf.HTTP.Services["default-backend"]; ok {
+				logger.Error().Msg("The default backend already exists.")
+				continue
+			}
+
+			if ingress.Spec.DefaultBackend.Resource != nil {
+				// https://kubernetes.io/docs/concepts/services-networking/ingress/#resource-backend
+				logger.Error().Msg("Resource is not supported for default backend")
+				continue
+			}
+
+			if ingress.Spec.DefaultBackend.Service == nil {
+				logger.Error().Msg("Default backend is missing service definition")
+				continue
+			}
+
+			service, err := p.loadService(client, ingress.Namespace, *ingress.Spec.DefaultBackend)
+			if err != nil {
+				logger.Error().
+					Str("serviceName", ingress.Spec.DefaultBackend.Service.Name).
+					Str("servicePort", ingress.Spec.DefaultBackend.Service.Port.String()).
+					Err(err).
+					Msg("Cannot create service")
+				continue
+			}
+
+			if len(service.LoadBalancer.Servers) == 0 && !p.AllowEmptyServices {
+				logger.Error().
+					Str("serviceName", ingress.Spec.DefaultBackend.Service.Name).
+					Str("servicePort", ingress.Spec.DefaultBackend.Service.Port.String()).
+					Msg("Skipping service: no endpoints found")
+				continue
+			}
+
+			rt := &dynamic.Router{
+				Rule: `PathPrefix("/")`,
+				// "default" stands for the default rule syntax in Traefik v3, i.e. the v3 syntax.
+				RuleSyntax: "default",
+				Priority:   math.MinInt32,
+				Service:    "default-backend",
+				Observability: &dynamic.RouterObservabilityConfig{
+					Metadata: &dynamic.ObservabilityMetadata{
+						Ingress: &dynamic.KubernetesMetadata{
+							Kind:      "Ingress",
+							Namespace: ingress.Namespace,
+							Name:      ingress.Name,
+						},
+					},
+				},
+			}
+
+			if rtConfig != nil && rtConfig.Router != nil {
+				rt.EntryPoints = rtConfig.Router.EntryPoints
+				rt.Middlewares = rtConfig.Router.Middlewares
+				rt.TLS = rtConfig.Router.TLS
+				rt.RespondingTimeouts = rtConfig.Router.RespondingTimeouts
+
+				if rtConfig.Router.Observability != nil {
+					rt.Observability.AccessLogs = rtConfig.Router.Observability.AccessLogs
+					rt.Observability.Metrics = rtConfig.Router.Observability.Metrics
+					rt.Observability.Tracing = rtConfig.Router.Observability.Tracing
+					rt.Observability.TraceVerbosity = rtConfig.Router.Observability.TraceVerbosity
+				}
+			}
+
+			p.applyRouterTransform(ctxIngress, rt, ingress)
+
+			conf.HTTP.Routers["default-router"] = rt
+			conf.HTTP.Services["default-backend"] = service
+		}
+
+		routers := map[string][]*dynamic.Router{}
+
+		for _, rule := range ingress.Spec.Rules {
+			if rule.HTTP == nil {
+				continue
+			}
+
+			for _, pa := range rule.HTTP.Paths {
+				if pa.Backend.Resource != nil {
+					// https://kubernetes.io/docs/concepts/services-networking/ingress/#resource-backend
+					logger.Error().Msg("Resource backends are not supported")
+					continue
+				}
+
+				if pa.Backend.Service == nil {
+					logger.Error().Msg("Missing service definition")
+					continue
+				}
+
+				serviceName := provider.Normalize(ingress.Namespace + "-" + pa.Backend.Service.Name + "-" + portString(pa.Backend.Service.Port))
+
+				if _, exists := conf.HTTP.Services[serviceName]; !exists {
+					service, err := p.loadService(client, ingress.Namespace, pa.Backend)
+					if err != nil {
+						logger.Error().
+							Str("serviceName", pa.Backend.Service.Name).
+							Str("servicePort", pa.Backend.Service.Port.String()).
+							Err(err).
+							Msg("Cannot create service")
+						continue
+					}
+
+					if len(service.LoadBalancer.Servers) == 0 && !p.AllowEmptyServices {
+						logger.Error().
+							Str("serviceName", pa.Backend.Service.Name).
+							Str("servicePort", pa.Backend.Service.Port.String()).
+							Msg("Skipping service: no endpoints found")
+						continue
+					}
+
+					conf.HTTP.Services[serviceName] = service
+				}
+
+				rt, err := p.loadRouter(ingress, rule, pa, rtConfig, serviceName)
+				if err != nil {
+					logger.Error().Err(err).
+						Str("serviceName", pa.Backend.Service.Name).
+						Str("path", pa.Path).
+						Msg("Skipping path.")
+					continue
+				}
+
+				p.applyRouterTransform(ctxIngress, rt, ingress)
+
+				routerKey := strings.TrimPrefix(provider.Normalize(ingress.Namespace+"-"+ingress.Name+"-"+rule.Host+pa.Path), "-")
+
+				routers[routerKey] = append(routers[routerKey], rt)
+			}
+		}
+
+		for routerKey, conflictingRouters := range routers {
+			if len(conflictingRouters) == 1 {
+				conf.HTTP.Routers[routerKey] = conflictingRouters[0]
+				continue
+			}
+
+			logger.Debug().Msgf("Multiple routers are defined with the same key %q, generating hashes to avoid conflicts", routerKey)
+
+			for _, router := range conflictingRouters {
+				key, err := makeRouterKeyWithHash(routerKey, router.Rule)
+				if err != nil {
+					logger.Error().Err(err).Send()
+					continue
+				}
+
+				conf.HTTP.Routers[key] = router
+			}
+		}
+	}
+
+	certs := getTLSConfig(certConfigs)
+	if len(certs) > 0 {
+		conf.TLS = &dynamic.TLSConfiguration{
+			Certificates: certs,
+		}
+	}
+
+	return conf
+}
+
+func (p *Provider) updateIngressStatus(ing *netv1.Ingress, k8sClient Client, nodeIngressStatus []netv1.IngressLoadBalancerIngress) error {
+	if len(nodeIngressStatus) > 0 {
+		return k8sClient.UpdateIngressStatus(ing, nodeIngressStatus)
+	}
+
+	// Only process if an EndpointIngress has been configured.
+	if p.IngressEndpoint == nil {
+		return nil
+	}
+
+	if len(p.IngressEndpoint.PublishedService) == 0 {
+		if len(p.IngressEndpoint.IP) == 0 && len(p.IngressEndpoint.Hostname) == 0 {
+			return errors.New("publishedService or ip or hostname must be defined")
+		}
+
+		return k8sClient.UpdateIngressStatus(ing, []netv1.IngressLoadBalancerIngress{{IP: p.IngressEndpoint.IP, Hostname: p.IngressEndpoint.Hostname}})
+	}
+
+	serviceInfo := strings.Split(p.IngressEndpoint.PublishedService, "/")
+	if len(serviceInfo) != 2 {
+		return fmt.Errorf("invalid publishedService format (expected 'namespace/service' format): %s", p.IngressEndpoint.PublishedService)
+	}
+
+	serviceNamespace, serviceName := serviceInfo[0], serviceInfo[1]
+
+	service, exists, err := k8sClient.GetService(serviceNamespace, serviceName)
+	if err != nil {
+		return fmt.Errorf("cannot get service %s, received error: %w", p.IngressEndpoint.PublishedService, err)
+	}
+
+	if !exists {
+		return fmt.Errorf("missing service: %s", p.IngressEndpoint.PublishedService)
+	}
+
+	var ingressStatus []netv1.IngressLoadBalancerIngress
+
+	switch service.Spec.Type {
+	case corev1.ServiceTypeLoadBalancer:
+		if service.Status.LoadBalancer.Ingress == nil {
+			// service exists, but has no Load Balancer status
+			log.Debug().Msgf("Skipping updating Ingress %s/%s due to service %s having no status set", ing.Namespace, ing.Name, p.IngressEndpoint.PublishedService)
+			return nil
+		}
+
+		ingressStatus, err = convertSlice[netv1.IngressLoadBalancerIngress](service.Status.LoadBalancer.Ingress)
+		if err != nil {
+			return fmt.Errorf("converting ingress loadbalancer status: %w", err)
+		}
+
+	case corev1.ServiceTypeClusterIP:
+		var ports []netv1.IngressPortStatus
+		for _, port := range service.Spec.Ports {
+			ports = append(ports, netv1.IngressPortStatus{
+				Port:     port.Port,
+				Protocol: port.Protocol,
+			})
+		}
+
+		for _, ip := range service.Spec.ExternalIPs {
+			ingressStatus = append(ingressStatus, netv1.IngressLoadBalancerIngress{
+				IP:    ip,
+				Ports: ports,
+			})
+		}
+
+	case corev1.ServiceTypeNodePort:
+		if p.DisableClusterScopeResources {
+			return errors.New("node port service type is not supported when cluster scope resources lookup is disabled")
+		}
+
+		nodes, _, err := k8sClient.GetNodes()
+		if err != nil {
+			return fmt.Errorf("getting nodes: %w", err)
+		}
+
+		var ports []netv1.IngressPortStatus
+		for _, port := range service.Spec.Ports {
+			ports = append(ports, netv1.IngressPortStatus{
+				Port:     port.NodePort,
+				Protocol: port.Protocol,
+			})
+		}
+
+		for _, node := range nodes {
+			for _, address := range node.Status.Addresses {
+				if address.Type == corev1.NodeExternalIP {
+					ingressStatus = append(ingressStatus, netv1.IngressLoadBalancerIngress{
+						IP:    address.Address,
+						Ports: ports,
+					})
+				}
+			}
+		}
+
+	case corev1.ServiceTypeExternalName:
+		ingressStatus = []netv1.IngressLoadBalancerIngress{{
+			Hostname: service.Spec.ExternalName,
+		}}
+
+	default:
+		return fmt.Errorf("unsupported service type: %s", service.Spec.Type)
+	}
+
+	return k8sClient.UpdateIngressStatus(ing, ingressStatus)
+}
+
+func (p *Provider) shouldProcessIngress(ingress *netv1.Ingress, ingressClasses []*netv1.IngressClass) bool {
+	// configuration through the new kubernetes ingressClass
+	if ingress.Spec.IngressClassName != nil {
+		return slices.ContainsFunc(ingressClasses, func(ic *netv1.IngressClass) bool {
+			return *ingress.Spec.IngressClassName == ic.ObjectMeta.Name
+		})
+	}
+
+	return p.IngressClass == ingress.Annotations[annotationKubernetesIngressClass] ||
+		len(p.IngressClass) == 0 && ingress.Annotations[annotationKubernetesIngressClass] == traefikDefaultIngressClass
+}
+
+func (p *Provider) loadService(client Client, namespace string, backend netv1.IngressBackend) (*dynamic.Service, error) {
+	service, exists, err := client.GetService(namespace, backend.Service.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, errors.New("service not found")
+	}
+
+	if !p.AllowExternalNameServices && service.Spec.Type == corev1.ServiceTypeExternalName {
+		return nil, fmt.Errorf("externalName services not allowed: %s/%s", namespace, backend.Service.Name)
+	}
+
+	var portName string
+	var portSpec corev1.ServicePort
+	var match bool
+	for _, p := range service.Spec.Ports {
+		if backend.Service.Port.Number == p.Port || (backend.Service.Port.Name == p.Name && len(p.Name) > 0) {
+			portName = p.Name
+			portSpec = p
+			match = true
+			break
+		}
+	}
+
+	if !match {
+		return nil, errors.New("service port not found")
+	}
+
+	lb := &dynamic.ServersLoadBalancer{}
+	lb.SetDefaults()
+
+	svc := &dynamic.Service{
+		LoadBalancer: lb,
+		Observability: &dynamic.ServiceObservabilityConfig{
+			Metadata: &dynamic.ServiceObservabilityMetadata{
+				Kubernetes: &dynamic.KubernetesServiceMetadata{
+					Namespace: namespace,
+					Name:      backend.Service.Name,
+					Port:      portString(backend.Service.Port),
+				},
+			},
+		},
+	}
+
+	svcConfig, err := parseServiceConfig(service.Annotations)
+	if err != nil {
+		return nil, err
+	}
+
+	nativeLB := p.NativeLBByDefault
+
+	if svcConfig != nil && svcConfig.Service != nil {
+		svc.LoadBalancer.Sticky = svcConfig.Service.Sticky
+
+		if len(svcConfig.Service.Middlewares) > 0 {
+			if p.CrossProviderNamespaces != nil && !slices.Contains(p.CrossProviderNamespaces, namespace) {
+				return nil, fmt.Errorf("cross-provider middleware reference is not allowed from namespace %q", namespace)
+			}
+
+			svc.Middlewares = svcConfig.Service.Middlewares
+		}
+
+		if svcConfig.Service.PassHostHeader != nil {
+			svc.LoadBalancer.PassHostHeader = svcConfig.Service.PassHostHeader
+		}
+
+		if svcConfig.Service.ServersTransport != "" {
+			if p.CrossProviderNamespaces != nil && !slices.Contains(p.CrossProviderNamespaces, namespace) {
+				return nil, fmt.Errorf("cross-provider serversTransport reference is not allowed from namespace %q", namespace)
+			}
+
+			svc.LoadBalancer.ServersTransport = svcConfig.Service.ServersTransport
+		}
+
+		if svcConfig.Service.NativeLB != nil {
+			nativeLB = *svcConfig.Service.NativeLB
+		}
+
+		if svcConfig.Service.NodePortLB && service.Spec.Type == corev1.ServiceTypeNodePort {
+			if p.DisableClusterScopeResources {
+				return nil, errors.New("nodes lookup is disabled")
+			}
+
+			nodes, _, nodesErr := client.GetNodes()
+			if nodesErr != nil {
+				return nil, nodesErr
+			}
+
+			if len(nodes) == 0 {
+				return nil, fmt.Errorf("nodes not found in namespace %s", namespace)
+			}
+
+			protocol := getProtocol(portSpec, portSpec.Name, svcConfig)
+
+			var servers []dynamic.Server
+
+			for _, node := range nodes {
+				for _, addr := range node.Status.Addresses {
+					if addr.Type == corev1.NodeInternalIP {
+						hostPort := net.JoinHostPort(addr.Address, strconv.Itoa(int(portSpec.NodePort)))
+
+						servers = append(servers, dynamic.Server{
+							URL: fmt.Sprintf("%s://%s", protocol, hostPort),
+						})
+					}
+				}
+			}
+
+			if len(servers) == 0 {
+				return nil, fmt.Errorf("no servers were generated for service %s in namespace", backend.Service.Name)
+			}
+
+			svc.LoadBalancer.Servers = servers
+
+			return svc, nil
+		}
+	}
+
+	if service.Spec.Type == corev1.ServiceTypeExternalName {
+		protocol := getProtocol(portSpec, portSpec.Name, svcConfig)
+		hostPort := net.JoinHostPort(service.Spec.ExternalName, strconv.Itoa(int(portSpec.Port)))
+
+		svc.LoadBalancer.Servers = []dynamic.Server{
+			{URL: fmt.Sprintf("%s://%s", protocol, hostPort)},
+		}
+
+		return svc, nil
+	}
+
+	if nativeLB {
+		address, err := getNativeServiceAddress(*service, portSpec)
+		if err != nil {
+			return nil, fmt.Errorf("getting native Kubernetes Service address: %w", err)
+		}
+
+		protocol := getProtocol(portSpec, portSpec.Name, svcConfig)
+		svc.LoadBalancer.Servers = []dynamic.Server{
+			{URL: fmt.Sprintf("%s://%s", protocol, address)},
+		}
+
+		return svc, nil
+	}
+
+	endpointSlices, err := client.GetEndpointSlicesForService(namespace, backend.Service.Name)
+	if err != nil {
+		return nil, fmt.Errorf("getting endpointslices: %w", err)
+	}
+
+	addresses := map[string]struct{}{}
+	for _, endpointSlice := range endpointSlices {
+		var port int32
+		for _, p := range endpointSlice.Ports {
+			if p.Name != nil && portName == *p.Name {
+				port = ptr.Deref(p.Port, 0)
+				break
+			}
+		}
+		if port == 0 {
+			continue
+		}
+
+		protocol := getProtocol(portSpec, portName, svcConfig)
+
+		for _, endpoint := range endpointSlice.Endpoints {
+			// The Serving condition allows to track if the Pod can receive traffic.
+			// It is set to true when the Pod is Ready or Terminating.
+			// From the go documentation, a nil value should be interpreted as "true".
+			if !ptr.Deref(endpoint.Conditions.Serving, true) {
+				continue
+			}
+
+			for _, address := range endpoint.Addresses {
+				if _, ok := addresses[address]; ok {
+					continue
+				}
+
+				addresses[address] = struct{}{}
+				svc.LoadBalancer.Servers = append(svc.LoadBalancer.Servers, dynamic.Server{
+					URL:    fmt.Sprintf("%s://%s", protocol, net.JoinHostPort(address, strconv.Itoa(int(port)))),
+					Fenced: ptr.Deref(endpoint.Conditions.Terminating, false),
+				})
+			}
+		}
+	}
+
+	return svc, nil
+}
+
+func (p *Provider) loadRouter(ingress *netv1.Ingress, rule netv1.IngressRule, pa netv1.HTTPIngressPath, rtConfig *RouterConfig, serviceName string) (*dynamic.Router, error) {
+	rt := &dynamic.Router{
+		Service: serviceName,
+		Observability: &dynamic.RouterObservabilityConfig{
+			Metadata: &dynamic.ObservabilityMetadata{
+				Ingress: &dynamic.KubernetesMetadata{
+					Kind:      "Ingress",
+					Namespace: ingress.Namespace,
+					Name:      ingress.Name,
+				},
+			},
+		},
+	}
+
+	if rtConfig != nil && rtConfig.Router != nil {
+		rt.RuleSyntax = rtConfig.Router.RuleSyntax
+		rt.Priority = rtConfig.Router.Priority
+		rt.EntryPoints = rtConfig.Router.EntryPoints
+		rt.Middlewares = rtConfig.Router.Middlewares
+		rt.TLS = rtConfig.Router.TLS
+		rt.RespondingTimeouts = rtConfig.Router.RespondingTimeouts
+
+		if rtConfig.Router.Observability != nil {
+			rt.Observability.AccessLogs = rtConfig.Router.Observability.AccessLogs
+			rt.Observability.Metrics = rtConfig.Router.Observability.Metrics
+			rt.Observability.Tracing = rtConfig.Router.Observability.Tracing
+			rt.Observability.TraceVerbosity = rtConfig.Router.Observability.TraceVerbosity
+		}
+	}
+
+	var rules []string
+	if len(rule.Host) > 0 {
+		if rt.RuleSyntax == "v2" || (rt.RuleSyntax == "" && p.DefaultRuleSyntax == "v2") {
+			rules = append(rules, buildHostRuleV2(rule.Host))
+		} else {
+			rules = append(rules, fmt.Sprintf("Host(%q)", rule.Host))
+		}
+	}
+
+	if len(pa.Path) > 0 {
+		matcher := defaultPathMatcher
+
+		if pa.PathType == nil || *pa.PathType == "" || *pa.PathType == netv1.PathTypeImplementationSpecific {
+			if rtConfig != nil && rtConfig.Router != nil && rtConfig.Router.PathMatcher != "" {
+				switch rtConfig.Router.PathMatcher {
+				case "Path", "PathPrefix", "PathRegexp":
+				default:
+					return nil, fmt.Errorf("invalid router path matcher %q: must be one of Path, PathPrefix, PathRegexp", rtConfig.Router.PathMatcher)
+				}
+
+				matcher = rtConfig.Router.PathMatcher
+			}
+		} else if *pa.PathType == netv1.PathTypeExact {
+			matcher = "Path"
+		}
+
+		rules = append(rules, buildRule(p.StrictPrefixMatching, matcher, pa.Path))
+	}
+
+	rt.Rule = strings.Join(rules, " && ")
+	return rt, nil
+}
+
+func buildHostRuleV2(host string) string {
+	if strings.HasPrefix(host, "*.") {
+		host = strings.Replace(host, "*.", "{subdomain:[a-zA-Z0-9-]+}.", 1)
+		return fmt.Sprintf("HostRegexp(%q)", host)
+	}
+
+	return fmt.Sprintf("Host(%q)", host)
+}
+
+func getCertificates(ctx context.Context, ingress *netv1.Ingress, k8sClient Client, tlsConfigs map[string]*tls.CertAndStores) error {
+	for _, t := range ingress.Spec.TLS {
+		if t.SecretName == "" {
+			log.Ctx(ctx).Debug().Msg("Skipping TLS sub-section: No secret name provided")
+			continue
+		}
+
+		configKey := ingress.Namespace + "-" + t.SecretName
+		if _, tlsExists := tlsConfigs[configKey]; !tlsExists {
+			secret, exists, err := k8sClient.GetSecret(ingress.Namespace, t.SecretName)
+			if err != nil {
+				return fmt.Errorf("failed to fetch secret %s/%s: %w", ingress.Namespace, t.SecretName, err)
+			}
+			if !exists {
+				return fmt.Errorf("secret %s/%s does not exist", ingress.Namespace, t.SecretName)
+			}
+
+			cert, key, err := getCertificateBlocks(secret, ingress.Namespace, t.SecretName)
+			if err != nil {
+				return err
+			}
+
+			tlsConfigs[configKey] = &tls.CertAndStores{
+				CertFile: types.FileOrContent(cert),
+				KeyFile:  types.FileOrContent(key),
+			}
+		}
+	}
+
+	return nil
+}
+
+func getCertificateBlocks(secret *corev1.Secret, namespace, secretName string) (string, string, error) {
+	var missingEntries []string
+
+	tlsCrtData, tlsCrtExists := secret.Data["tls.crt"]
+	if !tlsCrtExists {
+		missingEntries = append(missingEntries, "tls.crt")
+	}
+
+	tlsKeyData, tlsKeyExists := secret.Data["tls.key"]
+	if !tlsKeyExists {
+		missingEntries = append(missingEntries, "tls.key")
+	}
+
+	if len(missingEntries) > 0 {
+		return "", "", fmt.Errorf("secret %s/%s is missing the following TLS data entries: %s",
+			namespace, secretName, strings.Join(missingEntries, ", "))
+	}
+
+	cert := string(tlsCrtData)
+	if cert == "" {
+		missingEntries = append(missingEntries, "tls.crt")
+	}
+
+	key := string(tlsKeyData)
+	if key == "" {
+		missingEntries = append(missingEntries, "tls.key")
+	}
+
+	if len(missingEntries) > 0 {
+		return "", "", fmt.Errorf("secret %s/%s contains the following empty TLS data entries: %s",
+			namespace, secretName, strings.Join(missingEntries, ", "))
+	}
+
+	return cert, key, nil
+}
+
+func getTLSConfig(tlsConfigs map[string]*tls.CertAndStores) []*tls.CertAndStores {
+	var secretNames []string
+	for secretName := range tlsConfigs {
+		secretNames = append(secretNames, secretName)
+	}
+	sort.Strings(secretNames)
+
+	var configs []*tls.CertAndStores
+	for _, secretName := range secretNames {
+		configs = append(configs, tlsConfigs[secretName])
+	}
+
+	return configs
+}
+
+func getNativeServiceAddress(service corev1.Service, svcPort corev1.ServicePort) (string, error) {
+	if service.Spec.ClusterIP == "None" {
+		return "", fmt.Errorf("no clusterIP on headless service: %s/%s", service.Namespace, service.Name)
+	}
+
+	if service.Spec.ClusterIP == "" {
+		return "", fmt.Errorf("no clusterIP found for service: %s/%s", service.Namespace, service.Name)
+	}
+
+	return net.JoinHostPort(service.Spec.ClusterIP, strconv.Itoa(int(svcPort.Port))), nil
+}
+
+func getProtocol(portSpec corev1.ServicePort, portName string, svcConfig *ServiceConfig) string {
+	if svcConfig != nil && svcConfig.Service != nil && svcConfig.Service.ServersScheme != "" {
+		return svcConfig.Service.ServersScheme
+	}
+
+	protocol := "http"
+	if portSpec.Port == 443 || strings.HasPrefix(portName, "https") {
+		protocol = "https"
+	}
+
+	return protocol
+}
+
+func makeRouterKeyWithHash(key, rule string) (string, error) {
+	h := sha256.New()
+	if _, err := h.Write([]byte(rule)); err != nil {
+		return "", err
+	}
+
+	dupKey := fmt.Sprintf("%s-%.10x", key, h.Sum(nil))
+
+	return dupKey, nil
+}
+
+func buildRule(strictPrefixMatching bool, matcher string, path string) string {
+	// When enabled, strictPrefixMatching ensures that prefix matching follows
+	// the Kubernetes Ingress spec (path-element-wise instead of character-wise).
+	if strictPrefixMatching && matcher == "PathPrefix" {
+		// According to
+		// https://kubernetes.io/docs/concepts/services-networking/ingress/#examples,
+		// "/v12" should not match "/v1".
+		//
+		// Traefik's default PathPrefix matcher performs a character-wise prefix match,
+		// unlike Kubernetes which matches path elements. To mimic Kubernetes behavior,
+		// we will use Path and PathPrefix to replicate element-wise behavior.
+		//
+		// "PathPrefix" in Kubernetes Gateway API is semantically equivalent to the "Prefix" path type in the
+		// Kubernetes Ingress API.
+		return buildStrictPrefixMatchingRule(path)
+	}
+
+	return fmt.Sprintf("%s(%q)", matcher, path)
+}
+
+// buildStrictPrefixMatchingRule is a helper function to build a path prefix rule that matches path prefix split by `/`.
+// For example, the paths `/abc`, `/abc/`, and `/abc/def` would all match the prefix `/abc`,
+// but the path `/abcd` would not. See TestStrictPrefixMatchingRule() for more examples.
+//
+// "PathPrefix" in Kubernetes Gateway API is semantically equivalent to the "Prefix" path type in the
+// Kubernetes Ingress API.
+func buildStrictPrefixMatchingRule(path string) string {
+	if path == "/" {
+		return `PathPrefix("/")`
+	}
+
+	path = strings.TrimSuffix(path, "/")
+	return fmt.Sprintf("(Path(%q) || PathPrefix(%q))", path, fmt.Sprintf("%s/", path))
+}
+
+func throttleEvents(ctx context.Context, throttleDuration time.Duration, pool *safe.Pool, eventsChan <-chan any) chan any {
+	if throttleDuration == 0 {
+		return nil
+	}
+
+	// Create a buffered channel to hold the pending event (if we're delaying processing the event due to throttling).
+	eventsChanBuffered := make(chan any, 1)
+
+	// Run a goroutine that reads events from eventChan and does a
+	// non-blocking write to pendingEvent. This guarantees that writing to
+	// eventChan will never block, and that pendingEvent will have
+	// something in it if there's been an event since we read from that channel.
+	pool.GoCtx(func(ctxPool context.Context) {
+		for {
+			select {
+			case <-ctxPool.Done():
+				return
+			case nextEvent := <-eventsChan:
+				select {
+				case eventsChanBuffered <- nextEvent:
+				default:
+					// We already have an event in eventsChanBuffered, so we'll
+					// do a refresh as soon as our throttle allows us to. It's fine
+					// to drop the event and keep whatever's in the buffer -- we
+					// don't do different things for different events.
+					log.Ctx(ctx).Debug().Msgf("Dropping event kind %T due to throttling", nextEvent)
+				}
+			}
+		}
+	})
+
+	return eventsChanBuffered
+}
+
+func portString(port netv1.ServiceBackendPort) string {
+	if port.Name == "" {
+		return strconv.Itoa(int(port.Number))
+	}
+	return port.Name
+}

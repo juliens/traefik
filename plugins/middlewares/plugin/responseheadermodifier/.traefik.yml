@@ -1,0 +1,7 @@
+displayName: responseHeaderModifier middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/responseheadermodifier
+summary: The responseHeaderModifier middleware of Traefik, as a plugin.
+implements:
+  - responseHeaderModifier
+testData: {}

@@ -19,21 +19,30 @@ echo "# Generating Traefik clientset and deepcopy code ..."
 # recursive grep: pointing it at the repository root makes it pick up unrelated
 # Go trees living in the working directory (git worktrees, local plugins, ...).
 kube::codegen::gen_helpers \
-  --boilerplate "$(dirname "${BASH_SOURCE[0]}")/boilerplate.go.tmpl" \
+  --boilerplate "${CURRENT_DIR}/script/boilerplate.go.tmpl" \
   "${CURRENT_DIR}/pkg"
+
+# The providers are plugins of their own module (plugins/): the generators run from it, as they load its packages.
+cd "${CURRENT_DIR}/plugins"
+
+kube::codegen::gen_helpers \
+  --boilerplate "${CURRENT_DIR}/script/boilerplate.go.tmpl" \
+  "${CURRENT_DIR}/plugins/providers"
 
 kube::codegen::gen_client \
     --with-applyconfig \
     --with-watch \
-    --output-dir "${CURRENT_DIR}/pkg/provider/kubernetes/crd/generated" \
-    --output-pkg "${PROJECT_MODULE}/${MODULE_VERSION}/pkg/provider/kubernetes/crd/generated" \
-    --boilerplate "$(dirname "${BASH_SOURCE[0]}")/boilerplate.go.tmpl" \
-    "${CURRENT_DIR}/pkg/provider/kubernetes/crd"
+    --output-dir "${CURRENT_DIR}/plugins/providers/kubernetes/crd/generated" \
+    --output-pkg "${PROJECT_MODULE}/${MODULE_VERSION}/plugins/providers/kubernetes/crd/generated" \
+    --boilerplate "${CURRENT_DIR}/script/boilerplate.go.tmpl" \
+    "${CURRENT_DIR}/plugins/providers/kubernetes/crd"
 
 echo "# Generating the CRD definitions for the documentation ..."
 controller-gen crd:crdVersions=v1 \
-    paths={./pkg/provider/kubernetes/crd/traefikio/v1alpha1/...} \
-    output:dir=./docs/content/reference/dynamic-configuration/
+    paths={./providers/kubernetes/crd/traefikio/v1alpha1/...} \
+    output:dir="${CURRENT_DIR}/docs/content/reference/dynamic-configuration/"
+
+cd "${CURRENT_DIR}"
 
 echo "# Concatenate the CRD definitions for publication and integration tests ..."
 cat "${CURRENT_DIR}"/docs/content/reference/dynamic-configuration/traefik.io_*.yaml > "${CURRENT_DIR}"/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml

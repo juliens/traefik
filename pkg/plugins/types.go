@@ -65,12 +65,14 @@ type Manifest struct {
 	UseUnsafe     bool           `yaml:"useUnsafe"`
 	TestData      map[string]any `yaml:"testData"`
 
-	// Implements are the options of the configuration that the plugin implements, for a plugin compiled into Traefik:
+	// Implements are the options of the configuration that the plugin implements:
 	//   - for a middleware plugin, options of the dynamic configuration of the middlewares (headers, stripPrefix, ...).
 	//     For each option, the plugin has a New<Option> function (NewHeaders, NewStripPrefix, ...)
-	//     taking the configuration of the option, a pointer to its type in pkg/config/dynamic;
+	//     taking the configuration of the option, a pointer to its type in pkg/config/dynamic.
+	//     Each middleware of Traefik other than chain is such a plugin;
 	//   - for a provider plugin, options of the providers of the static configuration (docker, kubernetesCRD, ...).
-	//     The plugin gets the configuration of the option with CreateConfig and New, as the other provider plugins.
+	//     The plugin gets the configuration of the option with CreateConfig and New, as the other provider plugins:
+	//     the types of these options in pkg/config/static are generated from its configuration (see cmd/internal/nativeplugins).
 	Implements []string `yaml:"implements"`
 }
 

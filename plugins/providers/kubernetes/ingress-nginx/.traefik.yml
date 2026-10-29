@@ -1,0 +1,7 @@
+displayName: Kubernetes Ingress NGINX provider
+type: provider
+import: github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx
+summary: The Kubernetes Ingress NGINX provider of Traefik, as a plugin.
+implements:
+  - kubernetesIngressNGINX
+testData: {}

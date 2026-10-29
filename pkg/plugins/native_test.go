@@ -41,26 +41,17 @@ func (p *builtinProvider) ThrottleDuration() time.Duration {
 	return d
 }
 
-func registerBuiltin(t *testing.T, moduleName, manifest string, functions map[string]any) {
+func registerBuiltinTestPlugins(t *testing.T) {
 	t.Helper()
 
-	RegisterBuiltin(moduleName, manifest, functions)
-
-	t.Cleanup(func() {
-		delete(builtinPlugins, moduleName)
-		delete(builtinManifests, moduleName)
-	})
-}
-
-func TestBuiltinPlugins(t *testing.T) {
-	registerBuiltin(t, "example.com/builtin/provider", "type: provider\nimport: example.com/builtin/provider\n", map[string]any{
+	RegisterBuiltin("example.com/builtin/provider", "type: provider\nimport: example.com/builtin/provider\n", map[string]any{
 		"CreateConfig": func() *builtinProviderConfig { return &builtinProviderConfig{Throttle: "1s"} },
 		"New": func(_ context.Context, config *builtinProviderConfig, name string) (*builtinProvider, error) {
 			return &builtinProvider{config: config, name: name}, nil
 		},
 	})
 
-	registerBuiltin(t, "example.com/builtin/middlewares", "type: middleware\nimport: example.com/builtin/middlewares\nimplements:\n  - addPrefix\n", map[string]any{
+	RegisterBuiltin("example.com/builtin/middlewares", "type: middleware\nimport: example.com/builtin/middlewares\nimplements:\n  - addPrefix\n", map[string]any{
 		"NewAddPrefix": func(_ context.Context, next http.Handler, config *dynamic.AddPrefix, _ string) (http.Handler, error) {
 			return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				req.URL.Path = config.Prefix + req.URL.Path
@@ -69,8 +60,20 @@ func TestBuiltinPlugins(t *testing.T) {
 		},
 	})
 
+	t.Cleanup(func() {
+		delete(builtinPlugins, "example.com/builtin/provider")
+		delete(builtinPlugins, "example.com/builtin/middlewares")
+		delete(builtinManifests, "example.com/builtin/provider")
+		delete(builtinManifests, "example.com/builtin/middlewares")
+	})
+}
+
+func TestBuiltinPlugins(t *testing.T) {
+	registerBuiltinTestPlugins(t)
+
 	builder, err := NewBuilder(nil, nil, map[string]LocalDescriptor{
-		"test": {ModuleName: "example.com/builtin/provider"},
+		"test":        {ModuleName: "example.com/builtin/provider"},
+		"middlewares": {ModuleName: "example.com/builtin/middlewares"},
 	})
 	require.NoError(t, err)
 
@@ -89,10 +92,6 @@ func TestBuiltinPlugins(t *testing.T) {
 	msg := <-configurationChan
 	assert.Equal(t, "plugin-test", msg.ProviderName)
 	assert.Len(t, msg.Configuration.HTTP.Routers, 2)
-
-	// A plugin compiled into Traefik implements its options without a declaration in the static configuration.
-	assert.True(t, builder.ImplementsMiddleware("addPrefix"))
-	assert.False(t, builder.ImplementsMiddleware("stripPrefix"))
 
 	constructor, err := builder.BuildTyped("addPrefix", &dynamic.AddPrefix{Prefix: "/api"}, "prefix")
 	require.NoError(t, err)
@@ -115,19 +114,20 @@ type typedProviderConfig struct {
 
 func TestBuiltinPlugins_typedProvider(t *testing.T) {
 	var got *typedProviderConfig
-	registerBuiltin(t, "example.com/builtin/typed", "type: provider\nimport: example.com/builtin/typed\nimplements:\n  - docker\n", map[string]any{
+	RegisterBuiltin("example.com/builtin/typed", "type: provider\nimport: example.com/builtin/typed\nimplements:\n  - docker\n", map[string]any{
 		"CreateConfig": func() *typedProviderConfig { return &typedProviderConfig{Watch: true, Throttle: "1s"} },
 		"New": func(_ context.Context, config *typedProviderConfig, name string) (*builtinProvider, error) {
 			got = config
 			return &builtinProvider{config: &builtinProviderConfig{Names: config.Names}, name: name}, nil
 		},
 	})
+	t.Cleanup(func() {
+		delete(builtinPlugins, "example.com/builtin/typed")
+		delete(builtinManifests, "example.com/builtin/typed")
+	})
 
-	builder, err := NewBuilder(nil, nil, nil)
+	builder, err := NewBuilder(nil, nil, map[string]LocalDescriptor{"typed": {ModuleName: "example.com/builtin/typed"}})
 	require.NoError(t, err)
-
-	assert.True(t, builder.ImplementsProvider("docker"))
-	assert.False(t, builder.ImplementsProvider("file"))
 
 	// The option set to false in the static configuration must not get the default value of the plugin.
 	config := &struct {
@@ -137,21 +137,32 @@ func TestBuiltinPlugins_typedProvider(t *testing.T) {
 		Ignored  string   `json:"-"`
 	}{Names: []string{"foo"}, Throttle: "2s", Ignored: "bar"}
 
-	prov, err := builder.BuildTypedProvider("docker", config)
+	prov, err := builder.BuildTypedProvider("docker", "docker", config)
 	require.NoError(t, err)
 
 	assert.Equal(t, &typedProviderConfig{Watch: false, Names: []string{"foo"}, Throttle: "2s"}, got)
 	assert.Equal(t, "docker", prov.(*pluginProvider).Provider.(*builtinProvider).name)
 
-	_, err = builder.BuildTypedProvider("file", config)
-	require.ErrorContains(t, err, `no plugin implements the "file" option`)
+	_, err = builder.BuildTypedProvider("file", "file", config)
+	require.ErrorContains(t, err, `the "file" option is a plugin`)
+
+	// A plugin compiled into Traefik implements its options without a declaration in the static configuration.
+	builder, err = NewBuilder(nil, nil, nil)
+	require.NoError(t, err)
+
+	_, err = builder.BuildTypedProvider("docker", "docker", config)
+	require.NoError(t, err)
 }
 
 func TestBuiltinPlugins_wrongTypedConstructor(t *testing.T) {
-	registerBuiltin(t, "example.com/builtin/wrong", "type: middleware\nimport: example.com/builtin/wrong\nimplements:\n  - addPrefix\n", map[string]any{
+	RegisterBuiltin("example.com/builtin/wrong", "type: middleware\nimport: example.com/builtin/wrong\nimplements:\n  - addPrefix\n", map[string]any{
 		"NewAddPrefix": func(_ context.Context, next http.Handler, _ *dynamic.StripPrefix, _ string) (http.Handler, error) {
 			return next, nil
 		},
+	})
+	t.Cleanup(func() {
+		delete(builtinPlugins, "example.com/builtin/wrong")
+		delete(builtinManifests, "example.com/builtin/wrong")
 	})
 
 	_, err := NewBuilder(nil, nil, map[string]LocalDescriptor{"wrong": {ModuleName: "example.com/builtin/wrong"}})

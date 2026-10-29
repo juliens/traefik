@@ -1,0 +1,7 @@
+displayName: upstreamVHost middleware
+type: middleware
+import: github.com/traefik/traefik/v3/plugins/middlewares/plugin/upstreamvhost
+summary: The upstreamVHost middleware of Traefik, as a plugin.
+implements:
+  - upstreamVHost
+testData: {}

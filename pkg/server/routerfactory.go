@@ -47,18 +47,10 @@ type RouterFactory struct {
 func NewRouterFactory(staticConfiguration static.Configuration, managerFactory *service.ManagerFactory, tlsManager *tls.Manager,
 	observabilityMgr *middleware.ObservabilityMgr, pluginBuilder middleware.PluginsBuilder, dialerManager *tcp.DialerManager,
 ) (*RouterFactory, error) {
-	handlesTLSChallenge := false
-	for _, resolver := range staticConfiguration.CertificatesResolvers {
-		if resolver.ACME != nil && resolver.ACME.TLSChallenge != nil {
-			handlesTLSChallenge = true
-			break
-		}
-	}
-
 	allowACMEByPass := map[string]bool{}
 	var entryPointsTCP, entryPointsUDP []string
 	for name, ep := range staticConfiguration.EntryPoints {
-		allowACMEByPass[name] = ep.AllowACMEByPass || !handlesTLSChallenge
+		allowACMEByPass[name] = ep.AllowACMEByPass
 
 		protocol, err := ep.GetProtocol()
 		if err != nil {
@@ -130,8 +122,11 @@ func (f *RouterFactory) CreateRouters(rtConf *runtime.Configuration) (map[string
 	rtTCPManager := tcprouter.NewManager(rtConf, svcTCPManager, middlewaresTCPBuilder, handlersNonTLS, handlersTLS, f.tlsManager, f.providersPrecedence)
 	routersTCP := rtTCPManager.BuildHandlers(ctx, f.entryPointsTCP)
 
+	// The ACME provider is a plugin: Traefik answers the ACME-TLS/1 connections when a TLS-ALPN challenge is in progress,
+	// and gives them to the routers otherwise.
+	handlesTLSChallenge := f.tlsManager != nil && f.tlsManager.HasACMETLSCertificates()
 	for ep, r := range routersTCP {
-		if allowACMEByPass, ok := f.allowACMEByPass[ep]; ok && allowACMEByPass {
+		if allowACMEByPass, ok := f.allowACMEByPass[ep]; (ok && allowACMEByPass) || !handlesTLSChallenge {
 			r.EnableACMETLSPassthrough()
 		}
 	}

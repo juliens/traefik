@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -19,6 +21,7 @@ import (
 	// gets its own table of variables. Traefik already imports expvar and net/http/pprof (pkg/api/debug.go).
 	_ "github.com/traefik/go-vm/stdsyms/sideeffect"
 	"github.com/traefik/go-vm/vm"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
 )
 
@@ -203,9 +206,16 @@ func createGoVMConfig(p *vm.Plugin, config map[string]any) (*vm.Object, error) {
 // decodePluginConfig decodes the configuration with the same options as the Yaegi runtime.
 func decodePluginConfig(config map[string]any, result any) error {
 	cfg := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToSliceHookFunc(","),
+		// The static configuration gives the durations as text ("1s"): ptypes.Duration decodes it.
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToSliceHookFunc(","),
+			emptyStringToStruct,
+			mapstructure.TextUnmarshallerHookFunc(),
+		),
 		WeaklyTypedInput: true,
-		Result:           result,
+		// The options of an embedded struct are at the level of the struct that embeds it, as in the static configuration.
+		Squash: true,
+		Result: result,
 	}
 
 	decoder, err := mapstructure.NewDecoder(cfg)
@@ -218,6 +228,42 @@ func decodePluginConfig(config map[string]any, result any) error {
 	}
 
 	return nil
+}
+
+// emptyStringToStruct decodes an empty value of the configuration as an empty struct or map:
+// the static configuration gives "" for an option without value (tlsChallenge: {}), which enables a feature.
+func emptyStringToStruct(_, to reflect.Type, data any) (any, error) {
+	if str, ok := data.(string); !ok || str != "" {
+		return data, nil
+	}
+
+	for to.Kind() == reflect.Pointer {
+		to = to.Elem()
+	}
+
+	if to.Kind() == reflect.Struct || to.Kind() == reflect.Map {
+		return map[string]any{}, nil
+	}
+
+	return data, nil
+}
+
+// typedConstructor returns the name of the constructor of the middleware implementing the option: NewHeaders for headers.
+func typedConstructor(option string) string {
+	return "New" + strings.ToUpper(option[:1]) + option[1:]
+}
+
+// middlewareOption returns the field of the given option of the dynamic configuration of the middlewares.
+func middlewareOption(option string) (reflect.StructField, bool) {
+	typ := reflect.TypeFor[dynamic.Middleware]()
+	for field := range typ.Fields() {
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		if name == option && field.Type.Kind() == reflect.Pointer && field.Type.Elem().Kind() == reflect.Struct {
+			return field, true
+		}
+	}
+
+	return reflect.StructField{}, false
 }
 
 // goVMError returns the error held by an error result of a plugin call.
