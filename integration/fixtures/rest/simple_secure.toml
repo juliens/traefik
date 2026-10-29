@@ -18,14 +18,14 @@
   [experimental.localPlugins.rest.settings.goVM]
     trusted = true
 
-[providers.plugin.rest]
+[providers.rest]
 
 [experimental.localPlugins.file]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
   [experimental.localPlugins.file.settings.goVM]
     trusted = true
 
-[providers.plugin.file]
+[providers.file]
   filename = "{{ .SelfFilename }}"
 
 [http.routers.rest]

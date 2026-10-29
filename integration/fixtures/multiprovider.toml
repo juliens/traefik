@@ -19,7 +19,7 @@
     [experimental.localPlugins.rest.settings.goVM]
       trusted = true
 
-  [providers.plugin.rest]
+  [providers.rest]
     insecure = true
 
   [experimental.localPlugins.file]
@@ -27,7 +27,7 @@
     [experimental.localPlugins.file.settings.goVM]
       trusted = true
 
-  [providers.plugin.file]
+  [providers.file]
     filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##

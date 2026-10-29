@@ -21,7 +21,7 @@
   [experimental.localPlugins.kubernetesCRD.settings.goVM]
     trusted = true
 
-[providers.plugin.kubernetesCRD]
+[providers.kubernetesCRD]
   allowCrossNamespace = false
   allowExternalNameServices = true
 

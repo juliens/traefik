@@ -18,5 +18,5 @@
   [experimental.localPlugins.kubernetesIngress.settings.goVM]
     trusted = true
 
-[providers.plugin.kubernetesIngress]
+[providers.kubernetesIngress]
   allowEmptyServices = true

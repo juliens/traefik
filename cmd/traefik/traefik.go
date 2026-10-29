@@ -35,6 +35,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/observability/tracing"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	"github.com/traefik/traefik/v3/pkg/plugins"
+	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/pkg/provider/aggregator"
 	"github.com/traefik/traefik/v3/pkg/provider/tailscale"
 	"github.com/traefik/traefik/v3/pkg/provider/traefik"
@@ -253,28 +254,26 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	pluginHandlers := map[string]http.Handler{}
 	var internalPluginHandlers []traefik.PluginHandler
 	var pluginListeners []func(dynamic.Configuration)
-	for name, conf := range staticConfiguration.Providers.Plugin {
-		if pluginBuilder == nil {
-			break
-		}
-
-		p, err := pluginBuilder.BuildProvider(name, conf)
+	if pluginBuilder != nil {
+		pluginProviders, err := buildPluginProviders(staticConfiguration, pluginBuilder)
 		if err != nil {
-			return nil, fmt.Errorf("plugin: failed to build provider: %w", err)
+			return nil, err
 		}
 
-		err = providerAggregator.AddProvider(p)
-		if err != nil {
-			return nil, fmt.Errorf("plugin: failed to add provider: %w", err)
-		}
+		for _, p := range pluginProviders {
+			err := providerAggregator.AddProvider(p)
+			if err != nil {
+				return nil, fmt.Errorf("plugin: failed to add provider: %w", err)
+			}
 
-		if hp, ok := p.(plugins.HandlerProvider); ok {
-			pluginHandlers[hp.Name()] = hp
-			internalPluginHandlers = append(internalPluginHandlers, traefik.PluginHandler{Name: hp.Name(), Rule: hp.InternalRule()})
-		}
+			if hp, ok := p.(plugins.HandlerProvider); ok {
+				pluginHandlers[hp.Name()] = hp
+				internalPluginHandlers = append(internalPluginHandlers, traefik.PluginHandler{Name: hp.Name(), Rule: hp.InternalRule()})
+			}
 
-		if listener, ok := plugins.ConfigurationListener(p); ok {
-			pluginListeners = append(pluginListeners, listener)
+			if listener, ok := plugins.ConfigurationListener(p); ok {
+				pluginListeners = append(pluginListeners, listener)
+			}
 		}
 	}
 
@@ -377,8 +376,15 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 
 	// Certificate Resolvers
 
-	// The ACME resolvers are provider plugins: a router uses the name of the plugin as certificate resolver.
+	// The ACME resolvers are provider plugins: a router uses the name of the resolver,
+	// or of the plugin when it is declared in providers.plugin, as certificate resolver.
 	resolverNames := map[string]struct{}{}
+	for name, resolver := range staticConfiguration.CertificatesResolvers {
+		if resolver.ACME != nil {
+			resolverNames[name] = struct{}{}
+		}
+	}
+
 	for name := range staticConfiguration.Providers.Plugin {
 		resolverNames[name] = struct{}{}
 	}
@@ -449,6 +455,60 @@ func switchRouter(routerFactory *server.RouterFactory, serverEntryPointsTCP serv
 		serverEntryPointsTCP.Switch(routers)
 		serverEntryPointsUDP.Switch(udpRouters)
 	}
+}
+
+// buildPluginProviders builds the provider plugins: the plugins implementing the options of the providers (docker, kubernetesCRD, ...)
+// and the ACME option of the certificates resolvers, and the plugins of providers.plugin.
+func buildPluginProviders(staticConfiguration *static.Configuration, pluginBuilder *plugins.Builder) ([]provider.Provider, error) {
+	var providers []provider.Provider
+
+	options := staticConfiguration.Providers.Options()
+	for _, option := range slices.Sorted(maps.Keys(options)) {
+		if _, exists := staticConfiguration.Providers.Plugin[option]; exists {
+			return nil, fmt.Errorf("plugin: the %q provider is set both as an option of the providers and as a provider plugin", option)
+		}
+
+		p, err := pluginBuilder.BuildTypedProvider(option, option, options[option])
+		if err != nil {
+			return nil, fmt.Errorf("plugin: failed to build provider: %w", err)
+		}
+
+		providers = append(providers, p)
+	}
+
+	// An ACME provider is named after its resolver, which names its service (<resolver>@internal).
+	for _, name := range slices.Sorted(maps.Keys(staticConfiguration.CertificatesResolvers)) {
+		resolver := staticConfiguration.CertificatesResolvers[name]
+		if resolver.ACME == nil {
+			continue
+		}
+
+		if _, exists := options[name]; exists {
+			return nil, fmt.Errorf("plugin: the %q certificates resolver has the name of an option of the providers", name)
+		}
+
+		if _, exists := staticConfiguration.Providers.Plugin[name]; exists {
+			return nil, fmt.Errorf("plugin: the %q certificates resolver has the name of a provider plugin", name)
+		}
+
+		p, err := pluginBuilder.BuildTypedProvider("certificatesResolvers.acme", name, resolver.ACME)
+		if err != nil {
+			return nil, fmt.Errorf("plugin: failed to build the %q certificates resolver: %w", name, err)
+		}
+
+		providers = append(providers, p)
+	}
+
+	for name, conf := range staticConfiguration.Providers.Plugin {
+		p, err := pluginBuilder.BuildProvider(name, conf)
+		if err != nil {
+			return nil, fmt.Errorf("plugin: failed to build provider: %w", err)
+		}
+
+		providers = append(providers, p)
+	}
+
+	return providers, nil
 }
 
 // initTailscaleProviders creates and registers tailscale.Provider instances corresponding to the configured Tailscale certificate resolvers.

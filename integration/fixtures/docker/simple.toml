@@ -19,7 +19,7 @@
     [experimental.localPlugins.docker.settings.goVM]
       trusted = true
 
-  [providers.plugin.docker]
+  [providers.docker]
     endpoint = "{{ .DockerHost }}"
     defaultRule = "{{ .DefaultRule }}"
     exposedByDefault = true

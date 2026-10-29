@@ -19,5 +19,5 @@
     [experimental.localPlugins.rest.settings.goVM]
       trusted = true
 
-  [providers.plugin.rest]
+  [providers.rest]
   insecure = true

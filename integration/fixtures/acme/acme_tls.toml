@@ -13,24 +13,19 @@
 
 {{range $name, $resolvers := .Acme }}
 
-[experimental.localPlugins.{{ $name }}]
-  moduleName = "github.com/traefik/traefik/v3/plugins/providers/acme"
-  [experimental.localPlugins.{{ $name }}.settings.goVM]
-    trusted = true
-
-[providers.plugin.{{ $name }}]
+[certificatesResolvers.{{ $name }}.acme]
   email = "test@traefik.io"
   storage = "/tmp/acme.json"
   keyType = "{{ $resolvers.ACME.KeyType }}"
   caServer = "{{ $resolvers.ACME.CAServer }}"
 
   {{if $resolvers.ACME.HTTPChallenge }}
-  [providers.plugin.{{ $name }}.httpChallenge]
+  [certificatesResolvers.{{ $name }}.acme.httpChallenge]
     entryPoint = "{{ $resolvers.ACME.HTTPChallenge.EntryPoint }}"
   {{end}}
 
   {{if $resolvers.ACME.TLSChallenge }}
-  [providers.plugin.{{ $name }}.tlsChallenge]
+  [certificatesResolvers.{{ $name }}.acme.tlsChallenge]
   {{end}}
 
 {{end}}
@@ -38,12 +33,17 @@
 [api]
   insecure = true
 
+[experimental.localPlugins.acme]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/acme"
+  [experimental.localPlugins.acme.settings.goVM]
+    trusted = true
+
 [experimental.localPlugins.file]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
   [experimental.localPlugins.file.settings.goVM]
     trusted = true
 
-[providers.plugin.file]
+[providers.file]
   filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##

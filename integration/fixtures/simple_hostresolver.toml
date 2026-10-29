@@ -18,7 +18,7 @@
     [experimental.localPlugins.docker.settings.goVM]
       trusted = true
 
-  [providers.plugin.docker]
+  [providers.docker]
     exposedByDefault = false
     defaultRule = "Host(`{{ normalize .Name }}.docker.local`)"
     watch = true

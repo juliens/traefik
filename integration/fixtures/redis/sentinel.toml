@@ -16,11 +16,11 @@
   [experimental.localPlugins.redis.settings.goVM]
     trusted = true
 
-[providers.plugin.redis]
+[providers.redis]
   rootKey = "traefik"
   endpoints = ["{{ .RedisAddress }}"]
 
-[providers.plugin.redis.sentinel]
+[providers.redis.sentinel]
   masterName = "mymaster"
 
 [experimental.localPlugins.compress]

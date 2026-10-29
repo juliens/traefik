@@ -2,4 +2,6 @@ displayName: AWS ECS provider
 type: provider
 import: github.com/traefik/traefik/v3/plugins/providers/ecs
 summary: The AWS ECS provider of Traefik, as a plugin.
+implements:
+  - ecs
 testData: {}

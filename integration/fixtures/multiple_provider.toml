@@ -19,7 +19,7 @@
     [experimental.localPlugins.docker.settings.goVM]
       trusted = true
 
-  [providers.plugin.docker]
+  [providers.docker]
     watch = true
     exposedByDefault = false
 
@@ -28,7 +28,7 @@
     [experimental.localPlugins.file.settings.goVM]
       trusted = true
 
-  [providers.plugin.file]
+  [providers.file]
     filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##

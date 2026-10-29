@@ -17,7 +17,7 @@
   [experimental.localPlugins.consul.settings.goVM]
     trusted = true
 
-[providers.plugin.consul]
+[providers.consul]
   rootKey = "traefik"
   endpoints = ["{{ .ConsulAddress }}"]
 

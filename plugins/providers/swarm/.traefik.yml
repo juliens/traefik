@@ -2,4 +2,6 @@ displayName: Docker Swarm provider
 type: provider
 import: github.com/traefik/traefik/v3/plugins/providers/swarm
 summary: The Docker Swarm provider of Traefik, as a plugin.
+implements:
+  - swarm
 testData: {}

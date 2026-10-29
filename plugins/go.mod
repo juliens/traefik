@@ -295,7 +295,7 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.177 // indirect
 	github.com/tetratelabs/wazero v1.8.0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
-	github.com/traefik/go-vm v0.0.0-20261023231008-c205dac1ac5d // indirect
+	github.com/traefik/go-vm v0.0.0-20261029071802-7078ece90222 // indirect
 	github.com/traefik/traefik/dynamic/ext v0.0.0-00010101000000-000000000000 // indirect
 	github.com/transip/gotransip/v6 v6.28.0 // indirect
 	github.com/ucloud/ucloud-sdk-go v0.22.123 // indirect

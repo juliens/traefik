@@ -2,4 +2,6 @@ displayName: Redis provider
 type: provider
 import: github.com/traefik/traefik/v3/plugins/providers/kv/redis
 summary: The Redis provider of Traefik, as a plugin.
+implements:
+  - redis
 testData: {}

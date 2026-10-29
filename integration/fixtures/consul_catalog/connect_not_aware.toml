@@ -19,9 +19,9 @@
     [experimental.localPlugins.consulCatalog.settings.goVM]
       trusted = true
 
-  [providers.plugin.consulCatalog]
+  [providers.consulCatalog]
     exposedByDefault = false
     refreshInterval = "500ms"
     connectAware = false
-  [providers.plugin.consulCatalog.endpoint]
+  [providers.consulCatalog.endpoint]
     address = "{{ .ConsulAddress }}"

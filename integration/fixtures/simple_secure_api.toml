@@ -17,7 +17,7 @@
   [experimental.localPlugins.file.settings.goVM]
     trusted = true
 
-[providers.plugin.file]
+[providers.file]
   filename = "{{ .SelfFilename }}"
 
 [http.routers.api]

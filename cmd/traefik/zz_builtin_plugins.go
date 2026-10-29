@@ -164,75 +164,75 @@ func init() {
 	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/middlewares/plugin/urlrewrite", "displayName: URLRewrite middleware\ntype: middleware\nimport: github.com/traefik/traefik/v3/plugins/middlewares/plugin/urlrewrite\nsummary: The URLRewrite middleware of Traefik, as a plugin.\nimplements:\n  - URLRewrite\ntestData: {}\n", map[string]any{
 		"NewURLRewrite": p33.NewURLRewrite,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/acme", "displayName: ACME provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/acme\nsummary: The ACME (Let's Encrypt) certificate resolver of Traefik, as a plugin. The routers use the name of the plugin as certificate resolver.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/acme", "displayName: ACME provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/acme\nsummary: The ACME (Let's Encrypt) certificate resolver of Traefik, as a plugin. It implements the certificatesResolvers.<name>.acme option.\nimplements:\n  - certificatesResolvers.acme\ntestData: {}\n", map[string]any{
 		"CreateConfig": p34.CreateConfig,
 		"New":          p34.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/consulcatalog", "displayName: Consul Catalog provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/consulcatalog\nsummary: The Consul Catalog provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/consulcatalog", "displayName: Consul Catalog provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/consulcatalog\nsummary: The Consul Catalog provider of Traefik, as a plugin.\nimplements:\n  - consulCatalog\ntestData: {}\n", map[string]any{
 		"CreateConfig": p35.CreateConfig,
 		"New":          p35.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/docker", "displayName: Docker provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/docker\nsummary: The Docker provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/docker", "displayName: Docker provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/docker\nsummary: The Docker provider of Traefik, as a plugin.\nimplements:\n  - docker\ntestData: {}\n", map[string]any{
 		"CreateConfig": p36.CreateConfig,
 		"New":          p36.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/ecs", "displayName: AWS ECS provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/ecs\nsummary: The AWS ECS provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/ecs", "displayName: AWS ECS provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/ecs\nsummary: The AWS ECS provider of Traefik, as a plugin.\nimplements:\n  - ecs\ntestData: {}\n", map[string]any{
 		"CreateConfig": p37.CreateConfig,
 		"New":          p37.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/file", "displayName: File provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/file\nsummary: The File provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/file", "displayName: File provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/file\nsummary: The File provider of Traefik, as a plugin.\nimplements:\n  - file\ntestData: {}\n", map[string]any{
 		"CreateConfig": p38.CreateConfig,
 		"New":          p38.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/http", "displayName: HTTP provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/http\nsummary: The HTTP provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/http", "displayName: HTTP provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/http\nsummary: The HTTP provider of Traefik, as a plugin.\nimplements:\n  - http\ntestData: {}\n", map[string]any{
 		"CreateConfig": p39.CreateConfig,
 		"New":          p39.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd", "displayName: Kubernetes CRD provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd\nsummary: The Kubernetes CRD provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd", "displayName: Kubernetes CRD provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd\nsummary: The Kubernetes CRD provider of Traefik, as a plugin.\nimplements:\n  - kubernetesCRD\ntestData: {}\n", map[string]any{
 		"CreateConfig": p40.CreateConfig,
 		"New":          p40.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway", "displayName: Kubernetes Gateway API provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway/plugin\nsummary: The Kubernetes Gateway API provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway", "displayName: Kubernetes Gateway API provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway/plugin\nsummary: The Kubernetes Gateway API provider of Traefik, as a plugin.\nimplements:\n  - kubernetesGateway\ntestData: {}\n", map[string]any{
 		"CreateConfig": p41.CreateConfig,
 		"New":          p41.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress", "displayName: Kubernetes Ingress provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress\nsummary: The Kubernetes Ingress provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress", "displayName: Kubernetes Ingress provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress\nsummary: The Kubernetes Ingress provider of Traefik, as a plugin.\nimplements:\n  - kubernetesIngress\ntestData: {}\n", map[string]any{
 		"CreateConfig": p42.CreateConfig,
 		"New":          p42.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx", "displayName: Kubernetes Ingress NGINX provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx\nsummary: The Kubernetes Ingress NGINX provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx", "displayName: Kubernetes Ingress NGINX provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/ingress-nginx\nsummary: The Kubernetes Ingress NGINX provider of Traefik, as a plugin.\nimplements:\n  - kubernetesIngressNGINX\ntestData: {}\n", map[string]any{
 		"CreateConfig": p43.CreateConfig,
 		"New":          p43.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative", "displayName: Knative provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative\nsummary: The Knative provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative", "displayName: Knative provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kubernetes/knative\nsummary: The Knative provider of Traefik, as a plugin.\nimplements:\n  - knative\ntestData: {}\n", map[string]any{
 		"CreateConfig": p44.CreateConfig,
 		"New":          p44.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/consul", "displayName: Consul provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/consul\nsummary: The Consul provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/consul", "displayName: Consul provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/consul\nsummary: The Consul provider of Traefik, as a plugin.\nimplements:\n  - consul\ntestData: {}\n", map[string]any{
 		"CreateConfig": p45.CreateConfig,
 		"New":          p45.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/etcd", "displayName: Etcd provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/etcd\nsummary: The Etcd provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/etcd", "displayName: Etcd provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/etcd\nsummary: The Etcd provider of Traefik, as a plugin.\nimplements:\n  - etcd\ntestData: {}\n", map[string]any{
 		"CreateConfig": p46.CreateConfig,
 		"New":          p46.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/redis", "displayName: Redis provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/redis\nsummary: The Redis provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/redis", "displayName: Redis provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/redis\nsummary: The Redis provider of Traefik, as a plugin.\nimplements:\n  - redis\ntestData: {}\n", map[string]any{
 		"CreateConfig": p47.CreateConfig,
 		"New":          p47.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/zk", "displayName: ZooKeeper provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/zk\nsummary: The ZooKeeper provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/kv/zk", "displayName: ZooKeeper provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/kv/zk\nsummary: The ZooKeeper provider of Traefik, as a plugin.\nimplements:\n  - zooKeeper\ntestData: {}\n", map[string]any{
 		"CreateConfig": p48.CreateConfig,
 		"New":          p48.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/nomad", "displayName: Nomad provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/nomad\nsummary: The Nomad provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/nomad", "displayName: Nomad provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/nomad\nsummary: The Nomad provider of Traefik, as a plugin.\nimplements:\n  - nomad\ntestData: {}\n", map[string]any{
 		"CreateConfig": p49.CreateConfig,
 		"New":          p49.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/rest", "displayName: REST provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/rest\nsummary: The REST provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/rest", "displayName: REST provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/rest\nsummary: The REST provider of Traefik, as a plugin.\nimplements:\n  - rest\ntestData: {}\n", map[string]any{
 		"CreateConfig": p50.CreateConfig,
 		"New":          p50.New,
 	})
-	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/swarm", "displayName: Docker Swarm provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/swarm\nsummary: The Docker Swarm provider of Traefik, as a plugin.\ntestData: {}\n", map[string]any{
+	plugins.RegisterBuiltin("github.com/traefik/traefik/v3/plugins/providers/swarm", "displayName: Docker Swarm provider\ntype: provider\nimport: github.com/traefik/traefik/v3/plugins/providers/swarm\nsummary: The Docker Swarm provider of Traefik, as a plugin.\nimplements:\n  - swarm\ntestData: {}\n", map[string]any{
 		"CreateConfig": p51.CreateConfig,
 		"New":          p51.New,
 	})

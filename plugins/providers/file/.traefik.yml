@@ -2,4 +2,6 @@ displayName: File provider
 type: provider
 import: github.com/traefik/traefik/v3/plugins/providers/file
 summary: The File provider of Traefik, as a plugin.
+implements:
+  - file
 testData: {}

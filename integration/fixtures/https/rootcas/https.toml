@@ -43,7 +43,7 @@ rF7r4gUnKeC7mYIH1zypY7laskopiLFAfe96Kg==
   [experimental.localPlugins.file.settings.goVM]
     trusted = true
 
-[providers.plugin.file]
+[providers.file]
   filename = "{{ .SelfFilename }}"
 
 ## dynamic configuration ##

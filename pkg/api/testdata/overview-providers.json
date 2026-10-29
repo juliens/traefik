@@ -22,9 +22,13 @@
 		}
 	},
 	"providers": [
-		"docker",
-		"file",
-		"test"
+		"Docker",
+		"Swarm",
+		"File",
+		"KubernetesIngress",
+		"KubernetesCRD",
+		"Rest",
+		"plugin-test"
 	],
 	"tcp": {
 		"middlewares": {

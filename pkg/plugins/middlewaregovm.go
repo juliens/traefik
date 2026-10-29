@@ -169,7 +169,7 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 	}
 
 	// A plugin implementing options of the dynamic configuration has a constructor per option (see checkTypedMiddleware).
-	if len(manifest.Implements) > 0 {
+	if manifest.Type == typeMiddleware && len(manifest.Implements) > 0 {
 		return p, nil
 	}
 

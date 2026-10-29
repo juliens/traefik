@@ -17,7 +17,7 @@
   [experimental.localPlugins.etcd.settings.goVM]
     trusted = true
 
-[providers.plugin.etcd]
+[providers.etcd]
   rootKey = "traefik"
   endpoints = ["{{ .EtcdAddress }}"]
 

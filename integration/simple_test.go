@@ -453,11 +453,11 @@ func (s *SimpleSuite) TestNoAuthOnPing() {
 	require.NoError(s.T(), err)
 }
 
-// dockerProviderFlags are the flags of the Docker provider, which is a plugin.
+// dockerProviderFlags are the flags of the Docker provider, implemented by a plugin.
 var dockerProviderFlags = []string{
 	"--experimental.localPlugins.docker.moduleName=github.com/traefik/traefik/v3/plugins/providers/docker",
 	"--experimental.localPlugins.docker.settings.goVM.trusted=true",
-	"--providers.plugin.docker.exposedByDefault=true",
+	"--providers.docker",
 }
 
 func (s *SimpleSuite) TestDefaultEntryPointHTTP() {
@@ -1995,7 +1995,9 @@ func (s *SimpleSuite) TestSimpleOCSP() {
 	serverOCSPResponse, err := ocsp.CreateResponse(serverCert.Leaf, serverCert.Leaf, serverOCSPResponseTmpl, serverCert.PrivateKey.(crypto.Signer))
 	require.NoError(s.T(), err)
 
-	responderCalled := make(chan struct{})
+	// Traefik fetches the staples again when a configuration comes before they are stapled:
+	// the responder may be called more than twice, and must not block, or closing it would wait forever.
+	responderCalled := make(chan struct{}, 100)
 	responder := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		ct := req.Header.Get("Content-Type")
 		assert.Equal(s.T(), "application/ocsp-request", ct)

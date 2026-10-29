@@ -21,7 +21,7 @@
     [experimental.localPlugins.file.settings.goVM]
       trusted = true
 
-  [providers.plugin.file]
+  [providers.file]
     filename = "{{ .SelfFilename }}"
 
   [experimental.localPlugins.docker]
@@ -29,7 +29,7 @@
     [experimental.localPlugins.docker.settings.goVM]
       trusted = true
 
-  [providers.plugin.docker]
+  [providers.docker]
     endpoint = "{{ .DockerHost }}"
     exposedByDefault = false
 

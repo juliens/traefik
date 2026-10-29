@@ -18,6 +18,6 @@
   [experimental.localPlugins.kubernetesIngress.settings.goVM]
     trusted = true
 
-[providers.plugin.kubernetesIngress]
+[providers.kubernetesIngress]
   ingressClass = "traefik-keep"
   disableIngressClassLookup = true

@@ -17,7 +17,7 @@
   [experimental.localPlugins.redis.settings.goVM]
     trusted = true
 
-[providers.plugin.redis]
+[providers.redis]
   rootKey = "traefik"
   endpoints = ["{{ .RedisAddress }}"]
 

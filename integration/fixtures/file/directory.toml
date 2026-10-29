@@ -16,5 +16,5 @@
     [experimental.localPlugins.file.settings.goVM]
       trusted = true
 
-  [providers.plugin.file]
+  [providers.file]
     directory = "fixtures/file/dir/"

@@ -20,7 +20,7 @@
     [experimental.localPlugins.docker.settings.goVM]
       trusted = true
 
-  [providers.plugin.docker]
+  [providers.docker]
 
 [experimental.localPlugins.ipallowlist]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"

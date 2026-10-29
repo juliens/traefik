@@ -106,6 +106,47 @@ func TestBuiltinPlugins(t *testing.T) {
 	assert.Equal(t, "/api/foo", path)
 }
 
+type typedProviderConfig struct {
+	Watch    bool
+	Names    []string
+	Throttle string
+}
+
+func TestBuiltinPlugins_typedProvider(t *testing.T) {
+	var got *typedProviderConfig
+	RegisterBuiltin("example.com/builtin/typed", "type: provider\nimport: example.com/builtin/typed\nimplements:\n  - docker\n", map[string]any{
+		"CreateConfig": func() *typedProviderConfig { return &typedProviderConfig{Watch: true, Throttle: "1s"} },
+		"New": func(_ context.Context, config *typedProviderConfig, name string) (*builtinProvider, error) {
+			got = config
+			return &builtinProvider{config: &builtinProviderConfig{Names: config.Names}, name: name}, nil
+		},
+	})
+	t.Cleanup(func() {
+		delete(builtinPlugins, "example.com/builtin/typed")
+		delete(builtinManifests, "example.com/builtin/typed")
+	})
+
+	builder, err := NewBuilder(nil, nil, map[string]LocalDescriptor{"typed": {ModuleName: "example.com/builtin/typed"}})
+	require.NoError(t, err)
+
+	// The option set to false in the static configuration must not get the default value of the plugin.
+	config := &struct {
+		Watch    bool     `json:"watch,omitempty"`
+		Names    []string `json:"names,omitempty"`
+		Throttle string   `json:"throttle,omitempty"`
+		Ignored  string   `json:"-"`
+	}{Names: []string{"foo"}, Throttle: "2s", Ignored: "bar"}
+
+	prov, err := builder.BuildTypedProvider("docker", "docker", config)
+	require.NoError(t, err)
+
+	assert.Equal(t, &typedProviderConfig{Watch: false, Names: []string{"foo"}, Throttle: "2s"}, got)
+	assert.Equal(t, "docker", prov.(*nativeProvider).Name())
+
+	_, err = builder.BuildTypedProvider("file", "file", config)
+	require.ErrorContains(t, err, `the "file" option is a plugin`)
+}
+
 func TestBuiltinPlugins_wrongTypedConstructor(t *testing.T) {
 	RegisterBuiltin("example.com/builtin/wrong", "type: middleware\nimport: example.com/builtin/wrong\nimplements:\n  - addPrefix\n", map[string]any{
 		"NewAddPrefix": func(_ context.Context, next http.Handler, _ *dynamic.StripPrefix, _ string) (http.Handler, error) {

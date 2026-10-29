@@ -22,6 +22,6 @@
     [experimental.localPlugins.file.settings.goVM]
       trusted = true
 
-  [providers.plugin.file]
+  [providers.file]
     fileName = "{{.DynamicConfFileName}}"
     watch = true

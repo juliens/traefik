@@ -39,6 +39,9 @@ type Builder struct {
 
 	// typedMiddlewareBuilders are the middleware plugins implementing an option of the dynamic configuration, by option.
 	typedMiddlewareBuilders map[string]typedMiddlewareBuilder
+
+	// typedProviderBuilders are the provider plugins implementing an option of the providers of the static configuration, by option.
+	typedProviderBuilders map[string]providerBuilder
 }
 
 // pluginToLoad is a plugin of the static configuration, with its manifest.
@@ -65,6 +68,7 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 		middlewareBuilders:      map[string]middlewareBuilder{},
 		providerBuilders:        map[string]providerBuilder{},
 		typedMiddlewareBuilders: map[string]typedMiddlewareBuilder{},
+		typedProviderBuilders:   map[string]providerBuilder{},
 	}
 
 	var toLoad []*pluginToLoad
@@ -106,6 +110,14 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 
 		case typeProvider:
 			pb.providerBuilders[plugin.name] = plugin.provider
+
+			for _, option := range plugin.manifest.Implements {
+				if _, exists := pb.typedProviderBuilders[option]; exists {
+					return nil, fmt.Errorf("%s: two plugins implement the %q option", plugin.moduleName, option)
+				}
+
+				pb.typedProviderBuilders[option] = plugin.provider
+			}
 		}
 	}
 

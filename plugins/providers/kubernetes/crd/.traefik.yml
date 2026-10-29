@@ -2,4 +2,6 @@ displayName: Kubernetes CRD provider
 type: provider
 import: github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd
 summary: The Kubernetes CRD provider of Traefik, as a plugin.
+implements:
+  - kubernetesCRD
 testData: {}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/go-vm/vm"
@@ -31,16 +33,111 @@ func (b Builder) BuildProvider(pName string, config map[string]any) (provider.Pr
 		return nil, fmt.Errorf("unknown plugin type: %s", pName)
 	}
 
-	if builder.native != nil {
-		return newNativeProvider(builder.native, config, pName)
+	return builder.build(config, pName)
+}
+
+// BuildTypedProvider builds the provider plugin implementing the given option of the static configuration,
+// with its configuration, a pointer to its type in pkg/config/static, and gives it the given name:
+//   - an option of the providers (docker, kubernetesCRD, ...), the provider being named after the option;
+//   - an option of the certificates resolvers (certificatesResolvers.acme), the provider being named after the resolver.
+func (b Builder) BuildTypedProvider(option, name string, config any) (provider.Provider, error) {
+	builder, ok := b.typedProviderBuilders[option]
+	if !ok {
+		return nil, fmt.Errorf("the %q option is a plugin: no plugin of experimental.plugins or experimental.localPlugins implements it", option)
 	}
 
-	return newGoVMProvider(builder.plugin, config, pName)
+	cfg, ok := configValue(reflect.ValueOf(config)).(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("the configuration of the %q option is a %T, a pointer to a struct is expected", option, config)
+	}
+
+	return builder.build(cfg, name)
+}
+
+// configValue returns a configuration of the static configuration as the configuration of a plugin, which the plugin decodes.
+// It keeps all the values, the zero ones included: the plugin has its own default values,
+// so an option set to false must stay false.
+func configValue(v reflect.Value) any {
+	switch v.Kind() {
+	case reflect.Pointer, reflect.Interface:
+		if v.IsNil() {
+			return nil
+		}
+
+		return configValue(v.Elem())
+
+	case reflect.Struct:
+		m := map[string]any{}
+		for field, value := range v.Fields() {
+			name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+			if !field.IsExported() || name == "-" {
+				continue
+			}
+
+			if name == "" {
+				name = field.Name
+			}
+
+			if cv := configValue(value); cv != nil {
+				m[name] = cv
+			}
+		}
+
+		return m
+
+	case reflect.Slice:
+		if v.IsNil() {
+			return nil
+		}
+
+		s := make([]any, v.Len())
+		for i := range v.Len() {
+			s[i] = configValue(v.Index(i))
+		}
+
+		return s
+
+	case reflect.Map:
+		if v.IsNil() {
+			return nil
+		}
+
+		m := map[string]any{}
+		for key, value := range v.Seq2() {
+			m[fmt.Sprint(key.Interface())] = configValue(value)
+		}
+
+		return m
+
+	// The named types (ptypes.Duration, types.FileOrContent, ...) are given as their basic types:
+	// the plugin decodes them into its own types, which go-vm may run as other types.
+	case reflect.Bool:
+		return v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return v.Uint()
+	case reflect.Float32, reflect.Float64:
+		return v.Float()
+	case reflect.String:
+		return v.String()
+
+	default:
+		return v.Interface()
+	}
 }
 
 type providerBuilder struct {
 	plugin *vm.Plugin
 	native *nativePlugin
+}
+
+func (b providerBuilder) build(config map[string]any, pName string) (provider.Provider, error) {
+	if b.native != nil {
+		return newNativeProvider(b.native, config, pName)
+	}
+
+	return newGoVMProvider(b.plugin, config, pName)
 }
 
 // Provider is a plugin's provider wrapper.

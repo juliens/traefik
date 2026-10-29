@@ -3,6 +3,7 @@ package static
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -108,9 +109,10 @@ type SpiffeClientConfig struct {
 }
 
 // CertificateResolver contains the configuration for the different types of certificates resolver.
-// The ACME resolvers are provider plugins: a router uses the name of the plugin as certificate resolver.
+// The ACME option is implemented by a provider plugin.
 type CertificateResolver struct {
-	Tailscale *struct{} `description:"Enables Tailscale certificate resolution." json:"tailscale,omitempty" toml:"tailscale,omitempty" yaml:"tailscale,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	ACME      *ACMEResolver `description:"Enables ACME (Let's Encrypt) automatic SSL." json:"acme,omitempty" toml:"acme,omitempty" yaml:"acme,omitempty" export:"true"`
+	Tailscale *struct{}     `description:"Enables Tailscale certificate resolution." json:"tailscale,omitempty" toml:"tailscale,omitempty" yaml:"tailscale,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
 }
 
 // Global holds the global configuration.
@@ -222,8 +224,45 @@ type Providers struct {
 	ProvidersThrottleDuration ptypes.Duration `description:"Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time." json:"providersThrottleDuration,omitempty" toml:"providersThrottleDuration,omitempty" yaml:"providersThrottleDuration,omitempty" export:"true"`
 	Precedence                []string        `description:"Defines the routing precedence between providers." json:"precedence,omitempty" toml:"precedence,omitempty" yaml:"precedence,omitempty" export:"true"`
 
-	// Plugin holds the provider plugins: the providers of Traefik (file, docker, kubernetesCRD, ...) are plugins.
+	// The providers of Traefik are plugins: each of these options is implemented by the provider plugin declaring it in its manifest.
+	// Their types are generated from the configurations of the plugins (see cmd/internal/nativeplugins).
+	Docker                 *DockerProvider                 `description:"Enables Docker provider." json:"docker,omitempty" toml:"docker,omitempty" yaml:"docker,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Swarm                  *SwarmProvider                  `description:"Enables Docker Swarm provider." json:"swarm,omitempty" toml:"swarm,omitempty" yaml:"swarm,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	File                   *FileProvider                   `description:"Enables File provider." json:"file,omitempty" toml:"file,omitempty" yaml:"file,omitempty" export:"true"`
+	KubernetesIngress      *KubernetesIngressProvider      `description:"Enables Kubernetes Ingress provider." json:"kubernetesIngress,omitempty" toml:"kubernetesIngress,omitempty" yaml:"kubernetesIngress,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	KubernetesIngressNGINX *KubernetesIngressNGINXProvider `description:"Enables Kubernetes Ingress NGINX provider." json:"kubernetesIngressNGINX,omitempty" toml:"kubernetesIngressNGINX,omitempty" yaml:"kubernetesIngressNGINX,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	KubernetesCRD          *KubernetesCRDProvider          `description:"Enables Kubernetes CRD provider." json:"kubernetesCRD,omitempty" toml:"kubernetesCRD,omitempty" yaml:"kubernetesCRD,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	KubernetesGateway      *KubernetesGatewayProvider      `description:"Enables Kubernetes Gateway API provider." json:"kubernetesGateway,omitempty" toml:"kubernetesGateway,omitempty" yaml:"kubernetesGateway,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Knative                *KnativeProvider                `description:"Enables Knative provider." json:"knative,omitempty" toml:"knative,omitempty" yaml:"knative,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Rest                   *RestProvider                   `description:"Enables Rest provider." json:"rest,omitempty" toml:"rest,omitempty" yaml:"rest,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	ConsulCatalog          *ConsulCatalogProvider          `description:"Enables Consul Catalog provider." json:"consulCatalog,omitempty" toml:"consulCatalog,omitempty" yaml:"consulCatalog,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Nomad                  *NomadProvider                  `description:"Enables Nomad provider." json:"nomad,omitempty" toml:"nomad,omitempty" yaml:"nomad,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Ecs                    *EcsProvider                    `description:"Enables AWS ECS provider." json:"ecs,omitempty" toml:"ecs,omitempty" yaml:"ecs,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Consul                 *ConsulProvider                 `description:"Enables Consul provider." json:"consul,omitempty" toml:"consul,omitempty" yaml:"consul,omitempty" label:"allowEmpty" file:"allowEmpty"  export:"true"`
+	Etcd                   *EtcdProvider                   `description:"Enables Etcd provider." json:"etcd,omitempty" toml:"etcd,omitempty" yaml:"etcd,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	ZooKeeper              *ZooKeeperProvider              `description:"Enables ZooKeeper provider." json:"zooKeeper,omitempty" toml:"zooKeeper,omitempty" yaml:"zooKeeper,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Redis                  *RedisProvider                  `description:"Enables Redis provider." json:"redis,omitempty" toml:"redis,omitempty" yaml:"redis,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	HTTP                   *HTTPProvider                   `description:"Enables HTTP provider." json:"http,omitempty" toml:"http,omitempty" yaml:"http,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+
+	// Plugin holds the other provider plugins.
 	Plugin map[string]PluginConf `description:"Plugins configuration." json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty"`
+}
+
+// Options returns the options of the providers that are set (docker, kubernetesCRD, ...), with their configurations.
+func (p *Providers) Options() map[string]any {
+	options := map[string]any{}
+
+	v := reflect.ValueOf(p).Elem()
+	for field, value := range v.Fields() {
+		if value.Kind() != reflect.Pointer || value.IsNil() {
+			continue
+		}
+
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		options[name] = value.Interface()
+	}
+
+	return options
 }
 
 // SetDefaults sets the default values.
@@ -333,6 +372,12 @@ func (c *Configuration) ValidateConfiguration() error {
 
 	if c.API != nil && !validBasePath.MatchString(c.API.BasePath) {
 		return errors.New("API basePath must be a valid absolute URL path")
+	}
+
+	for name, resolver := range c.CertificatesResolvers {
+		if resolver.ACME != nil && resolver.Tailscale != nil {
+			return fmt.Errorf("unable to initialize certificates resolver %q, as ACME and Tailscale providers are mutually exclusive", name)
+		}
 	}
 
 	if c.OCSP != nil {

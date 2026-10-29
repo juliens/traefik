@@ -31,4 +31,4 @@
   [experimental.localPlugins.kubernetesGateway.settings.goVM]
     trusted = true
 
-[providers.plugin.kubernetesGateway]
+[providers.kubernetesGateway]

@@ -19,10 +19,10 @@
     [experimental.localPlugins.consulCatalog.settings.goVM]
       trusted = true
 
-  [providers.plugin.consulCatalog]
+  [providers.consulCatalog]
     exposedByDefault = true
     refreshInterval = "500ms"
     defaultRule = "{{ .DefaultRule }}"
     watch = true
-  [providers.plugin.consulCatalog.endpoint]
+  [providers.consulCatalog.endpoint]
     address = "{{ .ConsulAddress }}"

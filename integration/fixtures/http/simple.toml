@@ -21,6 +21,6 @@
     [experimental.localPlugins.http.settings.goVM]
       trusted = true
 
-  [providers.plugin.http]
+  [providers.http]
     endpoint = "http://127.0.0.1:9000"
     pollInterval = "100ms"

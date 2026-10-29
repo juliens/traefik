@@ -17,7 +17,7 @@
   [experimental.localPlugins.zookeeper.settings.goVM]
     trusted = true
 
-[providers.plugin.zookeeper]
+[providers.zooKeeper]
   rootKey = "traefik"
   endpoints = ["{{ .ZkAddress }}"]
 
