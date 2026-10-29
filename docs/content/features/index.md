@@ -31,7 +31,7 @@ The Traefik ecosystem offers multiple products designed to meet different requir
 | Canary Deployments | ✓ | ✓ | ✓ |
 | Let's Encrypt | ✓ | ✓ | ✓ |
 | **Plugin Ecosystem** | | | |
-| [Plugin Support](https://plugins.traefik.io/plugins) ([Go](https://github.com/traefik/yaegi), [WASM](https://webassembly.org/)) | ✓ | ✓ | ✓ |
+| [Plugin Support](https://plugins.traefik.io/plugins) ([Go](../extend/extend-traefik.md#go-plugin-system), [WASM](https://webassembly.org/)) | ✓ | ✓ | ✓ |
 | **Deployment & Operations** | | | |
 | Hybrid cloud, multi-cloud & on-prem compatible | ✓ | ✓ | ✓ |
 | Per-cluster dashboard | ✓ | ✓ | ✓ |

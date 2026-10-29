@@ -68,7 +68,7 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 			Logger()
 		logCtx := logger.WithContext(ctx)
 
-		if err := pb.addPlugin(logCtx, pName, manager.GoPath(), manifest, desc.ModuleName, desc.Settings); err != nil {
+		if err := pb.addPlugin(logCtx, pName, manager.GoPath(), false, manifest, desc.ModuleName, desc.Settings); err != nil {
 			return nil, err
 		}
 	}
@@ -104,7 +104,7 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 			Logger()
 		logCtx := logger.WithContext(ctx)
 
-		if err := pb.addPlugin(logCtx, pName, localGoPath, manifest, desc.ModuleName, desc.Settings); err != nil {
+		if err := pb.addPlugin(logCtx, pName, localGoPath, true, manifest, desc.ModuleName, desc.Settings); err != nil {
 			return nil, err
 		}
 	}
@@ -164,15 +164,16 @@ func (b Builder) BuildTyped(option string, config any, middlewareName string) (C
 	return builder.newTypedMiddleware(option, config, middlewareName).NewHandler, nil
 }
 
-// addPlugin adds a Yaegi or Wasm plugin of the static configuration.
-func (b Builder) addPlugin(ctx context.Context, pName, goPath string, manifest *Manifest, moduleName string, settings Settings) error {
+// addPlugin adds a Go or Wasm plugin of the static configuration.
+// local is true for a local plugin (experimental.localPlugins).
+func (b Builder) addPlugin(ctx context.Context, pName, goPath string, local bool, manifest *Manifest, moduleName string, settings Settings) error {
 	if len(manifest.Implements) > 0 {
 		return fmt.Errorf("%s: only the plugins compiled into Traefik can implement options of the configuration", moduleName)
 	}
 
 	switch manifest.Type {
 	case typeMiddleware:
-		middleware, err := newMiddlewareBuilder(ctx, goPath, manifest, moduleName, settings)
+		middleware, err := newMiddlewareBuilder(ctx, goPath, local, manifest, moduleName, settings)
 		if err != nil {
 			return err
 		}
@@ -180,7 +181,7 @@ func (b Builder) addPlugin(ctx context.Context, pName, goPath string, manifest *
 		b.middlewareBuilders[pName] = middleware
 
 	case typeProvider:
-		builder, err := newProviderBuilder(ctx, manifest, goPath, settings)
+		builder, err := newProviderBuilder(ctx, manifest, goPath, local, moduleName, settings)
 		if err != nil {
 			return fmt.Errorf("%s: %w", moduleName, err)
 		}
@@ -263,7 +264,8 @@ func (b Builder) addBuiltin(manifest *Manifest, native *nativePlugin) error {
 	return nil
 }
 
-func newMiddlewareBuilder(ctx context.Context, goPath string, manifest *Manifest, moduleName string, settings Settings) (middlewareBuilder, error) {
+// local is true for a local plugin (experimental.localPlugins).
+func newMiddlewareBuilder(ctx context.Context, goPath string, local bool, manifest *Manifest, moduleName string, settings Settings) (middlewareBuilder, error) {
 	switch manifest.Runtime {
 	case runtimeWasm:
 		wasmPath, err := getWasmPath(manifest)
@@ -274,31 +276,23 @@ func newMiddlewareBuilder(ctx context.Context, goPath string, manifest *Manifest
 		return newWasmMiddlewareBuilder(goPath, moduleName, wasmPath, settings)
 
 	case runtimeYaegi, "":
-		i, err := newInterpreter(ctx, goPath, manifest, settings)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Yaegi interpreter: %w", err)
-		}
-
-		return newYaegiMiddlewareBuilder(i, manifest.BasePkg, manifest.Import)
+		return newGoVMMiddlewareBuilder(ctx, goPath, local, manifest, moduleName, settings)
 
 	default:
 		return nil, fmt.Errorf("unknown plugin runtime: %s", manifest.Runtime)
 	}
 }
 
-func newProviderBuilder(ctx context.Context, manifest *Manifest, goPath string, settings Settings) (providerBuilder, error) {
+// local is true for a local plugin (experimental.localPlugins).
+func newProviderBuilder(ctx context.Context, manifest *Manifest, goPath string, local bool, moduleName string, settings Settings) (providerBuilder, error) {
 	switch manifest.Runtime {
 	case runtimeYaegi, "":
-		i, err := newInterpreter(ctx, goPath, manifest, settings)
+		p, err := loadGoVMPlugin(ctx, goPath, local, manifest, moduleName, settings)
 		if err != nil {
 			return providerBuilder{}, err
 		}
 
-		return providerBuilder{
-			interpreter: i,
-			Import:      manifest.Import,
-			BasePkg:     manifest.BasePkg,
-		}, nil
+		return providerBuilder{plugin: p}, nil
 
 	default:
 		return providerBuilder{}, fmt.Errorf("unknown plugin runtime: %s", manifest.Runtime)

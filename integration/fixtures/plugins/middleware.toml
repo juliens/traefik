@@ -1,0 +1,46 @@
+[global]
+  checkNewVersion = false
+  sendAnonymousUsage = false
+
+[log]
+  level = "DEBUG"
+  noColor = true
+
+[entryPoints]
+  [entryPoints.web]
+    address = ":8000"
+
+[providers.file]
+  filename = "{{ .SelfFilename }}"
+
+[experimental]
+  [experimental.localPlugins.govmplugin]
+    moduleName = "github.com/traefik/govmplugin"
+
+## dynamic configuration ##
+
+[http.routers]
+  [http.routers.router1]
+    entryPoints = ["web"]
+    service = "service1"
+    middlewares = ["govmplugin"]
+    rule = "PathPrefix(`/`)"
+
+  [http.routers.router2]
+    entryPoints = ["web"]
+    service = "service1"
+    middlewares = ["govmloop"]
+    rule = "PathPrefix(`/loop`)"
+
+[http.middlewares]
+  [http.middlewares.govmplugin.plugin.govmplugin]
+    headerValue = "govm"
+
+  [http.middlewares.govmloop.plugin.govmplugin]
+    loop = true
+
+[http.services]
+  [http.services.service1]
+    [http.services.service1.loadBalancer]
+      [[http.services.service1.loadBalancer.servers]]
+        url = "{{ .Server }}"

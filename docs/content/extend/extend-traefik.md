@@ -1,6 +1,6 @@
 ---
 title: Extend Traefik
-description: Extend Traefik with custom plugins using Yaegi and WebAssembly.
+description: Extend Traefik with custom plugins written in Go or WebAssembly.
 ---
 
 # Extend Traefik
@@ -23,11 +23,13 @@ To learn more about how to add a new plugin to a Traefik instance, please refer 
 
 Traefik supports two different plugin systems, each designed for different use cases and developer preferences.
 
-### Yaegi Plugin System
+### Go Plugin System
 
-Traefik [Yaegi](https://github.com/traefik/yaegi) plugins are developed using the Go language. It is essentially a Go package. Unlike pre-compiled plugins, Yaegi plugins are executed on the fly by Yaegi, a Go interpreter embedded in Traefik.
+Traefik Go plugins are developed using the Go language. It is essentially a Go package. Unlike pre-compiled plugins, Go plugins are executed on the fly by go-vm, a Go interpreter embedded in Traefik.
+Their manifest keeps the `yaegi` runtime, the name of the interpreter that Traefik used before go-vm.
 
-This approach eliminates the need for compilation and a complex toolchain, making plugin development as straightforward as creating web browser extensions. Yaegi plugins support both middleware and provider functionality.
+This approach eliminates the need for compilation and a complex toolchain, making plugin development as straightforward as creating web browser extensions. Go plugins support both middleware and provider functionality.
+Traefik refuses some packages and functions in the Go plugins, see the [Go plugins restrictions](../reference/install-configuration/experimental/plugins.md#go-plugins).
 
 #### Key characteristics
 
