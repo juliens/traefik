@@ -101,6 +101,11 @@ func SetupLocalPlugins(plugins map[string]LocalDescriptor) error {
 
 		uniq[descriptor.ModuleName] = struct{}{}
 
+		// The plugins compiled into Traefik have no sources in plugins-local, their manifest is checked when they are loaded.
+		if _, ok := builtinPlugins[descriptor.ModuleName]; ok {
+			continue
+		}
+
 		if err := checkLocalPluginManifest(descriptor); err != nil {
 			errs = append(errs, err)
 		}

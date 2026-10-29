@@ -9,15 +9,20 @@ import (
 // value in the buffer is discarded to make room (just like a standard ring-buffer).
 // Note that Go's scheduler can cause discarded values when they could be avoided, simply by scheduling
 // the writer before the reader, so caveat emptor.
+// The buffer keeps a value per provider name: a provider plugin can run several providers (one per namespace),
+// which must not discard the values of each other.
 type RingChannel struct {
 	input, output chan dynamic.Message
-	buffer        *dynamic.Message
+	buffer        map[string]dynamic.Message
+	// names are the provider names of the buffer, the oldest first.
+	names []string
 }
 
 func newRingChannel() *RingChannel {
 	ch := &RingChannel{
 		input:  make(chan dynamic.Message),
 		output: make(chan dynamic.Message),
+		buffer: map[string]dynamic.Message{},
 	}
 	go ch.ringBuffer()
 	return ch
@@ -43,7 +48,7 @@ func (ch *RingChannel) ringBuffer() {
 		// dropped elements due to overflow. The naive read/write select chooses randomly
 		// when both channels are ready, which produces unnecessary drops 50% of the time.
 		case output <- next:
-			ch.buffer = nil
+			ch.pop()
 		default:
 			select {
 			case elem, open := <-input:
@@ -52,20 +57,28 @@ func (ch *RingChannel) ringBuffer() {
 					break
 				}
 
-				ch.buffer = &elem
+				if _, ok := ch.buffer[elem.ProviderName]; !ok {
+					ch.names = append(ch.names, elem.ProviderName)
+				}
+				ch.buffer[elem.ProviderName] = elem
 			case output <- next:
-				ch.buffer = nil
+				ch.pop()
 			}
 		}
 
-		if ch.buffer == nil {
+		if len(ch.names) == 0 {
 			output = nil
 			continue
 		}
 
 		output = ch.output
-		next = *ch.buffer
+		next = ch.buffer[ch.names[0]]
 	}
 
 	close(ch.output)
+}
+
+func (ch *RingChannel) pop() {
+	delete(ch.buffer, ch.names[0])
+	ch.names = ch.names[1:]
 }

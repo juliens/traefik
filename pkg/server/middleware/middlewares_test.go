@@ -387,6 +387,53 @@ type fakePluginsBuilder struct {
 	config         map[string]any
 	buildErr       error
 	constructorErr error
+
+	// typed is the option of the dynamic configuration that the fake plugin implements.
+	typed       string
+	typedConfig any
+}
+
+func (b *fakePluginsBuilder) ImplementsMiddleware(option string) bool {
+	return option == b.typed
+}
+
+func (b *fakePluginsBuilder) BuildTyped(_ string, config any, _ string) (plugins.Constructor, error) {
+	b.typedConfig = config
+
+	return func(_ context.Context, next http.Handler) (http.Handler, error) {
+		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			rw.Header().Set("X-Plugin", "true")
+			next.ServeHTTP(rw, req)
+		}), nil
+	}, nil
+}
+
+func TestBuilder_BuildMiddlewareChain_typedPlugin(t *testing.T) {
+	rtConf := runtime.NewConfig(dynamic.Configuration{
+		HTTP: &dynamic.HTTPConfiguration{
+			Middlewares: map[string]*dynamic.Middleware{
+				"prefix@file": {AddPrefix: &dynamic.AddPrefix{Prefix: "/api"}},
+				"strip@file":  {StripPrefix: &dynamic.StripPrefix{Prefixes: []string{"/api"}}},
+			},
+		},
+	})
+
+	pluginsBuilder := &fakePluginsBuilder{typed: "addPrefix"}
+	builder := NewBuilder(rtConf.Middlewares, nil, pluginsBuilder)
+
+	var path string
+	handler, err := builder.BuildMiddlewareChain(t.Context(), []string{"prefix@file", "strip@file"}).Then(http.HandlerFunc(func(_ http.ResponseWriter, req *http.Request) {
+		path = req.URL.Path
+	}))
+	require.NoError(t, err)
+
+	rw := httptest.NewRecorder()
+	handler.ServeHTTP(rw, httptest.NewRequest(http.MethodGet, "/api/foo", nil))
+
+	// The plugin replaces the addPrefix middleware, the stripPrefix middleware of Traefik still runs.
+	assert.Equal(t, &dynamic.AddPrefix{Prefix: "/api"}, pluginsBuilder.typedConfig)
+	assert.Equal(t, "true", rw.Header().Get("X-Plugin"))
+	assert.Equal(t, "/foo", path)
 }
 
 func (b *fakePluginsBuilder) Build(_ string, config map[string]any, _ string) (plugins.Constructor, error) {

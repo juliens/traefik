@@ -125,3 +125,40 @@ func (m *mockNamespacedProvider) Provide(_ chan<- dynamic.Message, _ *safe.Pool)
 func (m *mockNamespacedProvider) Init() error {
 	return nil
 }
+
+func TestMaybeThrottledProvide_providerNames(t *testing.T) {
+	prd := &namespacesMock{names: []string{"consul-ns1", "consul-ns2", "consul-ns3"}}
+
+	cfgCh := make(chan dynamic.Message)
+	pool := safe.NewPool(t.Context())
+	t.Cleanup(pool.Stop)
+
+	require.NoError(t, maybeThrottledProvide(prd, 10*time.Millisecond)(cfgCh, pool))
+
+	// The messages sent during the throttle duration are kept when their provider names differ.
+	var names []string
+	for range prd.names {
+		select {
+		case msg := <-cfgCh:
+			names = append(names, msg.ProviderName)
+		case <-time.After(time.Second):
+			t.Fatalf("missing messages, got %v", names)
+		}
+	}
+
+	assert.Equal(t, prd.names, names)
+}
+
+type namespacesMock struct {
+	names []string
+}
+
+func (p *namespacesMock) Init() error { return nil }
+
+func (p *namespacesMock) Provide(configurationChan chan<- dynamic.Message, _ *safe.Pool) error {
+	for _, name := range p.names {
+		configurationChan <- dynamic.Message{ProviderName: name, Configuration: &dynamic.Configuration{}}
+	}
+
+	return nil
+}

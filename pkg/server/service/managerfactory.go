@@ -23,23 +23,22 @@ type ManagerFactory struct {
 	proxyBuilder     ProxyBuilder
 
 	api              func(configuration *runtime.Configuration) http.Handler
-	restHandler      http.Handler
 	dashboardHandler http.Handler
 	metricsHandler   http.Handler
 	pingHandler      http.Handler
-	acmeHTTPHandler  http.Handler
+	pluginHandlers   map[string]http.Handler
 
 	routinesPool *safe.Pool
 }
 
 // NewManagerFactory creates a new ManagerFactory.
-func NewManagerFactory(staticConfiguration static.Configuration, routinesPool *safe.Pool, observabilityMgr *middleware.ObservabilityMgr, transportManager *TransportManager, proxyBuilder ProxyBuilder, acmeHTTPHandler http.Handler, tlsManager *tls.Manager) *ManagerFactory {
+func NewManagerFactory(staticConfiguration static.Configuration, routinesPool *safe.Pool, observabilityMgr *middleware.ObservabilityMgr, transportManager *TransportManager, proxyBuilder ProxyBuilder, pluginHandlers map[string]http.Handler, tlsManager *tls.Manager) *ManagerFactory {
 	factory := &ManagerFactory{
 		observabilityMgr: observabilityMgr,
 		routinesPool:     routinesPool,
 		transportManager: transportManager,
 		proxyBuilder:     proxyBuilder,
-		acmeHTTPHandler:  acmeHTTPHandler,
+		pluginHandlers:   pluginHandlers,
 	}
 
 	if staticConfiguration.API != nil {
@@ -58,10 +57,6 @@ func NewManagerFactory(staticConfiguration static.Configuration, routinesPool *s
 		} else {
 			factory.api = apiRouterBuilder
 		}
-	}
-
-	if staticConfiguration.Providers != nil && staticConfiguration.Providers.Rest != nil {
-		factory.restHandler = staticConfiguration.Providers.Rest.CreateRouter()
 	}
 
 	if staticConfiguration.Metrics != nil && staticConfiguration.Metrics.Prometheus != nil {
@@ -85,6 +80,6 @@ func (f *ManagerFactory) Build(configuration *runtime.Configuration) *Manager {
 		apiHandler = f.api(configuration)
 	}
 
-	internalHandlers := NewInternalHandlers(apiHandler, f.restHandler, f.metricsHandler, f.pingHandler, f.dashboardHandler, f.acmeHTTPHandler)
+	internalHandlers := NewInternalHandlers(apiHandler, f.metricsHandler, f.pingHandler, f.dashboardHandler, f.pluginHandlers)
 	return NewManager(configuration.Services, f.observabilityMgr, f.routinesPool, f.transportManager, f.proxyBuilder, internalHandlers)
 }

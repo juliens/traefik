@@ -11,6 +11,8 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/static"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
 	"github.com/traefik/traefik/v3/pkg/plugins"
+	"github.com/traefik/traefik/v3/pkg/plugins/host"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 )
 
 const outputDir = "./plugins-storage/"
@@ -99,4 +101,33 @@ func hasPlugins(staticCfg *static.Configuration) bool {
 
 func hasLocalPlugins(staticCfg *static.Configuration) bool {
 	return staticCfg.Experimental != nil && len(staticCfg.Experimental.LocalPlugins) > 0
+}
+
+// setPluginsHost gives the plugins the information of the static configuration they need (see pkg/plugins/host).
+func setPluginsHost(staticCfg *static.Configuration, tlsManager *traefiktls.Manager) {
+	eps := make(map[string]host.EntryPoint, len(staticCfg.EntryPoints))
+	for name, ep := range staticCfg.EntryPoints {
+		eps[name] = host.EntryPoint{
+			Address:         ep.GetAddress(),
+			HasHTTPTLSConf:  ep.HTTP.TLS != nil,
+			AsDefault:       ep.AsDefault,
+			AllowACMEByPass: ep.AllowACMEByPass,
+		}
+	}
+
+	var ruleSyntax string
+	if staticCfg.Core != nil {
+		ruleSyntax = staticCfg.Core.DefaultRuleSyntax
+	}
+
+	host.SetStatic(eps, ruleSyntax)
+
+	host.SetCertificateDomains(func(store string) []string {
+		st := tlsManager.GetStore(store)
+		if st == nil {
+			return nil
+		}
+
+		return st.GetAllDomains()
+	})
 }

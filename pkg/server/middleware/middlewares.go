@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 
 	"github.com/containous/alice"
 	"github.com/rs/zerolog/log"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
 	"github.com/traefik/traefik/v3/pkg/middlewares/addprefix"
 	"github.com/traefik/traefik/v3/pkg/middlewares/auth"
@@ -42,6 +44,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/middlewares/stripprefix"
 	"github.com/traefik/traefik/v3/pkg/middlewares/stripprefixregex"
 	"github.com/traefik/traefik/v3/pkg/middlewares/tap"
+	"github.com/traefik/traefik/v3/pkg/plugins/host"
 	"github.com/traefik/traefik/v3/pkg/server/provider"
 	"github.com/traefik/traefik/v3/pkg/server/recursion"
 )
@@ -112,6 +115,32 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 
 	var middleware alice.Constructor
 	badConf := errors.New("cannot create middleware: multi-types middleware not supported, consider declaring two different pieces of middleware instead")
+
+	// A plugin implementing the option of the middleware (headers, stripPrefix, ...) replaces the middleware of Traefik.
+	if options := typedOptions(config); len(options) > 0 && b.pluginBuilder != nil && !reflect.ValueOf(b.pluginBuilder).IsNil() && b.pluginBuilder.ImplementsMiddleware(options[0].name) {
+		if len(options) > 1 || config.Chain != nil || config.Plugin != nil {
+			return nil, badConf
+		}
+
+		plug, err := b.pluginBuilder.BuildTyped(options[0].name, options[0].value, middlewareName)
+		if err != nil {
+			return nil, info.RedactURNRefs(err)
+		}
+
+		pluginCtx := ctx
+		if b.serviceBuilder != nil {
+			pluginCtx = host.WithServiceBuilder(ctx, b.serviceBuilder.BuildHTTP)
+		}
+
+		return observability.WrapMiddleware(ctx, func(next http.Handler) (http.Handler, error) {
+			handler, err := plug(pluginCtx, next)
+			if err != nil {
+				return nil, info.RedactURNRefs(err)
+			}
+
+			return handler, nil
+		}), nil
+	}
 
 	// AddPrefix
 	if config.AddPrefix != nil {
@@ -499,4 +528,33 @@ func (b *Builder) buildConstructor(ctx context.Context, middlewareName string) (
 	}
 
 	return observability.WrapMiddleware(ctx, middleware), nil
+}
+
+// typedOption is an option of the dynamic configuration of a middleware, which a plugin can implement.
+type typedOption struct {
+	// name is the name of the option in the configuration (headers, stripPrefix, ...).
+	name  string
+	value any
+}
+
+// typedOptions returns the options of the configuration that the middleware plugins can implement: the options other than chain and plugin.
+func typedOptions(config *dynamic.Middleware) []typedOption {
+	var options []typedOption
+
+	val := reflect.ValueOf(config).Elem()
+	for i := range val.NumField() {
+		field := val.Type().Field(i)
+		if field.Type.Kind() != reflect.Pointer || field.Type.Elem().Kind() != reflect.Struct || val.Field(i).IsNil() {
+			continue
+		}
+
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		if name == "chain" {
+			continue
+		}
+
+		options = append(options, typedOption{name: name, value: val.Field(i).Interface()})
+	}
+
+	return options
 }

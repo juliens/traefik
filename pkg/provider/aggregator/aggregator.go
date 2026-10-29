@@ -31,7 +31,8 @@ type throttled interface {
 // provider implements the throttled interface.
 func maybeThrottledProvide(prd provider.Provider, defaultDuration time.Duration) func(chan<- dynamic.Message, *safe.Pool) error {
 	providerThrottleDuration := defaultDuration
-	if throttled, ok := prd.(throttled); ok {
+	// A negative duration stands for the providersThrottleDuration option (a provider plugin without throttle duration).
+	if throttled, ok := prd.(throttled); ok && throttled.ThrottleDuration() >= 0 {
 		// per-provider throttling
 		providerThrottleDuration = throttled.ThrottleDuration()
 	}
@@ -165,6 +166,17 @@ func (p *ProviderAggregator) AddProvider(provider provider.Provider) error {
 	default:
 		p.providers = append(p.providers, provider)
 	}
+
+	return nil
+}
+
+// AddFileProvider adds a file provider, which starts before the other providers: the plugin implementing the file option.
+func (p *ProviderAggregator) AddFileProvider(provider provider.Provider) error {
+	if err := provider.Init(); err != nil {
+		return err
+	}
+
+	p.fileProvider = provider
 
 	return nil
 }

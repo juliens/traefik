@@ -52,6 +52,14 @@ type Manifest struct {
 	Summary       string         `yaml:"summary"`
 	UseUnsafe     bool           `yaml:"useUnsafe"`
 	TestData      map[string]any `yaml:"testData"`
+
+	// Implements are the options of the configuration that the plugin implements, for a plugin compiled into Traefik:
+	//   - for a middleware plugin, options of the dynamic configuration of the middlewares (headers, stripPrefix, ...).
+	//     For each option, the plugin has a New<Option> function (NewHeaders, NewStripPrefix, ...)
+	//     taking the configuration of the option, a pointer to its type in pkg/config/dynamic;
+	//   - for a provider plugin, options of the providers of the static configuration (docker, kubernetesCRD, ...).
+	//     The plugin gets the configuration of the option with CreateConfig and New, as the other provider plugins.
+	Implements []string `yaml:"implements"`
 }
 
 // IsYaegiPlugin returns true if the plugin is a Yaegi plugin.

@@ -12,21 +12,20 @@ import (
 type InternalHandlers struct {
 	api        http.Handler
 	dashboard  http.Handler
-	rest       http.Handler
 	prometheus http.Handler
 	ping       http.Handler
-	acmeHTTP   http.Handler
+	plugins    map[string]http.Handler
 }
 
 // NewInternalHandlers creates a new InternalHandlers.
-func NewInternalHandlers(apiHandler, rest, metricsHandler, pingHandler, dashboard, acmeHTTP http.Handler) *InternalHandlers {
+// The plugins are the handlers of the provider plugins, by plugin name: each one serves the service <name>@internal.
+func NewInternalHandlers(apiHandler, metricsHandler, pingHandler, dashboard http.Handler, plugins map[string]http.Handler) *InternalHandlers {
 	return &InternalHandlers{
 		api:        apiHandler,
 		dashboard:  dashboard,
-		rest:       rest,
 		prometheus: metricsHandler,
 		ping:       pingHandler,
-		acmeHTTP:   acmeHTTP,
+		plugins:    plugins,
 	}
 }
 
@@ -51,12 +50,6 @@ func (m *InternalHandlers) get(serviceName string) (http.Handler, error) {
 			rw.WriteHeader(http.StatusTeapot)
 		}), nil
 
-	case "acme-http@internal":
-		if m.acmeHTTP == nil {
-			return nil, errors.New("HTTP challenge is not enabled")
-		}
-		return m.acmeHTTP, nil
-
 	case "api@internal":
 		if m.api == nil {
 			return nil, errors.New("api is not enabled")
@@ -68,12 +61,6 @@ func (m *InternalHandlers) get(serviceName string) (http.Handler, error) {
 			return nil, errors.New("dashboard is not enabled")
 		}
 		return m.dashboard, nil
-
-	case "rest@internal":
-		if m.rest == nil {
-			return nil, errors.New("rest is not enabled")
-		}
-		return m.rest, nil
 
 	case "ping@internal":
 		if m.ping == nil {
@@ -88,6 +75,10 @@ func (m *InternalHandlers) get(serviceName string) (http.Handler, error) {
 		return m.prometheus, nil
 
 	default:
+		if handler, ok := m.plugins[strings.TrimSuffix(serviceName, "@internal")]; ok {
+			return handler, nil
+		}
+
 		return nil, fmt.Errorf("unknown internal service %s", serviceName)
 	}
 }

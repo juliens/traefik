@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"reflect"
 	"slices"
 	"strings"
 	"syscall"
@@ -35,6 +36,8 @@ import (
 	"github.com/traefik/traefik/v3/pkg/observability/metrics"
 	"github.com/traefik/traefik/v3/pkg/observability/tracing"
 	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
+	"github.com/traefik/traefik/v3/pkg/plugins"
+	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/pkg/provider/acme"
 	"github.com/traefik/traefik/v3/pkg/provider/aggregator"
 	"github.com/traefik/traefik/v3/pkg/provider/tailscale"
@@ -179,21 +182,62 @@ func runCmd(staticConfiguration *static.Configuration) error {
 }
 
 func setupServer(staticConfiguration *static.Configuration) (*server.Server, error) {
-	providerAggregator := aggregator.NewProviderAggregator(*staticConfiguration.Providers)
-
 	ctx := context.Background()
 	routinesPool := safe.NewPool(ctx)
 
-	// adds internal provider
-	err := providerAggregator.AddProvider(traefik.New(*staticConfiguration))
+	tlsManager := traefiktls.NewManager(staticConfiguration.OCSP)
+	routinesPool.GoCtx(tlsManager.Run)
+
+	// Plugins
+	setPluginsHost(staticConfiguration, tlsManager)
+
+	pluginLogger := log.Ctx(ctx).With().Logger()
+	hasPlugins := staticConfiguration.Experimental != nil && (staticConfiguration.Experimental.Plugins != nil || staticConfiguration.Experimental.LocalPlugins != nil)
+	if hasPlugins {
+		pluginsList := slices.Collect(maps.Keys(staticConfiguration.Experimental.Plugins))
+		pluginsList = append(pluginsList, slices.Collect(maps.Keys(staticConfiguration.Experimental.LocalPlugins))...)
+
+		pluginLogger = pluginLogger.With().Strs("plugins", pluginsList).Logger()
+		pluginLogger.Info().Msg("Loading plugins...")
+	}
+
+	pluginBuilder, err := createPluginBuilder(staticConfiguration)
+	if err != nil && staticConfiguration.Experimental != nil && staticConfiguration.Experimental.AbortOnPluginFailure {
+		return nil, fmt.Errorf("plugin: failed to create plugin builder: %w", err)
+	}
+	if err != nil {
+		pluginLogger.Err(err).Msg("Plugins are disabled because an error has occurred.")
+	} else if hasPlugins {
+		pluginLogger.Info().Msg("Plugins loaded.")
+	}
+
+	// Providers
+
+	providersConf, pluginProviders, err := buildPluginProviders(*staticConfiguration.Providers, pluginBuilder)
 	if err != nil {
 		return nil, err
 	}
 
-	// ACME
+	providerAggregator := aggregator.NewProviderAggregator(providersConf)
 
-	tlsManager := traefiktls.NewManager(staticConfiguration.OCSP)
-	routinesPool.GoCtx(tlsManager.Run)
+	// adds internal provider
+	err = providerAggregator.AddProvider(traefik.New(*staticConfiguration))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range pluginProviders {
+		if p.option == "file" {
+			err = providerAggregator.AddFileProvider(p)
+		} else {
+			err = providerAggregator.AddProvider(p)
+		}
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while initializing provider %s", p.option)
+		}
+	}
+
+	// ACME
 
 	httpChallengeProvider := acme.NewChallengeHTTP()
 
@@ -239,27 +283,6 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	if staticConfiguration.API != nil {
 		version.DisableDashboardAd = staticConfiguration.API.DisableDashboardAd
 		version.DashboardName = staticConfiguration.API.DashboardName
-	}
-
-	// Plugins
-	pluginLogger := log.Ctx(ctx).With().Logger()
-	hasPlugins := staticConfiguration.Experimental != nil && (staticConfiguration.Experimental.Plugins != nil || staticConfiguration.Experimental.LocalPlugins != nil)
-	if hasPlugins {
-		pluginsList := slices.Collect(maps.Keys(staticConfiguration.Experimental.Plugins))
-		pluginsList = append(pluginsList, slices.Collect(maps.Keys(staticConfiguration.Experimental.LocalPlugins))...)
-
-		pluginLogger = pluginLogger.With().Strs("plugins", pluginsList).Logger()
-		pluginLogger.Info().Msg("Loading plugins...")
-	}
-
-	pluginBuilder, err := createPluginBuilder(staticConfiguration)
-	if err != nil && staticConfiguration.Experimental != nil && staticConfiguration.Experimental.AbortOnPluginFailure {
-		return nil, fmt.Errorf("plugin: failed to create plugin builder: %w", err)
-	}
-	if err != nil {
-		pluginLogger.Err(err).Msg("Plugins are disabled because an error has occurred.")
-	} else if hasPlugins {
-		pluginLogger.Info().Msg("Plugins loaded.")
 	}
 
 	// Providers plugins
@@ -309,8 +332,22 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	}
 
 	dialerManager := tcp.NewDialerManager(spiffeX509Source)
-	acmeHTTPHandler := getHTTPChallengeHandler(acmeProviders, httpChallengeProvider)
-	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, observabilityMgr, transportManager, proxyBuilder, acmeHTTPHandler, tlsManager)
+
+	// The handlers serving the services <name>@internal of the providers.
+	providerHandlers := map[string]http.Handler{}
+	if acmeHTTPHandler := getHTTPChallengeHandler(acmeProviders, httpChallengeProvider); acmeHTTPHandler != nil {
+		providerHandlers["acme-http"] = acmeHTTPHandler
+	}
+	if providersConf.Rest != nil {
+		providerHandlers["rest"] = providersConf.Rest.CreateRouter()
+	}
+	for _, p := range pluginProviders {
+		if handler, ok := plugins.Handler(p.Provider); ok {
+			providerHandlers[p.option] = handler
+		}
+	}
+
+	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, observabilityMgr, transportManager, proxyBuilder, providerHandlers, tlsManager)
 
 	// Router factory
 
@@ -370,6 +407,13 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	// TLS challenge
 	watcher.AddListener(tlsChallengeProvider.ListenConfiguration)
 
+	// Provider plugins listening to the configuration
+	for _, p := range pluginProviders {
+		if listen, ok := plugins.ConfigurationListener(p.Provider); ok {
+			watcher.AddListener(listen)
+		}
+	}
+
 	// Certificate Resolvers
 
 	resolverNames := map[string]struct{}{}
@@ -412,6 +456,43 @@ func getHTTPChallengeHandler(acmeProviders []*acme.Provider, httpChallengeProvid
 		}
 	}
 	return acmeHTTPHandler
+}
+
+// pluginProvider is a provider of the static configuration implemented by a plugin.
+type pluginProvider struct {
+	provider.Provider
+
+	// option is the option of the providers that the plugin implements (docker, kubernetesCRD, ...).
+	option string
+}
+
+// buildPluginProviders builds the providers of the static configuration implemented by plugins,
+// and returns the configuration of the other providers.
+func buildPluginProviders(conf static.Providers, pluginBuilder *plugins.Builder) (static.Providers, []pluginProvider, error) {
+	if pluginBuilder == nil {
+		return conf, nil, nil
+	}
+
+	var pluginProviders []pluginProvider
+
+	val := reflect.ValueOf(&conf).Elem()
+	for i := range val.NumField() {
+		field := val.Type().Field(i)
+		option, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		if field.Type.Kind() != reflect.Pointer || val.Field(i).IsNil() || !pluginBuilder.ImplementsProvider(option) {
+			continue
+		}
+
+		p, err := pluginBuilder.BuildTypedProvider(option, val.Field(i).Interface())
+		if err != nil {
+			return static.Providers{}, nil, fmt.Errorf("plugin: failed to build the %s provider: %w", option, err)
+		}
+
+		pluginProviders = append(pluginProviders, pluginProvider{Provider: p, option: option})
+		val.Field(i).SetZero()
+	}
+
+	return conf, pluginProviders, nil
 }
 
 func getDefaultsEntrypoints(staticConfiguration *static.Configuration) []string {
