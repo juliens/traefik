@@ -456,6 +456,7 @@ func (s *SimpleSuite) TestNoAuthOnPing() {
 // dockerProviderFlags are the flags of the Docker provider, implemented by a plugin.
 var dockerProviderFlags = []string{
 	"--experimental.localPlugins.docker.moduleName=github.com/traefik/traefik/v3/plugins/providers/docker",
+	"--experimental.localPlugins.docker.settings.goVM.trusted=true",
 	"--providers.docker",
 }
 

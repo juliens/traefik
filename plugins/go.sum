@@ -1183,6 +1183,8 @@ github.com/tjfoc/gmsm v1.3.2/go.mod h1:HaUcFuY0auTiaHB9MHFGCPx5IaLhTUd2atbCFBQXn
 github.com/tjfoc/gmsm v1.4.1 h1:aMe1GlZb+0bLjn+cKTPEvvn9oUEBlJitaZiiBwsbgho=
 github.com/tjfoc/gmsm v1.4.1/go.mod h1:j4INPkHWMrhJb38G+J6W4Tw0AbuN8Thu3PbdVYhVcTE=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
+github.com/traefik/go-vm v0.0.0-20261023231008-c205dac1ac5d h1:p/a7rqz5brJnLYX17pG/n2BSpJD2BP68zmmPYxFYPEU=
+github.com/traefik/go-vm v0.0.0-20261023231008-c205dac1ac5d/go.mod h1:loPhimQO2wbQZIFxPSOEBJxGEykvM98rdjpZmnpBcJY=
 github.com/traefik/go-vm v0.0.0-20261029071802-7078ece90222 h1:EIjh5mxlzC6QeKyGStUZ+UbY5mMly9YVQXmzNPr+NCE=
 github.com/traefik/go-vm v0.0.0-20261029071802-7078ece90222/go.mod h1:loPhimQO2wbQZIFxPSOEBJxGEykvM98rdjpZmnpBcJY=
 github.com/traefik/grpc-web v0.18.0 h1:rPRPcpPSUPatFfT6lgOigqF4jz3zCUfrFCSxuRG5QF0=

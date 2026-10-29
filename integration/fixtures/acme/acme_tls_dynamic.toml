@@ -36,9 +36,13 @@
 [providers]
   [experimental.localPlugins.acme]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/acme"
+  [experimental.localPlugins.acme.settings.goVM]
+    trusted = true
 
 [experimental.localPlugins.file]
     moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+    [experimental.localPlugins.file.settings.goVM]
+      trusted = true
 
   [providers.file]
     filename = "fixtures/acme/certificates.toml"

@@ -1,5 +1,6 @@
 // Package host is the API that Traefik gives to its plugins, beside the configuration types.
-// A plugin reads the state that Traefik sets here, and two plugins share the values they register.
+// It runs natively in the plugins (see pkg/plugins/hostsyms): a plugin reads the state that Traefik sets here,
+// and two plugins share the values they register.
 package host
 
 import (
@@ -7,6 +8,8 @@ import (
 	"errors"
 	"maps"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
 )
 
@@ -103,6 +106,20 @@ func Lookup(key string) (any, bool) {
 
 	v, ok := values[key]
 	return v, ok
+}
+
+// NotifySignals returns a channel that receives the given signals until the context is done.
+// go-vm cannot give the channel of a plugin to signal.Notify, so Traefik makes the channel.
+func NotifySignals(ctx context.Context, sig ...os.Signal) <-chan os.Signal {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, sig...)
+
+	go func() {
+		<-ctx.Done()
+		signal.Stop(signals)
+	}()
+
+	return signals
 }
 
 type serviceBuilderKey struct{}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"maps"
 	"slices"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -16,12 +17,24 @@ import (
 
 // MakeDefaultRuleTemplate creates the default rule template.
 func MakeDefaultRuleTemplate(defaultRule string, funcMap template.FuncMap) (*template.Template, error) {
+	return template.New("defaultRule").Funcs(TemplateFuncMap(funcMap)).Parse(defaultRule)
+}
+
+// TemplateFuncMap returns the functions of the provider templates (the sprig functions and normalize), and the given ones.
+// The provider plugins get it from Traefik: go-vm loses the functions of Traefik that a plugin puts in a map of any.
+func TemplateFuncMap(funcMap template.FuncMap) template.FuncMap {
 	defaultFuncMap := sprig.TxtFuncMap()
 	defaultFuncMap["normalize"] = provider.Normalize
 
 	maps.Copy(defaultFuncMap, funcMap)
 
-	return template.New("defaultRule").Funcs(defaultFuncMap).Parse(defaultRule)
+	return defaultFuncMap
+}
+
+// SplitFuncMap returns a function map with the split function of the file provider templates, strings.Split.
+// The provider plugins get it from Traefik: go-vm loses the functions of Traefik that a plugin puts in a map of any.
+func SplitFuncMap() template.FuncMap {
+	return template.FuncMap{"split": strings.Split}
 }
 
 // BuildTCPRouterConfiguration builds a router configuration.

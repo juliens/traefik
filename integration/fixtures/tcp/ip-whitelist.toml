@@ -15,6 +15,8 @@
 
 [experimental.localPlugins.file]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
 
 [providers.file]
   filename = "{{ .SelfFilename }}"
@@ -56,3 +58,5 @@
 
 [experimental.localPlugins.ipwhitelist]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"
+  [experimental.localPlugins.ipwhitelist.settings.goVM]
+    trusted = true

@@ -16,12 +16,16 @@
 [providers]
   [experimental.localPlugins.rest]
     moduleName = "github.com/traefik/traefik/v3/plugins/providers/rest"
+    [experimental.localPlugins.rest.settings.goVM]
+      trusted = true
 
   [providers.rest]
     insecure = true
 
   [experimental.localPlugins.file]
     moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+    [experimental.localPlugins.file.settings.goVM]
+      trusted = true
 
   [providers.file]
     filename = "{{ .SelfFilename }}"
@@ -39,9 +43,15 @@
 
 [experimental.localPlugins.headers]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers"
+  [experimental.localPlugins.headers.settings.goVM]
+    trusted = true
 
 [experimental.localPlugins.ipallowlist]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+  [experimental.localPlugins.ipallowlist.settings.goVM]
+    trusted = true
 
 [experimental.localPlugins.ipwhitelist]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"
+  [experimental.localPlugins.ipwhitelist.settings.goVM]
+    trusted = true

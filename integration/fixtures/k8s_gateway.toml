@@ -28,11 +28,17 @@
 
 [experimental.localPlugins.kubernetesGateway]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/kubernetes/gateway"
+  [experimental.localPlugins.kubernetesGateway.settings.goVM]
+    trusted = true
 
 [providers.kubernetesGateway]
 
 [experimental.localPlugins.stripprefix]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"
+  [experimental.localPlugins.stripprefix.settings.goVM]
+    trusted = true
 
 [experimental.localPlugins.redirectregex]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectregex"
+  [experimental.localPlugins.redirectregex.settings.goVM]
+    trusted = true

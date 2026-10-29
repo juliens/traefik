@@ -18,12 +18,16 @@
 [providers]
   [experimental.localPlugins.docker]
     moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+    [experimental.localPlugins.docker.settings.goVM]
+      trusted = true
 
   [providers.docker]
     watch = true
 
   [experimental.localPlugins.file]
     moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+    [experimental.localPlugins.file.settings.goVM]
+      trusted = true
 
   [providers.file]
     filename = "{{ .SelfFilename }}"
@@ -42,3 +46,5 @@
 
 [experimental.localPlugins.passtlsclientcert]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/passtlsclientcert"
+  [experimental.localPlugins.passtlsclientcert.settings.goVM]
+    trusted = true

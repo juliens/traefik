@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go/types"
 	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	"github.com/traefik/go-vm/vm"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
+	"github.com/traefik/traefik/v3/pkg/plugins/hostsyms"
 )
 
 // The limits of the Go plugins.
@@ -77,8 +80,8 @@ func newGoVMMiddlewareBuilder(ctx context.Context, goPath string, local bool, ma
 // It keeps at least the restrictions of the former Yaegi runtime: restricted standard library,
 // unsafe and syscall only when both the manifest and the settings allow them,
 // and a copy of the process environment.
-// Unrestricted and RealProcess must never be set: they would give the plugin
-// os/exec, syscall, and the ability to stop Traefik.
+// Unrestricted and RealProcess are only set for a trusted plugin (settings.goVM.trusted):
+// they give the plugin os/exec, syscall, and the ability to stop Traefik.
 // A local plugin (local is true) is read in GOPATH mode when it has no go.mod, as Yaegi read it.
 func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Manifest, moduleName string, settings Settings) (*vm.Plugin, error) {
 	if manifest.UseUnsafe && !settings.UseUnsafe {
@@ -112,7 +115,9 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 		GoPath:    pluginGoPath,
 		UseUnsafe: manifest.UseUnsafe && settings.UseUnsafe,
 		// The options of settings.goVM, all off by default: the AOT mode is on unless disabled.
-		AOT:           !settings.GoVM.DisableAOT,
+		AOT: !settings.GoVM.DisableAOT,
+		// The Traefik SDK runs natively: the plugins share its state and types with Traefik.
+		Modes:         sdkModes(),
 		StubAssembly:  settings.GoVM.StubAssembly,
 		Budget:        budget,
 		MaxGoroutines: maxGoroutines,
@@ -142,6 +147,16 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 		opts.Exec = vm.ExecMock
 	}
 
+	if settings.GoVM.Trusted {
+		// A trusted plugin runs as the code of Traefik, like the providers which watch files and run in-cluster clients.
+		opts.Unrestricted = true
+		opts.RealProcess = true
+		opts.Budget = 0
+		opts.MaxGoroutines = 0
+		opts.LoadTimeout = 0
+		opts.LoadLimits = &vm.LoadLimits{}
+	}
+
 	p, err := vm.Load(opts, manifest.Import)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load plugin code %q: %w", manifest.Import, err)
@@ -151,6 +166,11 @@ func loadGoVMPlugin(ctx context.Context, goPath string, local bool, manifest *Ma
 	// (for example, files selected by "//go:build" lines that Yaegi ignored).
 	for _, note := range p.Notes {
 		logger.Warn().Msg(note)
+	}
+
+	// A plugin implementing options of the dynamic configuration has a constructor per option (see checkTypedMiddleware).
+	if manifest.Type == typeMiddleware && len(manifest.Implements) > 0 {
+		return p, nil
 	}
 
 	if p.Pkg.Func("CreateConfig") == nil {
@@ -174,6 +194,7 @@ func (b *goVMMiddlewareBuilder) newMiddleware(config map[string]any, middlewareN
 		middlewareName: middlewareName,
 		config:         cfg,
 		plugin:         b.plugin,
+		constructor:    "New",
 	}, nil
 }
 
@@ -248,22 +269,14 @@ func emptyStringToStruct(_, to reflect.Type, data any) (any, error) {
 	return data, nil
 }
 
-// typedConstructor returns the name of the constructor of the middleware implementing the option: NewHeaders for headers.
-func typedConstructor(option string) string {
-	return "New" + strings.ToUpper(option[:1]) + option[1:]
-}
-
-// middlewareOption returns the field of the given option of the dynamic configuration of the middlewares.
-func middlewareOption(option string) (reflect.StructField, bool) {
-	typ := reflect.TypeFor[dynamic.Middleware]()
-	for field := range typ.Fields() {
-		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
-		if name == option && field.Type.Kind() == reflect.Pointer && field.Type.Elem().Kind() == reflect.Struct {
-			return field, true
-		}
+// sdkModes runs natively the packages of the Traefik SDK (see pkg/plugins/hostsyms).
+func sdkModes() map[string]vm.Mode {
+	modes := make(map[string]vm.Mode, len(hostsyms.Paths)+len(hostsyms.StdPaths))
+	for _, path := range slices.Concat(hostsyms.Paths, hostsyms.StdPaths) {
+		modes[path] = vm.ModeNative
 	}
 
-	return reflect.StructField{}, false
+	return modes
 }
 
 // goVMError returns the error held by an error result of a plugin call.
@@ -285,28 +298,144 @@ func goVMError(res *vm.Object) error {
 	return resErr
 }
 
+// newTypedMiddleware creates the middleware of a plugin implementing an option of the dynamic configuration:
+// the plugin gets the configuration as it is, a value of the native types of pkg/config/dynamic.
+func (b *goVMMiddlewareBuilder) newTypedMiddleware(option string, config any, middlewareName string) pluginMiddleware {
+	return &GoVMMiddleware{
+		middlewareName: middlewareName,
+		config:         config,
+		plugin:         b.plugin,
+		constructor:    typedConstructor(option),
+	}
+}
+
+func (b *goVMMiddlewareBuilder) checkTypedMiddleware(option string) error {
+	return checkTypedMiddleware(b.plugin, option)
+}
+
+// typedConstructor returns the name of the constructor of the middleware implementing the option: NewHeaders for headers.
+func typedConstructor(option string) string {
+	return "New" + strings.ToUpper(option[:1]) + option[1:]
+}
+
+// checkTypedMiddleware checks that a plugin implementing an option of the dynamic configuration has its constructor:
+// New<Option>(ctx context.Context, next http.Handler, config *dynamic.<Type>, name string) (http.Handler, error).
+func checkTypedMiddleware(p *vm.Plugin, option string) error {
+	field, ok := middlewareOption(option)
+	if !ok {
+		return fmt.Errorf("the middleware option %q does not exist", option)
+	}
+
+	name := typedConstructor(option)
+
+	fn := p.Pkg.Func(name)
+	if fn == nil {
+		return fmt.Errorf("failed to find %s", name)
+	}
+
+	expected := "*" + field.Type.Elem().PkgPath() + "." + field.Type.Elem().Name()
+
+	params := fn.Signature.Params()
+	if params.Len() != 4 || types.TypeString(params.At(2).Type(), nil) != expected {
+		return fmt.Errorf("the %s function of a plugin implementing the %q middleware option must take a %s configuration", name, option, expected)
+	}
+
+	return nil
+}
+
+// middlewareOption returns the field of the given option of the dynamic configuration of the middlewares.
+func middlewareOption(option string) (reflect.StructField, bool) {
+	typ := reflect.TypeFor[dynamic.Middleware]()
+	for field := range typ.Fields() {
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		if name == option && field.Type.Kind() == reflect.Pointer && field.Type.Elem().Kind() == reflect.Struct {
+			return field, true
+		}
+	}
+
+	return reflect.StructField{}, false
+}
+
 // GoVMMiddleware is an HTTP handler plugin wrapper for the go-vm interpreter.
 type GoVMMiddleware struct {
 	middlewareName string
-	config         *vm.Object
-	plugin         *vm.Plugin
+	// config is the configuration given to the New function of the plugin:
+	// the result of its CreateConfig function, or the value of an option of the dynamic configuration.
+	config any
+	plugin *vm.Plugin
+	// constructor is the function creating the handler: New, or New<Option> for an option of the dynamic configuration.
+	constructor string
 }
 
 // NewHandler creates a new HTTP handler.
 func (m *GoVMMiddleware) NewHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
-	return wrapExternal(next, func(next http.Handler) (http.Handler, error) {
-		return m.newPluginHandler(ctx, next)
+	handler, traceable, err := wrapExternalWith(next, func(next http.Handler) (http.Handler, traceable, error) {
+		handler, err := m.newPluginHandler(ctx, next)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return handler, asTraceable(handler), nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// The middlewares of Traefik name their traces themselves (RateLimiter, CustomError, ...), the wrapper must keep it.
+	if traceable != nil {
+		return &traceableHandler{Handler: handler, traceable: traceable}, nil
+	}
+
+	return handler, nil
+}
+
+// traceable is a handler naming its traces itself (see observability.Traceable).
+type traceable interface {
+	GetTracingInformation() (name string, typeName string)
+}
+
+type traceableHandler struct {
+	http.Handler
+	traceable
+}
+
+// go-vm shows the methods of a plugin value to native code only through a wrapper per interface:
+// the http.Handler returned by a plugin does not have GetTracingInformation without this wrapper.
+func init() {
+	vm.RegisterWrapper[traceable](func(o vm.Obj) traceable { return traceableObj{o} })
+}
+
+type traceableObj struct{ vm.Obj }
+
+func (t traceableObj) GetTracingInformation() (string, string) {
+	out := t.Call("GetTracingInformation")
+	return vm.Out[string](out, 0), vm.Out[string](out, 1)
+}
+
+// asTraceable returns the handler of a plugin as a traceable, or nil when it does not name its traces.
+func asTraceable(handler http.Handler) (t traceable) {
+	// vm.AssertI needs the AOT mode: with settings.goVM.disableAOT, it panics and the handler is not traceable.
+	defer func() {
+		if recover() != nil {
+			t = nil
+		}
+	}()
+
+	t, _ = vm.AssertI[traceable](handler)
+
+	return t
 }
 
 func (m *GoVMMiddleware) newPluginHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
-	res, err := m.plugin.Call(ctx, "New", ctx, next, m.config, m.middlewareName)
+	constructor := m.constructor
+
+	res, err := m.plugin.Call(ctx, constructor, ctx, next, m.config, m.middlewareName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call New: %w", err)
+		return nil, fmt.Errorf("failed to call %s: %w", constructor, err)
 	}
 
 	if len(res) != 2 {
-		return nil, fmt.Errorf("invalid number of return for the New function: %d", len(res))
+		return nil, fmt.Errorf("invalid number of return for the %s function: %d", constructor, len(res))
 	}
 
 	if err := goVMError(res[1]); err != nil {

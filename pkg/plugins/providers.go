@@ -36,7 +36,7 @@ func (b Builder) BuildProvider(pName string, config map[string]any) (provider.Pr
 	}
 
 	// The plugins of providers.plugin got this name before the plugins could implement the Traefik provider interface.
-	return builder.build(config, "plugin-"+pName)
+	return builder.build(config, pName, "plugin-"+pName)
 }
 
 // BuildTypedProvider builds the provider plugin implementing the given option of the static configuration,
@@ -54,7 +54,7 @@ func (b Builder) BuildTypedProvider(option, name string, config any) (provider.P
 		return nil, fmt.Errorf("the configuration of the %q option is a %T, a pointer to a struct is expected", option, config)
 	}
 
-	return builder.build(cfg, name)
+	return builder.build(cfg, name, name)
 }
 
 // configValue returns a configuration of the static configuration as the configuration of a plugin, which the plugin decodes.
@@ -113,7 +113,7 @@ func configValue(v reflect.Value) any {
 		return m
 
 	// The named types (ptypes.Duration, types.FileOrContent, ...) are given as their basic types:
-	// the plugin decodes them into its own types.
+	// the plugin decodes them into its own types, which go-vm may run as other types.
 	case reflect.Bool:
 		return v.Bool()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -135,13 +135,13 @@ type providerBuilder struct {
 	native *nativePlugin
 }
 
-// build builds the provider, whose New function gets newName.
-func (b providerBuilder) build(config map[string]any, newName string) (provider.Provider, error) {
+// build builds the provider named pName, whose New function gets newName.
+func (b providerBuilder) build(config map[string]any, pName, newName string) (provider.Provider, error) {
 	if b.native != nil {
 		return newNativeProvider(b.native, config, newName)
 	}
 
-	return newGoVMProvider(b.plugin, config, newName)
+	return newGoVMProvider(b.plugin, config, pName, newName)
 }
 
 // pluginProvider is a provider plugin that implements the Traefik provider interface.

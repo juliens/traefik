@@ -18,6 +18,8 @@
 
 [experimental.localPlugins.kubernetesCRD]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd"
+  [experimental.localPlugins.kubernetesCRD.settings.goVM]
+    trusted = true
 
 [providers.kubernetesCRD]
   allowCrossNamespace = false
@@ -25,3 +27,5 @@
 
 [experimental.localPlugins.stripprefix]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"
+  [experimental.localPlugins.stripprefix.settings.goVM]
+    trusted = true

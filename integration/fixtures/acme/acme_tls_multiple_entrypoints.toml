@@ -38,3 +38,5 @@
 
 [experimental.localPlugins.acme]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/acme"
+  [experimental.localPlugins.acme.settings.goVM]
+    trusted = true

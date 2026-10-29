@@ -18,6 +18,8 @@
 
 [experimental.localPlugins.file]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
 
 [providers.file]
   filename = "{{ .SelfFilename }}"
@@ -49,3 +51,5 @@
 
 [experimental.localPlugins.retry]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/retry"
+  [experimental.localPlugins.retry.settings.goVM]
+    trusted = true

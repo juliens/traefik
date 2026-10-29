@@ -17,6 +17,8 @@
   providersThrottleDuration = "400ms"
   [experimental.localPlugins.rest]
     moduleName = "github.com/traefik/traefik/v3/plugins/providers/rest"
+    [experimental.localPlugins.rest.settings.goVM]
+      trusted = true
 
   [providers.rest]
     insecure = true

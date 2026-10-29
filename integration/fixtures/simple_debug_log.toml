@@ -10,6 +10,8 @@
 
 [experimental.localPlugins.docker]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+  [experimental.localPlugins.docker.settings.goVM]
+    trusted = true
 
 [providers.docker]
 
@@ -19,6 +21,10 @@
 
 [experimental.localPlugins.ipallowlist]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+  [experimental.localPlugins.ipallowlist.settings.goVM]
+    trusted = true
 
 [experimental.localPlugins.ipwhitelist]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"
+  [experimental.localPlugins.ipwhitelist.settings.goVM]
+    trusted = true

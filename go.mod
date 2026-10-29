@@ -11,6 +11,7 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/go-kit/kit v0.13.0
 	github.com/go-kit/log v0.2.1
+	github.com/go-logr/logr v1.4.4
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-github/v90 v90.0.0
 	github.com/gorilla/mux v1.8.1
@@ -196,7 +197,6 @@ require (
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
-	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -219,7 +219,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.3 // indirect
 	github.com/go-resty/resty/v2 v2.17.2 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/go-zookeeper/zk v1.0.3 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect

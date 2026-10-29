@@ -16,6 +16,8 @@
 [providers]
   [experimental.localPlugins.consulCatalog]
     moduleName = "github.com/traefik/traefik/v3/plugins/providers/consulcatalog"
+    [experimental.localPlugins.consulCatalog.settings.goVM]
+      trusted = true
 
   [providers.consulCatalog]
     exposedByDefault = true

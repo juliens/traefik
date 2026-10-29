@@ -55,7 +55,9 @@ func getFieldNames(rootName string, rootType reflect.Type) []string {
 		return nil
 	}
 
-	for field := range rootType.Fields() {
+	// The iterators of reflect.Type (Fields) do not run in go-vm yet.
+	for i := range rootType.NumField() { //nolint:modernize // The iterators of reflect.Type do not run in go-vm yet.
+		field := rootType.Field(i)
 		if !parser.IsExported(field) {
 			continue
 		}

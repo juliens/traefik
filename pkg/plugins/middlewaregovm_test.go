@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/go-vm/vm"
+	ptypes "github.com/traefik/paerser/types"
 )
 
 func TestGoVMMiddleware(t *testing.T) {
@@ -411,4 +412,54 @@ func TestGoVMMiddleware_restrictions(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestDecodePluginConfig_emptyValue(t *testing.T) {
+	type challenge struct {
+		Delay string
+	}
+
+	var result struct {
+		TLSChallenge *challenge
+		Labels       map[string]string
+		Name         string
+	}
+
+	err := decodePluginConfig(map[string]any{"tlsChallenge": "", "labels": "", "name": ""}, &result)
+	require.NoError(t, err)
+
+	assert.Equal(t, &challenge{}, result.TLSChallenge)
+	assert.Empty(t, result.Labels)
+	assert.Empty(t, result.Name)
+}
+
+func TestDecodePluginConfig_duration(t *testing.T) {
+	var result struct {
+		PollInterval ptypes.Duration
+	}
+
+	err := decodePluginConfig(map[string]any{"pollInterval": "1s"}, &result)
+	require.NoError(t, err)
+
+	assert.Equal(t, ptypes.Duration(time.Second), result.PollInterval)
+}
+
+func TestDecodePluginConfig_embedded(t *testing.T) {
+	type kv struct {
+		RootKey   string
+		Endpoints []string
+	}
+
+	result := struct {
+		kv
+
+		Username string
+	}{Endpoints: []string{"127.0.0.1:2379"}}
+
+	err := decodePluginConfig(map[string]any{"rootKey": "traefik", "endpoints": []any{"10.0.0.1:2379"}, "username": "foo"}, &result)
+	require.NoError(t, err)
+
+	assert.Equal(t, "traefik", result.RootKey)
+	assert.Equal(t, []string{"10.0.0.1:2379"}, result.Endpoints)
+	assert.Equal(t, "foo", result.Username)
 }

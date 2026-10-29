@@ -8,8 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type routineCtx func(ctx context.Context)
-
 // Pool is a pool of go routines.
 type Pool struct {
 	waitGroup sync.WaitGroup
@@ -27,7 +25,8 @@ func NewPool(parentCtx context.Context) *Pool {
 }
 
 // GoCtx starts a recoverable goroutine with a context.
-func (p *Pool) GoCtx(goroutine routineCtx) {
+// The goroutine is a plain func type: the provider plugins call GoCtx, and go-vm only passes the exported types to Traefik.
+func (p *Pool) GoCtx(goroutine func(ctx context.Context)) {
 	p.waitGroup.Add(1)
 	Go(func() {
 		defer p.waitGroup.Done()

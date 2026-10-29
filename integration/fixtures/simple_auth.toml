@@ -21,6 +21,8 @@
 
 [experimental.localPlugins.file]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
 
 [providers.file]
   filename = "{{ .SelfFilename }}"
@@ -33,3 +35,5 @@
 
 [experimental.localPlugins.basicauth]
   moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/basicauth"
+  [experimental.localPlugins.basicauth.settings.goVM]
+    trusted = true

@@ -22,6 +22,8 @@
 
 [experimental.localPlugins.docker]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+  [experimental.localPlugins.docker.settings.goVM]
+    trusted = true
 
 [providers.docker]
   exposedByDefault = false

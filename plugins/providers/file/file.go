@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"maps"
 	"os"
-	"os/signal"
 	"path"
 	"path/filepath"
 	"strings"
@@ -15,11 +14,11 @@ import (
 	"text/template"
 
 	"github.com/fsnotify/fsnotify"
-	sprig "github.com/go-task/slim-sprig"
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/paerser/file"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/observability/logs"
+	"github.com/traefik/traefik/v3/pkg/plugins/host"
 	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/pkg/safe"
 	"github.com/traefik/traefik/v3/pkg/tls"
@@ -94,8 +93,7 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 	}
 
 	pool.GoCtx(func(ctx context.Context) {
-		signals := make(chan os.Signal, 1)
-		signal.Notify(signals, syscall.SIGHUP)
+		signals := host.NotifySignals(ctx, syscall.SIGHUP)
 
 		for {
 			select {
@@ -129,9 +127,7 @@ func (p *Provider) CreateConfiguration(ctx context.Context, filename string, fun
 		return nil, fmt.Errorf("error reading configuration file: %s - %w", filename, err)
 	}
 
-	defaultFuncMap := sprig.TxtFuncMap()
-	defaultFuncMap["normalize"] = provider.Normalize
-	defaultFuncMap["split"] = strings.Split
+	defaultFuncMap := common.TemplateFuncMap(common.SplitFuncMap())
 	maps.Copy(defaultFuncMap, funcMap)
 
 	tmpl := template.New(p.Filename).Funcs(defaultFuncMap)

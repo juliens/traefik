@@ -26,6 +26,7 @@ type GoVMSettings struct {
 	ExecMock      bool  `description:"Load a plugin that imports os/exec: the plugin cannot run programs, an attempt returns an error." json:"execMock,omitempty" toml:"execMock,omitempty" yaml:"execMock,omitempty" export:"true"`
 	Budget        int64 `description:"Execution budget of each call into the plugin, in steps (function calls and loop iterations). Default: 100000000." json:"budget,omitempty" toml:"budget,omitempty" yaml:"budget,omitempty" export:"true"`
 	MaxGoroutines int   `description:"Maximum number of goroutines that the plugin runs at the same time. Default: 1000." json:"maxGoroutines,omitempty" toml:"maxGoroutines,omitempty" yaml:"maxGoroutines,omitempty" export:"true"`
+	Trusted       bool  `description:"Run the plugin without the sandbox: the whole standard library (os/exec, syscall), and no execution, goroutine or load limits. Only for code as trusted as Traefik itself, like the providers of Traefik." json:"trusted,omitempty" toml:"trusted,omitempty" yaml:"trusted,omitempty" export:"true"`
 }
 
 // Descriptor The static part of a plugin configuration.

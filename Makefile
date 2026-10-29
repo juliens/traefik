@@ -98,7 +98,8 @@ test-unit:
 	cd plugins && GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./...
 
 # The providers and middlewares of Traefik are plugins, compiled in by default.
-# The light binary finds them by module name as shared objects next to the binary (plugins-so).
+# The light binary finds them by module name as shared objects next to the binary (plugins-so),
+# or as sources run by go-vm (plugins-local).
 
 .PHONY: binary-light
 #? binary-light: Build the binary without the providers and middlewares of Traefik
@@ -112,9 +113,14 @@ plugins-so: FLAGS += -tags=nobuiltinplugins
 plugins-so: binary
 	GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go run ./cmd/internal/nativeplugins -so "./dist/${GOOS}/${GOARCH}/plugins" -- ${FLAGS}
 
+.PHONY: plugins-local
+#? plugins-local: Copy the providers and middlewares of Traefik (plugins) into integration/plugins-local
+plugins-local:
+	./script/plugins-local.sh integration/plugins-local
+
 .PHONY: test-integration
 #? test-integration: Run the integration tests
-test-integration:
+test-integration: plugins-local
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test ./integration -test.timeout=20m -failfast -v $(TESTFLAGS)
 
 .PHONY: test-gateway-api-conformance

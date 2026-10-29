@@ -40,6 +40,8 @@ rF7r4gUnKeC7mYIH1zypY7laskopiLFAfe96Kg==
 
 [experimental.localPlugins.file]
   moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+  [experimental.localPlugins.file.settings.goVM]
+    trusted = true
 
 [providers.file]
   filename = "{{ .SelfFilename }}"

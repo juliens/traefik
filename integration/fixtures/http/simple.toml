@@ -18,6 +18,8 @@
 [providers]
   [experimental.localPlugins.http]
     moduleName = "github.com/traefik/traefik/v3/plugins/providers/http"
+    [experimental.localPlugins.http.settings.goVM]
+      trusted = true
 
   [providers.http]
     endpoint = "http://127.0.0.1:9000"
