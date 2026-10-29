@@ -13,6 +13,9 @@
   [entryPoints.web]
     address = ":8081"
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -35,3 +38,6 @@
       passHostHeader = true
       [[http.services.service1.loadBalancer.servers]]
         url = "http://{{.Server1}}:80"
+
+[experimental.localPlugins.ratelimit]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit"

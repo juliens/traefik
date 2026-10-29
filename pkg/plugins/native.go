@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"plugin"
 	"reflect"
 	"time"
 
@@ -63,10 +66,59 @@ func loadBuiltinPlugin(moduleName string) (*nativePlugin, *Manifest, bool, error
 	return &p, manifest, true, nil
 }
 
-// isBuiltin reports whether the plugin with the given module name is compiled into Traefik.
-func isBuiltin(moduleName string) bool {
-	_, ok := builtinPlugins[moduleName]
-	return ok
+// sharedPluginPath returns the path of the shared object of a plugin: plugins/<module name>.so, next to the binary of Traefik.
+func sharedPluginPath(moduleName string) (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(filepath.Dir(exe), "plugins", filepath.FromSlash(moduleName)+".so"), nil
+}
+
+// runsNatively reports whether the local plugin with the given module name is compiled into Traefik, or has a shared object.
+func runsNatively(moduleName string) bool {
+	if _, ok := builtinPlugins[moduleName]; ok {
+		return true
+	}
+
+	path, err := sharedPluginPath(moduleName)
+	if err != nil {
+		return false
+	}
+
+	_, err = os.Stat(path)
+
+	return err == nil
+}
+
+// loadSharedPlugin opens the shared object of a plugin, and reads its manifest.
+func loadSharedPlugin(path string) (*nativePlugin, *Manifest, error) {
+	lib, err := plugin.Open(path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open the shared object %s: %w", path, err)
+	}
+
+	sym, err := lib.Lookup("Manifest")
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to find the manifest of the shared object %s: %w", path, err)
+	}
+
+	content, ok := sym.(*string)
+	if !ok {
+		return nil, nil, fmt.Errorf("the manifest of the shared object %s is a %T, a string is expected", path, sym)
+	}
+
+	manifest, err := decodeManifest(path, *content)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	lookup := func(name string) (any, error) {
+		return lib.Lookup(name)
+	}
+
+	return &nativePlugin{source: path, lookup: lookup}, manifest, nil
 }
 
 func decodeManifest(source, content string) (*Manifest, error) {

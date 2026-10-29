@@ -16,8 +16,14 @@
   insecure = true
 
 [providers]
+  [experimental.localPlugins.docker]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+
   [providers.docker]
     watch = true
+
+  [experimental.localPlugins.file]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
 
   [providers.file]
     filename = "{{ .SelfFilename }}"
@@ -33,3 +39,6 @@
   [tls.stores.default.defaultCertificate]
     certFile = """{{ .ServerCertContent }}"""
     keyFile  = """{{ .ServerKeyContent }}"""
+
+[experimental.localPlugins.passtlsclientcert]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/passtlsclientcert"

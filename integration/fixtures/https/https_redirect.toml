@@ -16,6 +16,9 @@
 [api]
   insecure = true
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -174,3 +177,21 @@
     [http.services.service1.loadBalancer]
       [[http.services.service1.loadBalancer.servers]]
         url = "http://127.0.0.1:80"
+
+[experimental.localPlugins.addprefix]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/addprefix"
+
+[experimental.localPlugins.redirectscheme]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectscheme"
+
+[experimental.localPlugins.replacepath]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepath"
+
+[experimental.localPlugins.replacepathregex]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/replacepathregex"
+
+[experimental.localPlugins.stripprefix]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"
+
+[experimental.localPlugins.stripprefixregex]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefixregex"

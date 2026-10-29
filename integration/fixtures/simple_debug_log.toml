@@ -8,8 +8,17 @@
 [api]
   insecure = true
 
+[experimental.localPlugins.docker]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+
 [providers.docker]
 
 [entryPoints]
   [entryPoints.webHost]
     address = ":8000"
+
+[experimental.localPlugins.ipallowlist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+
+[experimental.localPlugins.ipwhitelist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"

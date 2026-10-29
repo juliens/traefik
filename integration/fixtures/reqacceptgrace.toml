@@ -20,6 +20,9 @@
 
 [ping]
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -34,4 +37,3 @@
     [http.services.service.loadBalancer]
       [[http.services.service.loadBalancer.servers]]
         url = "{{ .Server }}"
-

@@ -14,6 +14,8 @@ DATE := $(shell date -u '+%Y-%m-%d_%I:%M:%S%p')
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 GOGC ?=
+# CGO_ENABLED is 1 for the binary loading the plugins built as shared objects (plugins-so): Go loads them with cgo.
+CGO_ENABLED := 0
 
 LINT_EXECUTABLES = misspell shellcheck
 
@@ -58,7 +60,7 @@ generate:
 #? binary: Build the binary
 binary: generate-webui dist
 	@echo SHA: $(VERSION) $(CODENAME) $(DATE)
-	CGO_ENABLED=0 GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go build ${FLAGS} -ldflags "-s -w \
+	CGO_ENABLED=${CGO_ENABLED} GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go build ${FLAGS} -ldflags "-s -w \
     -X github.com/traefik/traefik/v3/pkg/version.Version=$(VERSION) \
     -X github.com/traefik/traefik/v3/pkg/version.Codename=$(CODENAME) \
     -X github.com/traefik/traefik/v3/pkg/version.BuildDate=$(DATE)" \
@@ -94,6 +96,21 @@ test: test-ui-unit test-unit test-integration
 test-unit:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./pkg/... ./cmd/...
 	cd plugins && GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./...
+
+# The providers and middlewares of Traefik are plugins, compiled in by default.
+# The light binary finds them by module name as shared objects next to the binary (plugins-so).
+
+.PHONY: binary-light
+#? binary-light: Build the binary without the providers and middlewares of Traefik
+binary-light: FLAGS += -tags=nobuiltinplugins
+binary-light: binary
+
+.PHONY: plugins-so
+#? plugins-so: Build the light binary, and the providers and middlewares of Traefik as shared objects (.so) in dist/<os>/<arch>/plugins
+plugins-so: export CGO_ENABLED := 1
+plugins-so: FLAGS += -tags=nobuiltinplugins
+plugins-so: binary
+	GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go run ./cmd/internal/nativeplugins -so "./dist/${GOOS}/${GOARCH}/plugins" -- ${FLAGS}
 
 .PHONY: test-integration
 #? test-integration: Run the integration tests

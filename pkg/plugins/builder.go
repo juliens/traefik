@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -54,7 +55,7 @@ type pluginToLoad struct {
 	settings   Settings
 	// native is the plugin when it runs natively (compiled into Traefik, or a shared object), already loaded to read its manifest.
 	native *nativePlugin
-	// mode is where the plugin comes from: builtin or go-vm.
+	// mode is where the plugin comes from: builtin, shared object (so) or go-vm.
 	mode string
 
 	middleware middlewareBuilder
@@ -134,11 +135,14 @@ func NewBuilder(manager *Manager, plugins map[string]Descriptor, localPlugins ma
 
 const (
 	modeBuiltin = "builtin"
+	modeShared  = "so"
 	modeGoVM    = "go-vm"
 )
 
-// resolveLocalPlugin finds a local plugin by its module name:
-// compiled into Traefik, or as sources in plugins-local, run by go-vm.
+// resolveLocalPlugin finds a local plugin by its module name, in this order:
+// compiled into Traefik (unless built with -tags nobuiltinplugins), as a shared object next to the binary (make plugins-so),
+// or as sources in plugins-local, run by go-vm.
+// The configuration of the plugin is the same in the three modes.
 func resolveLocalPlugin(pName string, desc LocalDescriptor) (*pluginToLoad, error) {
 	native, manifest, ok, err := loadBuiltinPlugin(desc.ModuleName)
 	if err != nil {
@@ -146,6 +150,20 @@ func resolveLocalPlugin(pName string, desc LocalDescriptor) (*pluginToLoad, erro
 	}
 	if ok {
 		return &pluginToLoad{name: pName, manifest: manifest, moduleName: desc.ModuleName, native: native, mode: modeBuiltin}, nil
+	}
+
+	path, err := sharedPluginPath(desc.ModuleName)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := os.Stat(path); err == nil {
+		native, manifest, err := loadSharedPlugin(path)
+		if err != nil {
+			return nil, err
+		}
+
+		return &pluginToLoad{name: pName, manifest: manifest, moduleName: desc.ModuleName, native: native, mode: modeShared}, nil
 	}
 
 	manifest, err = ReadManifest(localGoPath, desc.ModuleName)

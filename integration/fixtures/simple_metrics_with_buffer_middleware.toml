@@ -21,6 +21,9 @@
     buckets = "0.1,0.3,1.2,5.0"
 
 [providers]
+  [experimental.localPlugins.file]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
   [providers.file]
     filename = "{{ .SelfFilename }}"
 
@@ -64,3 +67,6 @@
   [http.services.service-resp.loadBalancer]
     [[http.services.service-resp.loadBalancer.servers]]
       url = "http://{{ .IP }}"
+
+[experimental.localPlugins.buffering]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/buffering"

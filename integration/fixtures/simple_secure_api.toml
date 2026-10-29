@@ -12,6 +12,9 @@
 
 [api]
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -23,3 +26,6 @@
 [http.middlewares.strip.stripPrefix]
     prefixes = [ "/secure" ]
     
+
+[experimental.localPlugins.stripprefix]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"

@@ -10,6 +10,9 @@
   [entryPoints.web]
     address = ":8080"
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -43,3 +46,6 @@
   [http.services.error.loadBalancer]
     [[http.services.error.loadBalancer.servers]]
       url = "http://{{.Server2}}:80"
+
+[experimental.localPlugins.errors]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/errors"

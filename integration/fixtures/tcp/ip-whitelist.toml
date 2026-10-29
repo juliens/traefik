@@ -13,6 +13,9 @@
 [api]
   insecure = true
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -50,3 +53,6 @@
     sourceRange = ["127.0.0.1/32"]
   [tcp.middlewares.blocking-ipwhitelist.ipWhiteList]
     sourceRange = ["127.127.127.127/32"]
+
+[experimental.localPlugins.ipwhitelist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"

@@ -14,6 +14,9 @@
   insecure = true
 
 [providers]
+  [experimental.localPlugins.docker]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+
   [providers.docker]
     endpoint = "{{ .DockerHost }}"
     defaultRule = "{{ .DefaultRule }}"

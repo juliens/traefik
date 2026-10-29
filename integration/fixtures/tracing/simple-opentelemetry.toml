@@ -42,6 +42,9 @@
     insecure = true
 {{end}}
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -116,3 +119,12 @@
       passHostHeader = true
       [[http.services.service4.loadBalancer.servers]]
         url = "http://{{.WhoamiIP}}:{{.WhoamiPort}}"
+
+[experimental.localPlugins.basicauth]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/basicauth"
+
+[experimental.localPlugins.ratelimit]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ratelimit"
+
+[experimental.localPlugins.retry]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/retry"

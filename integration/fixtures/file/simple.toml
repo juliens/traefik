@@ -10,6 +10,9 @@
   [entryPoints.web]
     address = ":8000"
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -42,3 +45,6 @@
         url = "http://172.17.0.4:80"
       [[http.services.service2.loadBalancer.servers]]
         url = "http://172.17.0.5:80"
+
+[experimental.localPlugins.circuitbreaker]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/circuitbreaker"

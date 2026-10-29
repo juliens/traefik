@@ -11,9 +11,21 @@
 [api]
   insecure = true
 
+[experimental.localPlugins.redis]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kv/redis"
+
 [providers.redis]
   rootKey = "traefik"
   endpoints = ["{{ .RedisAddress }}"]
 
 [providers.redis.sentinel]
   masterName = "mymaster"
+
+[experimental.localPlugins.compress]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/compress"
+
+[experimental.localPlugins.redirectregex]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectregex"
+
+[experimental.localPlugins.stripprefix]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"

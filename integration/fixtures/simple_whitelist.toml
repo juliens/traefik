@@ -15,4 +15,13 @@
   insecure = true
 
 [providers]
+  [experimental.localPlugins.docker]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+
   [providers.docker]
+
+[experimental.localPlugins.ipallowlist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+
+[experimental.localPlugins.ipwhitelist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"

@@ -14,8 +14,14 @@
     address = ":8000"
 
 [providers]
+  [experimental.localPlugins.rest]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/rest"
+
   [providers.rest]
     insecure = true
+
+  [experimental.localPlugins.file]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
 
   [providers.file]
     filename = "{{ .SelfFilename }}"
@@ -30,3 +36,12 @@
 [http.middlewares]
   [http.middlewares.customheader.headers.customRequestHeaders]
     X-Custom="CustomValue"
+
+[experimental.localPlugins.headers]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers"
+
+[experimental.localPlugins.ipallowlist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+
+[experimental.localPlugins.ipwhitelist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"

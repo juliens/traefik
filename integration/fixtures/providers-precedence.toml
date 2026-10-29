@@ -16,8 +16,14 @@
 [providers]
   precedence = {{ .Precedence }}
 
+  [experimental.localPlugins.file]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
   [providers.file]
     filename = "{{ .SelfFilename }}"
+
+  [experimental.localPlugins.docker]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
 
   [providers.docker]
     endpoint = "{{ .DockerHost }}"
@@ -46,3 +52,9 @@
   [tcp.services.file-service.loadBalancer]
     [[tcp.services.file-service.loadBalancer.servers]]
       address = "{{ .FileBackendAddress }}"
+
+[experimental.localPlugins.ipallowlist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipallowlist"
+
+[experimental.localPlugins.ipwhitelist]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/ipwhitelist"

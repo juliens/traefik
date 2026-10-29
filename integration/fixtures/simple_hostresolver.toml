@@ -13,6 +13,9 @@
   insecure = true
 
 [providers]
+  [experimental.localPlugins.docker]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+
   [providers.docker]
     exposedByDefault = false
     defaultRule = "Host(`{{ normalize .Name }}.docker.local`)"

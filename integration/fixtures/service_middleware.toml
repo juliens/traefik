@@ -13,6 +13,9 @@
   [entryPoints.web]
     address = ":8000"
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -33,3 +36,6 @@
     [http.services.service1.loadBalancer]
       [[http.services.service1.loadBalancer.servers]]
         url = "{{ .Server }}"
+
+[experimental.localPlugins.headers]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/headers"

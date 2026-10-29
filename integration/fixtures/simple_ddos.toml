@@ -21,6 +21,9 @@ address = ":8001"
 readTimeout="200ms"
 
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
 filename = "{{ .SelfFilename }}"
 

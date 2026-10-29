@@ -12,6 +12,18 @@
 [api]
   insecure = true
 
-[providers.zookeeper]
+[experimental.localPlugins.zookeeper]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kv/zk"
+
+[providers.zooKeeper]
   rootKey = "traefik"
   endpoints = ["{{ .ZkAddress }}"]
+
+[experimental.localPlugins.compress]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/compress"
+
+[experimental.localPlugins.redirectregex]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectregex"
+
+[experimental.localPlugins.stripprefix]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"

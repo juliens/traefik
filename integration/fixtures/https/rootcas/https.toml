@@ -38,6 +38,9 @@ rF7r4gUnKeC7mYIH1zypY7laskopiLFAfe96Kg==
 [api]
   insecure = true
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 

@@ -35,3 +35,6 @@
 
 [api]
   insecure = true
+
+[experimental.localPlugins.acme]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/acme"

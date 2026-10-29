@@ -16,6 +16,12 @@
   [entryPoints.web]
     address = ":8000"
 
+[experimental.localPlugins.kubernetesCRD]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/kubernetes/crd"
+
 [providers.kubernetesCRD]
   allowCrossNamespace = false
   allowExternalNameServices = true
+
+[experimental.localPlugins.stripprefix]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/stripprefix"

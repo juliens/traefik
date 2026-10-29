@@ -20,6 +20,9 @@
 [api]
   insecure = true
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -36,3 +39,6 @@
     [http.services.acme-solver.loadBalancer]
       [[http.services.acme-solver.loadBalancer.servers]]
         url = "{{ .AcmeSolverURL }}"
+
+[experimental.localPlugins.redirectscheme]
+  moduleName = "github.com/traefik/traefik/v3/plugins/middlewares/plugin/redirectscheme"

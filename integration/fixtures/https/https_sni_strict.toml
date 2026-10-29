@@ -13,6 +13,9 @@
 [api]
   insecure = true
 
+[experimental.localPlugins.file]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/file"
+
 [providers.file]
   filename = "{{ .SelfFilename }}"
 
@@ -39,4 +42,3 @@
     [tls.stores.default.defaultCertificate]
       certFile = "fixtures/https/snitest.com.cert"
       keyFile = "fixtures/https/snitest.com.key"
-

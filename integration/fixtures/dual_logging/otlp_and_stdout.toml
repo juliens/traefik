@@ -20,5 +20,8 @@
   [entryPoints.web]
     address = ":8000"
 
+[experimental.localPlugins.docker]
+  moduleName = "github.com/traefik/traefik/v3/plugins/providers/docker"
+
 [providers.docker]
   exposedByDefault = false

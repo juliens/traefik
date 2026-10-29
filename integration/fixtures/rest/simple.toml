@@ -14,5 +14,8 @@
   insecure = true
 
 [providers]
+  [experimental.localPlugins.rest]
+    moduleName = "github.com/traefik/traefik/v3/plugins/providers/rest"
+
   [providers.rest]
   insecure = true
