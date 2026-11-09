@@ -134,13 +134,15 @@ func (p *Provider) loadGRPCRouteConfiguration(ctx context.Context, gatewayName, 
 		Reason:             string(gatev1.RouteConditionResolvedRefs),
 	}
 
+	broaderHostnames := findBroaderRouteHostnames(listener.Hostname, route.Spec.Hostnames)
+
 	for ri, routeRule := range route.Spec.Rules {
 		matches := routeRule.Matches
 		if len(matches) == 0 {
 			matches = []gatev1.GRPCRouteMatch{{}}
 		}
 
-		for _, rm := range buildRuleMatches(hostnames, matches, buildGRPCMatchRule) {
+		for _, rm := range buildRuleMatches(hostnames, broaderHostnames, matches, buildGRPCMatchRule) {
 			rule := rm.rule
 			router := dynamic.Router{
 				// "default" stands for the default rule syntax in Traefik v3, i.e. the v3 syntax.

@@ -245,6 +245,7 @@ func (s *GatewayAPIConformanceSuite) TestK8sGatewayAPIConformance() {
 				features.GatewayEmptyAddressFeature.Name,
 				features.GatewayInfrastructureFeature.Name,
 				features.GatewayStaticAddressesFeature.Name,
+				features.SupportGatewayRouteHostnameIntersectionPrecedence,
 			}),
 		},
 	})

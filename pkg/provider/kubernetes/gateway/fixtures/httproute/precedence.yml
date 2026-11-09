@@ -24,6 +24,26 @@ spec:
             group: gateway.networking.k8s.io
         namespaces:
           from: Same
+    - name: narrowed
+      hostname: abc.narrowed.example.net
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        kinds:
+          - kind: HTTPRoute
+            group: gateway.networking.k8s.io
+        namespaces:
+          from: Same
+    - name: wide
+      hostname: "*.wide.example.net"
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        kinds:
+          - kind: HTTPRoute
+            group: gateway.networking.k8s.io
+        namespaces:
+          from: Same
 
 # An Exact path match before a Prefix path match.
 ---
@@ -522,6 +542,99 @@ spec:
               value: v
             - name: h11
               value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+# Across HTTPRoutes yielding the same hostname intersection with the listener one, the HTTPRoute declaring the
+# intersection before any path match, even when it is the newest.
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: narrowed-old
+  namespace: default
+  creationTimestamp: "2020-01-01T00:00:00Z"
+spec:
+  parentRefs:
+    - name: my-gateway
+      sectionName: narrowed
+  hostnames:
+    - "*.narrowed.example.net"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /long
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: narrowed-new
+  namespace: default
+  creationTimestamp: "2024-01-01T00:00:00Z"
+spec:
+  parentRefs:
+    - name: my-gateway
+      sectionName: narrowed
+  hostnames:
+    - abc.narrowed.example.net
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: h1
+              value: v
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: wide-old
+  namespace: default
+  creationTimestamp: "2020-01-01T00:00:00Z"
+spec:
+  parentRefs:
+    - name: my-gateway
+      sectionName: wide
+  hostnames:
+    - "*.example.net"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /long
+      backendRefs:
+        - name: whoami
+          port: 80
+
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: wide-new
+  namespace: default
+  creationTimestamp: "2024-01-01T00:00:00Z"
+spec:
+  parentRefs:
+    - name: my-gateway
+      sectionName: wide
+  hostnames:
+    - "*.wide.example.net"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
       backendRefs:
         - name: whoami
           port: 80

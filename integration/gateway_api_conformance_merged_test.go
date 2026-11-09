@@ -187,6 +187,7 @@ func (s *GatewayAPIConformanceMergedSuite) TestK8sGatewayAPIConformanceMerged() 
 			// GatewayInfrastructure gates GatewayInvalidParametersRef, which a single Traefik instance satisfies.
 			SupportedFeatures: slices.Concat(gateway.SupportedFeatures(), []features.FeatureName{
 				features.SupportGatewayInfrastructure,
+				features.SupportGatewayRouteHostnameIntersectionPrecedence,
 			}),
 			// The following tests are skipped because they require features that a single Traefik instance
 			// cannot satisfy in merged mode cause they enforce having an operator.

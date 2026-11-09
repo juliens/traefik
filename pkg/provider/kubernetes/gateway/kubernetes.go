@@ -624,12 +624,28 @@ type ruleMatch[M any] struct {
 }
 
 // buildRuleMatches builds the router rules of the given matches, one per group of hostnames of the same specificity.
-func buildRuleMatches[M any](hostnames []gatev1.Hostname, matches []M, buildRule func([]gatev1.Hostname, M) string) []ruleMatch[M] {
+// A hostname narrowed from a broader route hostname gets a rule of its own, which also requires the broader hostname:
+// the matching is the same, but the specificity priority mode orders it after the same hostname not narrowed.
+func buildRuleMatches[M any](hostnames []gatev1.Hostname, broaderHostnames map[gatev1.Hostname]gatev1.Hostname, matches []M, buildRule func([]gatev1.Hostname, M) string) []ruleMatch[M] {
 	var ruleMatches []ruleMatch[M]
 	for _, match := range matches {
 		resourceRule := buildRule(hostnames, match)
 		for _, group := range groupHostnamesBySpecificity(hostnames) {
-			ruleMatches = append(ruleMatches, ruleMatch[M]{rule: buildRule(group, match), resourceRule: resourceRule, match: match})
+			var plain []gatev1.Hostname
+			for _, hostname := range group {
+				broader, ok := broaderHostnames[hostname]
+				if !ok {
+					plain = append(plain, hostname)
+					continue
+				}
+
+				rule := buildHostRule([]gatev1.Hostname{broader}) + " && " + buildRule([]gatev1.Hostname{hostname}, match)
+				ruleMatches = append(ruleMatches, ruleMatch[M]{rule: rule, resourceRule: resourceRule, match: match})
+			}
+
+			if len(plain) > 0 || len(group) == 0 {
+				ruleMatches = append(ruleMatches, ruleMatch[M]{rule: buildRule(plain, match), resourceRule: resourceRule, match: match})
+			}
 		}
 	}
 
@@ -1883,6 +1899,30 @@ func findMatchingHostnames(listenerHostname *gatev1.Hostname, routeHostnames []g
 	}
 
 	return slices.Sorted(maps.Keys(matches)), len(matches) > 0
+}
+
+// findBroaderRouteHostnames returns the route hostnames narrowed by the listener hostname, by the intersection they
+// yield: only a route wildcard hostname covering the listener hostname is narrowed, to the listener hostname.
+// The specification orders the routes yielding the same intersection by their own hostname, so the listener hostname
+// is not narrowed when the route also declares it, and is narrowed from the most specific broader route hostname
+// otherwise.
+func findBroaderRouteHostnames(listenerHostname *gatev1.Hostname, routeHostnames []gatev1.Hostname) map[gatev1.Hostname]gatev1.Hostname {
+	if listenerHostname == nil || slices.Contains(routeHostnames, *listenerHostname) {
+		return nil
+	}
+
+	var broader gatev1.Hostname
+	for _, routeHostname := range routeHostnames {
+		if findMatchingHostname(routeHostname, *listenerHostname) != "" && len(routeHostname) > len(broader) {
+			broader = routeHostname
+		}
+	}
+
+	if broader == "" {
+		return nil
+	}
+
+	return map[gatev1.Hostname]gatev1.Hostname{*listenerHostname: broader}
 }
 
 func findMatchingHostname(h1, h2 gatev1.Hostname) gatev1.Hostname {

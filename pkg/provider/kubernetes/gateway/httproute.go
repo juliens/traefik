@@ -140,6 +140,8 @@ func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, 
 		Reason:             string(gatev1.RouteConditionResolvedRefs),
 	}
 
+	broaderHostnames := findBroaderRouteHostnames(listener.Hostname, route.Spec.Hostnames)
+
 	for ri, routeRule := range route.Spec.Rules {
 		var respondingTimeouts *dynamic.RouterRespondingTimeouts
 		if routeRule.Timeouts != nil {
@@ -164,7 +166,7 @@ func (p *Provider) loadHTTPRouteConfiguration(ctx context.Context, gatewayName, 
 			retry = createRetry(ctx, routeRule.Retry, p.RetryMaxRequestBodyBytes)
 		}
 
-		for _, rm := range buildRuleMatches(hostnames, routeRule.Matches, buildMatchRule) {
+		for _, rm := range buildRuleMatches(hostnames, broaderHostnames, routeRule.Matches, buildMatchRule) {
 			rule, match := rm.rule, rm.match
 			router := dynamic.Router{
 				// "default" stands for the default rule syntax in Traefik v3, i.e. the v3 syntax.

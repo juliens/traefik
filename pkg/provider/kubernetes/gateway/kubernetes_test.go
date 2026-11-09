@@ -14301,6 +14301,65 @@ func Test_findMatchingHostnames(t *testing.T) {
 	}
 }
 
+func Test_findBroaderRouteHostnames(t *testing.T) {
+	testCases := []struct {
+		desc             string
+		listenerHostname *gatev1.Hostname
+		routeHostnames   []gatev1.Hostname
+		want             map[gatev1.Hostname]gatev1.Hostname
+	}{
+		{
+			desc:           "No listener hostname",
+			routeHostnames: []gatev1.Hostname{"*.foo.com"},
+		},
+		{
+			desc:             "No route hostname",
+			listenerHostname: new(gatev1.Hostname("bar.foo.com")),
+		},
+		{
+			desc:             "Route hostname equal to the listener hostname",
+			listenerHostname: new(gatev1.Hostname("*.foo.com")),
+			routeHostnames:   []gatev1.Hostname{"*.foo.com"},
+		},
+		{
+			desc:             "Route hostname narrower than the listener hostname",
+			listenerHostname: new(gatev1.Hostname("*.foo.com")),
+			routeHostnames:   []gatev1.Hostname{"bar.foo.com", "*.bar.foo.com"},
+		},
+		{
+			desc:             "Route wildcard hostname broader than the listener hostname",
+			listenerHostname: new(gatev1.Hostname("bar.foo.com")),
+			routeHostnames:   []gatev1.Hostname{"*.foo.com"},
+			want:             map[gatev1.Hostname]gatev1.Hostname{"bar.foo.com": "*.foo.com"},
+		},
+		{
+			desc:             "Route wildcard hostname broader than the listener wildcard hostname",
+			listenerHostname: new(gatev1.Hostname("*.foo.com")),
+			routeHostnames:   []gatev1.Hostname{"*.com"},
+			want:             map[gatev1.Hostname]gatev1.Hostname{"*.foo.com": "*.com"},
+		},
+		{
+			desc:             "Most specific of several broader route hostnames",
+			listenerHostname: new(gatev1.Hostname("baz.bar.foo.com")),
+			routeHostnames:   []gatev1.Hostname{"*.foo.com", "*.bar.foo.com", "*.com"},
+			want:             map[gatev1.Hostname]gatev1.Hostname{"baz.bar.foo.com": "*.bar.foo.com"},
+		},
+		{
+			desc:             "Route hostnames also declaring the listener hostname",
+			listenerHostname: new(gatev1.Hostname("bar.foo.com")),
+			routeHostnames:   []gatev1.Hostname{"*.foo.com", "bar.foo.com"},
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, test.want, findBroaderRouteHostnames(test.listenerHostname, test.routeHostnames))
+		})
+	}
+}
+
 func Test_allowedRouteKinds(t *testing.T) {
 	testCases := []struct {
 		desc                string

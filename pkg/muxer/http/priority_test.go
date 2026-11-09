@@ -111,6 +111,21 @@ func TestRulePriority_specificityOrder(t *testing.T) {
 			higher: `Host("bar.example.com") && PathPrefix("/")`,
 			lower:  `(Host("foo.example.com") || Host("*.example.com")) && Path("/x")`,
 		},
+		{
+			desc:   "Host before the same host narrowed from a broader host",
+			higher: `Host("abc.example.com") && PathPrefix("/")`,
+			lower:  `Host("**.example.com") && Host("abc.example.com") && Path("/a/very/long/path") && Method("GET") && ` + manyHeaders(20),
+		},
+		{
+			desc:   "Wildcard host before the same wildcard host narrowed from a broader host",
+			higher: `Host("**.example.com") && PathPrefix("/")`,
+			lower:  `Host("**.com") && Host("**.example.com") && Path("/a/very/long/path")`,
+		},
+		{
+			desc:   "Narrowed host before a less specific host",
+			higher: `Host("**.com") && Host("**.a.example.com") && PathPrefix("/")`,
+			lower:  `Host("**.example.com") && Path("/a/very/long/path")`,
+		},
 	}
 
 	parser, err := NewSyntaxParser()
@@ -185,4 +200,11 @@ func TestRulePriority_specificityBounds(t *testing.T) {
 	explicit, err := parser.RulePriority("v3", `Host("foo.com")`, PriorityModeSpecificity)
 	require.NoError(t, err)
 	assert.Less(t, priority, explicit)
+
+	explicitRule := fmt.Sprintf(`Host("foo.com") && Path("/%s") && Method("GET") && %s && %s`,
+		strings.Repeat("b", 2000), strings.Join(headers, " && "), strings.Join(queries, " && "))
+
+	explicitPriority, err := parser.RulePriority("v3", explicitRule, PriorityModeSpecificity)
+	require.NoError(t, err)
+	assert.Less(t, explicitPriority, math.MaxInt32-1000)
 }

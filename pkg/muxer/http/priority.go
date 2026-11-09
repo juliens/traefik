@@ -18,22 +18,25 @@ const (
 // Bit layout of a specificity priority, from the most to the least significant criterion.
 // Each criterion is saturated to its width before being shifted, so that no value of a criterion can ever outweigh
 // a more significant one, whatever the number of matchers in the rule.
-// The 30 bits fit the router priority on 32-bit platforms, below the maximum user-defined priority.
+// The host kind never exceeds hostKindExplicit, so the 31 bits fit the router priority on 32-bit platforms, below the
+// maximum user-defined priority.
 const (
-	queryBits   = 4
-	headerBits  = 4
-	methodBits  = 1
-	pathBits    = 10
-	exactBits   = 1
-	hostLenBits = 8
+	queryBits      = 4
+	headerBits     = 4
+	methodBits     = 1
+	pathBits       = 10
+	exactBits      = 1
+	narrowHostBits = 1
+	hostLenBits    = 8
 
-	queryShift   = 0
-	headerShift  = queryShift + queryBits
-	methodShift  = headerShift + headerBits
-	pathShift    = methodShift + methodBits
-	exactShift   = pathShift + pathBits
-	hostLenShift = exactShift + exactBits
-	hostShift    = hostLenShift + hostLenBits
+	queryShift      = 0
+	headerShift     = queryShift + queryBits
+	methodShift     = headerShift + headerBits
+	pathShift       = methodShift + methodBits
+	exactShift      = pathShift + pathBits
+	narrowHostShift = exactShift + exactBits
+	hostLenShift    = narrowHostShift + narrowHostBits
+	hostShift       = hostLenShift + hostLenBits
 )
 
 const (
@@ -80,8 +83,8 @@ func (s SyntaxParser) RulePriority(syntax, rule, mode string) (int, error) {
 
 // specificity holds the criteria ordering the routers matching the same request, as defined by the Gateway API
 // HTTPRoute specification, which is also how NGINX selects a location and how the Kubernetes Ingress specification
-// orders paths: the matching host first, then an exact path, the longest path, a method, and the largest numbers of
-// header and query matches.
+// orders paths: the matching host first, then a matching host not narrowed from a broader one, an exact path, the
+// longest path, a method, and the largest numbers of header and query matches.
 // The other matchers, such as ClientIP or the negated ones, select no location in these specifications: they restrict
 // what a location serves, so they leave the specificity unchanged, and the routers they distinguish are ordered by
 // their order.
@@ -89,6 +92,10 @@ type specificity struct {
 	hostKind int
 	// hostLength only orders wildcard hosts: the explicit hosts matching the same request are the same host.
 	hostLength int
+	// broadHost is set when the rule also requires a host broader than its matching host, such as the hostname of an
+	// HTTPRoute narrowed by the hostname of the listener it is attached to: the Gateway API specification orders the
+	// routes yielding the same listener and route hostname intersection by their own hostname.
+	broadHost  bool
 	exactPath  bool
 	pathLength int
 	method     bool
@@ -99,6 +106,7 @@ type specificity struct {
 func (s specificity) priority() int {
 	return s.hostKind<<hostShift |
 		saturate(s.hostLength, hostLenBits)<<hostLenShift |
+		boolToInt(!s.broadHost)<<narrowHostShift |
 		boolToInt(s.exactPath)<<exactShift |
 		saturate(s.pathLength, pathBits)<<pathShift |
 		boolToInt(s.method)<<methodShift |
@@ -108,6 +116,9 @@ func (s specificity) priority() int {
 
 // and combines the criteria of two matchers which must both match.
 func (s specificity) and(o specificity) specificity {
+	s.broadHost = s.broadHost || o.broadHost ||
+		s.hostKind != hostKindNone && o.hostKind != hostKindNone && (s.hostKind != o.hostKind || s.hostLength != o.hostLength)
+
 	if o.hostKind > s.hostKind || (o.hostKind == s.hostKind && o.hostLength > s.hostLength) {
 		s.hostKind, s.hostLength = o.hostKind, o.hostLength
 	}

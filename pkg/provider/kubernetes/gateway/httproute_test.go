@@ -573,6 +573,25 @@ func TestHTTPRoutePrecedence(t *testing.T) {
 			headers:       []string{"h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "h9", "h10", "h11"},
 			expectedRoute: "many-method",
 		},
+		{
+			desc:          "HTTPRoute declaring the explicit listener hostname before a broader wildcard hostname",
+			host:          "abc.narrowed.example.net",
+			path:          "/long",
+			headers:       []string{"h1"},
+			expectedRoute: "narrowed-new",
+		},
+		{
+			desc:          "HTTPRoute with a broader wildcard hostname when the one declaring the listener hostname does not match",
+			host:          "abc.narrowed.example.net",
+			path:          "/long",
+			expectedRoute: "narrowed-old",
+		},
+		{
+			desc:          "HTTPRoute declaring the wildcard listener hostname before a broader wildcard hostname",
+			host:          "foo.wide.example.net",
+			path:          "/long",
+			expectedRoute: "wide-new",
+		},
 	}
 
 	for _, test := range testCases {
