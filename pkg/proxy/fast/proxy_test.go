@@ -488,7 +488,7 @@ func TestReadLoopExitBeforeHandoff(t *testing.T) {
 			desc:             "non-replayable request on a reused connection fails",
 			method:           http.MethodPost,
 			body:             strings.NewReader("data"),
-			expectedStatus:   http.StatusInternalServerError,
+			expectedStatus:   http.StatusBadGateway,
 			expectedRequests: 1,
 		},
 		{
@@ -496,7 +496,7 @@ func TestReadLoopExitBeforeHandoff(t *testing.T) {
 			method:           http.MethodGet,
 			body:             http.NoBody,
 			freshConn:        true,
-			expectedStatus:   http.StatusInternalServerError,
+			expectedStatus:   http.StatusBadGateway,
 			expectedRequests: 1,
 		},
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptrace"
@@ -359,7 +360,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 			co.Close()
 
 			if !shouldRetryRequest(co, req, true) {
-				return errors.New("connection closed before handling the response")
+				return fmt.Errorf("connection closed before handling the response: %w", io.EOF)
 			}
 
 			continue
