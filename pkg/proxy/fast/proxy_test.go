@@ -473,20 +473,29 @@ func TestReadLoopExitBeforeHandoff(t *testing.T) {
 		desc             string
 		method           string
 		body             io.Reader
+		freshConn        bool
 		expectedStatus   int
 		expectedRequests int32
 	}{
 		{
-			desc:             "replayable request is retried on a new connection",
+			desc:             "replayable request on a reused connection is retried on a new connection",
 			method:           http.MethodGet,
 			body:             http.NoBody,
 			expectedStatus:   http.StatusOK,
 			expectedRequests: 2,
 		},
 		{
-			desc:             "non-replayable request fails",
+			desc:             "non-replayable request on a reused connection fails",
 			method:           http.MethodPost,
 			body:             strings.NewReader("data"),
+			expectedStatus:   http.StatusInternalServerError,
+			expectedRequests: 1,
+		},
+		{
+			desc:             "replayable request on a fresh connection fails",
+			method:           http.MethodGet,
+			body:             http.NoBody,
+			freshConn:        true,
 			expectedStatus:   http.StatusInternalServerError,
 			expectedRequests: 1,
 		},
@@ -519,6 +528,9 @@ func TestReadLoopExitBeforeHandoff(t *testing.T) {
 			require.NoError(t, err)
 			pool.ReleaseConn(co)
 
+			// Releasing the connection marks it as reused, as if it had already served a response.
+			co.reused.Store(!test.freshConn)
+
 			proxy, err := NewReverseProxy(testhelpers.MustParseURL(backend.URL), nil, false, true, false, pool)
 			require.NoError(t, err)
 
@@ -546,6 +558,43 @@ func TestReadLoopExitBeforeHandoff(t *testing.T) {
 			assert.Equal(t, test.expectedRequests, requests.Load())
 		})
 	}
+}
+
+// TestNoRetryOnFreshConn checks that a request is not retried in a loop when the backend closes every new connection
+// after reading the request, without answering.
+func TestNoRetryOnFreshConn(t *testing.T) {
+	var requests atomic.Int32
+	backend := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+
+		if conn, _, err := rw.(http.Hijacker).Hijack(); err == nil {
+			_ = conn.Close()
+		}
+	}))
+	t.Cleanup(backend.Close)
+
+	pool := newConnPool(1, 0, 0, func() (net.Conn, error) {
+		return net.Dial("tcp", backend.Listener.Addr().String())
+	})
+	t.Cleanup(pool.Close)
+
+	proxy, err := NewReverseProxy(testhelpers.MustParseURL(backend.URL), nil, false, true, false, pool)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	// Delaying the handoff lets the readLoop exit before receiving the response writer, which used to trigger a retry.
+	trace := &httptrace.ClientTrace{
+		WroteRequest: func(httptrace.WroteRequestInfo) { time.Sleep(10 * time.Millisecond) },
+	}
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody).WithContext(httptrace.WithClientTrace(ctx, trace))
+	res := httptest.NewRecorder()
+
+	proxy.ServeHTTP(res, req)
+
+	assert.Equal(t, int32(1), requests.Load())
+	assert.NoError(t, ctx.Err())
 }
 
 // TestResponseHeaderTimeout checks that the response header timeout applies when the backend never answers,

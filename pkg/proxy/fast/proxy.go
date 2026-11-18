@@ -315,7 +315,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 			co.Close()
 
-			if wd.written && !isReplayable(req) {
+			if !shouldRetryRequest(co, req, wd.written) {
 				return err
 			}
 
@@ -358,7 +358,7 @@ func (p *ReverseProxy) roundTrip(rw http.ResponseWriter, req *http.Request, outR
 
 			co.Close()
 
-			if !isReplayable(req) {
+			if !shouldRetryRequest(co, req, true) {
 				return errors.New("connection closed before handling the response")
 			}
 
@@ -397,6 +397,19 @@ func (p *ReverseProxy) writeRequest(co net.Conn, outReq *fasthttp.Request) error
 	}
 
 	return bw.Flush()
+}
+
+// shouldRetryRequest reports whether a request that failed on the given connection can be sent again on another one.
+// As net/http does, a request is never retried when the connection was fresh: there is no reason for the backend to
+// hang up on a new connection, and retrying could loop forever when the backend hangs up on this request.
+// On a reused connection, the backend may have closed it while idle, so the request is retried if nothing has been
+// written yet, or if it is replayable.
+func shouldRetryRequest(co *conn, req *http.Request, written bool) bool {
+	if !co.reused.Load() {
+		return false
+	}
+
+	return !written || isReplayable(req)
 }
 
 // isReplayable returns whether the request is replayable.

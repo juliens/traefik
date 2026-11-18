@@ -52,6 +52,8 @@ type conn struct {
 	expectedResponse atomic.Bool
 	broken           atomic.Bool
 	upgraded         atomic.Bool
+	// reused reports whether the connection has already served a response, see shouldRetryRequest.
+	reused atomic.Bool
 
 	closeMu  sync.Mutex
 	closed   bool
@@ -402,6 +404,7 @@ func (c *connPool) ReleaseConn(co *conn) {
 		return
 	}
 
+	co.reused.Store(true)
 	co.idleAt = time.Now()
 	c.releaseConn(co)
 }
