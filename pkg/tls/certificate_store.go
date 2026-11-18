@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -26,6 +27,12 @@ type CertificateStore struct {
 	DynamicCerts       *safe.Safe
 	DefaultCertificate *CertificateData
 	CertCache          *cache.Cache
+
+	// sortedCertKeys holds the keys of DynamicCerts in the order used to find the best certificate.
+	// It is computed once, on the first lookup, because sorting on each lookup is expensive with many certificates.
+	// So DynamicCerts must not be replaced once the store is used.
+	sortedCertKeysOnce sync.Once
+	sortedCertKeys     []string
 
 	ocspStapler *ocspStapler
 }
@@ -104,14 +111,19 @@ func (c *CertificateStore) GetBestCertificate(clientHello *tls.ClientHelloInfo) 
 
 	if c.DynamicCerts != nil && c.DynamicCerts.Get() != nil {
 		certs := c.DynamicCerts.Get().(map[string]*CertificateData)
-		// sorted cert sans identifiers
-		sorted := slices.SortedFunc(maps.Keys(certs), func(certKey string, certKey2 string) int {
-			// reverse sort.
-			return strings.Compare(certKey2, certKey)
+
+		c.sortedCertKeysOnce.Do(func() {
+			// sorted cert sans identifiers
+			c.sortedCertKeys = slices.SortedFunc(maps.Keys(certs), func(certKey string, certKey2 string) int {
+				// reverse sort.
+				return strings.Compare(certKey2, certKey)
+			})
 		})
 
-		for _, certDomains := range sorted {
-			if matchDomain(serverName, certDomains) {
+		wildcard := wildcardDomain(serverName)
+
+		for _, certDomains := range c.sortedCertKeys {
+			if matchDomain(serverName, wildcard, certDomains) {
 				// cache best match
 				certificateData := certs[certDomains]
 				c.CertCache.SetDefault(serverName, certificateData)
@@ -205,18 +217,11 @@ func appendCertificate(certs map[string]map[string]*CertificateData, subjectAltN
 	sort.Strings(subjectAltNames)
 	certKey := strings.Join(subjectAltNames, ",")
 
-	certExists := false
 	if certs[storeName] == nil {
 		certs[storeName] = make(map[string]*CertificateData)
-	} else {
-		for domains := range certs[storeName] {
-			if domains == certKey {
-				certExists = true
-				break
-			}
-		}
 	}
-	if certExists {
+
+	if _, certExists := certs[storeName][certKey]; certExists {
 		log.Debug().Msgf("Skipping addition of certificate for domain(s) %q, to TLS Store %s, as it already exists for this store.", certKey, storeName)
 	} else {
 		log.Debug().Msgf("Adding certificate for domain(s) %s", certKey)
@@ -225,17 +230,7 @@ func appendCertificate(certs map[string]map[string]*CertificateData, subjectAltN
 	}
 }
 
-func parseCertificate(cert *Certificate) (tls.Certificate, []string, error) {
-	certContent, err := cert.CertFile.Read()
-	if err != nil {
-		return tls.Certificate{}, nil, fmt.Errorf("unable to read CertFile: %w", err)
-	}
-
-	keyContent, err := cert.KeyFile.Read()
-	if err != nil {
-		return tls.Certificate{}, nil, fmt.Errorf("unable to read KeyFile: %w", err)
-	}
-
+func parseCertificateContent(certContent, keyContent []byte) (tls.Certificate, []string, error) {
 	tlsCert, err := tls.X509KeyPair(certContent, keyContent)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("unable to generate TLS certificate: %w", err)
@@ -263,10 +258,21 @@ func parseCertificate(cert *Certificate) (tls.Certificate, []string, error) {
 	return tlsCert, SANs, err
 }
 
-// matchDomain returns whether the server name matches the cert domains.
+// wildcardDomain returns the wildcard domain which covers the given server name.
+func wildcardDomain(serverName string) string {
+	_, parent, found := strings.Cut(serverName, ".")
+	if !found {
+		return "*"
+	}
+
+	return "*." + parent
+}
+
+// matchDomain returns whether the server name, or its wildcard domain, matches the cert domains.
+// The wildcard domain is given by the caller to compute it only once when checking many certificates.
 // The server name, from TLS SNI, must not have trailing dots (https://datatracker.ietf.org/doc/html/rfc6066#section-3).
 // This is enforced by https://github.com/golang/go/blob/d3d7998756c33f69706488cade1cd2b9b10a4c7f/src/crypto/tls/handshake_messages.go#L423-L427.
-func matchDomain(serverName, certDomains string) bool {
+func matchDomain(serverName, wildcard, certDomains string) bool {
 	for certDomain := range strings.SplitSeq(certDomains, ",") {
 		// TODO: assert equality after removing the trailing dots?
 		if serverName == certDomain {
@@ -277,9 +283,7 @@ func matchDomain(serverName, certDomains string) bool {
 			certDomain = certDomain[:len(certDomain)-1]
 		}
 
-		labels := strings.Split(serverName, ".")
-		labels[0] = "*"
-		if certDomain == strings.Join(labels, ".") {
+		if certDomain == wildcard {
 			return true
 		}
 	}

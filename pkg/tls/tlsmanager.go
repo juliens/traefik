@@ -66,6 +66,13 @@ type Manager struct {
 	// because a connection keeps its TLS configuration, and so everything it references, until it is closed.
 	currentStores atomic.Pointer[map[string]*CertificateStore]
 
+	// parsedCerts holds the certificates used by the last configuration, by content,
+	// so that a certificate which did not change is not parsed again on each configuration update.
+	parsedCerts map[[sha256.Size]byte]*parsedCertificate
+
+	// generatedDefaultCert is generated once, because generating its key is expensive.
+	generatedDefaultCert *tls.Certificate
+
 	// As of today, the TLS manager contains and is responsible for creating/starting the OCSP ocspStapler.
 	// It would likely have been a Configuration listener but this implies that certs are re-parsed.
 	// But this would probably have impact on resource consumption.
@@ -133,6 +140,8 @@ func (m *Manager) UpdateConfigs(ctx context.Context, stores map[string]Store, co
 		m.ocspStapler.ResetTTL()
 	}
 
+	parsedCerts := make(map[[sha256.Size]byte]*parsedCertificate, len(certs))
+
 	for _, conf := range certs {
 		if len(conf.Stores) == 0 {
 			log.Ctx(ctx).Debug().MsgFunc(func() string {
@@ -142,44 +151,32 @@ func (m *Manager) UpdateConfigs(ctx context.Context, stores map[string]Store, co
 			conf.Stores = []string{DefaultTLSStoreName}
 		}
 
-		cert, SANs, err := parseCertificate(&conf.Certificate)
+		key, parsed, err := m.loadCertificate(&conf.Certificate, parsedCerts)
 		if err != nil {
 			log.Ctx(ctx).Error().Err(err).Msgf("Unable to parse certificate %s", conf.Certificate.GetTruncatedCertificateName())
 			continue
 		}
 
-		var certHash string
-		if m.ocspStapler != nil && len(cert.Leaf.OCSPServer) > 0 {
-			certHash = hashRawCert(cert.Leaf.Raw)
-
-			issuer := cert.Leaf
-			if len(cert.Certificate) > 1 {
-				issuer, err = x509.ParseCertificate(cert.Certificate[1])
-				if err != nil {
-					log.Ctx(ctx).Error().Err(err).Msgf("Unable to parse issuer certificate %s", conf.Certificate.GetTruncatedCertificateName())
-					continue
-				}
-			}
-
-			if err := m.ocspStapler.Upsert(certHash, cert.Leaf, issuer); err != nil {
+		if parsed.data.Hash != "" {
+			if err := m.ocspStapler.Upsert(parsed.data.Hash, parsed.data.Certificate.Leaf, parsed.issuer); err != nil {
 				log.Ctx(ctx).Error().Err(err).Msgf("Unable to upsert OCSP certificate %s", conf.Certificate.GetTruncatedCertificateName())
 				continue
 			}
 		}
 
-		certData := &CertificateData{
-			Certificate: &cert,
-			Hash:        certHash,
-		}
+		parsedCerts[key] = parsed
 
 		for _, store := range conf.Stores {
 			if _, ok := m.storesConfig[store]; !ok {
 				m.storesConfig[store] = Store{}
 			}
 
-			appendCertificate(storesCertificates, SANs, store, certData)
+			appendCertificate(storesCertificates, parsed.sans, store, parsed.data)
 		}
 	}
+
+	// Only the certificates of the current configuration are kept.
+	m.parsedCerts = parsedCerts
 
 	m.stores = make(map[string]*CertificateStore)
 
@@ -387,10 +384,16 @@ func (m *Manager) getDefaultCertificate(ctx context.Context, tlsStore Store, st 
 		return cert, nil
 	}
 
-	defaultCert, err := generate.DefaultCertificate()
-	if err != nil {
-		return nil, err
+	if m.generatedDefaultCert == nil {
+		generatedDefaultCert, err := generate.DefaultCertificate()
+		if err != nil {
+			return nil, err
+		}
+
+		m.generatedDefaultCert = generatedDefaultCert
 	}
+
+	defaultCert := m.generatedDefaultCert
 
 	defaultCertificate := &CertificateData{
 		Certificate: defaultCert,
@@ -412,6 +415,70 @@ func (m *Manager) getDefaultCertificate(ctx context.Context, tlsStore Store, st 
 
 	log.Ctx(ctx).Debug().Msg("No default certificate, fallback to the internal generated certificate")
 	return defaultCertificate, nil
+}
+
+// parsedCertificate is a certificate parsed from the dynamic configuration.
+type parsedCertificate struct {
+	data *CertificateData
+	sans []string
+	// issuer is only set when the certificate has to be registered to the OCSP stapler.
+	issuer *x509.Certificate
+}
+
+// loadCertificate returns the parsed certificate, and the key identifying its content.
+// The content is always read, so that a change in a certificate file is detected,
+// but it is parsed only if it differs from the certificates already parsed for the current or the previous configuration.
+func (m *Manager) loadCertificate(cert *Certificate, current map[[sha256.Size]byte]*parsedCertificate) ([sha256.Size]byte, *parsedCertificate, error) {
+	var key [sha256.Size]byte
+
+	certContent, err := cert.CertFile.Read()
+	if err != nil {
+		return key, nil, fmt.Errorf("unable to read CertFile: %w", err)
+	}
+
+	keyContent, err := cert.KeyFile.Read()
+	if err != nil {
+		return key, nil, fmt.Errorf("unable to read KeyFile: %w", err)
+	}
+
+	hash := sha256.New()
+	hash.Write(certContent)
+	// The separator prevents two different pairs from producing the same input.
+	hash.Write([]byte{0})
+	hash.Write(keyContent)
+	hash.Sum(key[:0])
+
+	if parsed, ok := current[key]; ok {
+		return key, parsed, nil
+	}
+
+	if parsed, ok := m.parsedCerts[key]; ok {
+		return key, parsed, nil
+	}
+
+	tlsCert, sans, err := parseCertificateContent(certContent, keyContent)
+	if err != nil {
+		return key, nil, err
+	}
+
+	parsed := &parsedCertificate{
+		data: &CertificateData{Certificate: &tlsCert},
+		sans: sans,
+	}
+
+	if m.ocspStapler != nil && len(tlsCert.Leaf.OCSPServer) > 0 {
+		parsed.data.Hash = hashRawCert(tlsCert.Leaf.Raw)
+
+		parsed.issuer = tlsCert.Leaf
+		if len(tlsCert.Certificate) > 1 {
+			parsed.issuer, err = x509.ParseCertificate(tlsCert.Certificate[1])
+			if err != nil {
+				return key, nil, fmt.Errorf("parsing issuer certificate: %w", err)
+			}
+		}
+	}
+
+	return key, parsed, nil
 }
 
 func (m *Manager) buildDefaultCertificate(defaultCertificate *Certificate) (*CertificateData, error) {

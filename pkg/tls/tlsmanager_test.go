@@ -3,12 +3,19 @@ package tls
 import (
 	"context"
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"io"
+	"math"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -473,4 +480,120 @@ func TestManager_Get_DefaultValues(t *testing.T) {
 		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
 		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
 	}, config.CipherSuites)
+}
+
+func TestManager_UpdateConfigs_ReusesParsedCertificates(t *testing.T) {
+	certs := generateTestCertificates(t, 2)
+
+	tlsManager := NewManager(nil)
+
+	getCertificate := func(domain string) *tls.Certificate {
+		t.Helper()
+
+		certificate := tlsManager.GetStore(DefaultTLSStoreName).GetBestCertificate(&tls.ClientHelloInfo{ServerName: domain})
+		require.NotNil(t, certificate)
+
+		return certificate
+	}
+
+	tlsManager.UpdateConfigs(t.Context(), nil, nil, certs)
+	first := getCertificate("app-0.example.com")
+	defaultCertificate := tlsManager.GetStore(DefaultTLSStoreName).GetDefaultCertificate()
+
+	// The same content is not parsed again.
+	tlsManager.UpdateConfigs(t.Context(), nil, nil, certs)
+	assert.Same(t, first, getCertificate("app-0.example.com"))
+	assert.Same(t, defaultCertificate, tlsManager.GetStore(DefaultTLSStoreName).GetDefaultCertificate())
+
+	// A certificate with a new content for the same domain replaces the previous one.
+	renewed := generateTestCertificates(t, 1)
+	tlsManager.UpdateConfigs(t.Context(), nil, nil, []*CertAndStores{renewed[0], certs[1]})
+	assert.NotSame(t, first, getCertificate("app-0.example.com"))
+
+	// The certificates which are not in the configuration anymore are not kept.
+	assert.Len(t, tlsManager.parsedCerts, 2)
+
+	tlsManager.UpdateConfigs(t.Context(), nil, nil, nil)
+	assert.Empty(t, tlsManager.parsedCerts)
+	assert.Nil(t, tlsManager.GetStore(DefaultTLSStoreName).GetBestCertificate(&tls.ClientHelloInfo{ServerName: "app-0.example.com"}))
+}
+
+func BenchmarkManager_UpdateConfigs(b *testing.B) {
+	for _, size := range []int{100, 1000} {
+		certs := generateTestCertificates(b, size)
+
+		b.Run(strconv.Itoa(size)+" unchanged certificates", func(b *testing.B) {
+			tlsManager := NewManager(nil)
+			tlsManager.UpdateConfigs(b.Context(), nil, nil, certs)
+
+			b.ReportAllocs()
+
+			for b.Loop() {
+				tlsManager.UpdateConfigs(b.Context(), nil, nil, certs)
+			}
+		})
+	}
+}
+
+func BenchmarkCertificateStore_GetBestCertificate_cacheMiss(b *testing.B) {
+	for _, size := range []int{100, 1000} {
+		certs := generateTestCertificates(b, size)
+
+		b.Run(strconv.Itoa(size)+" certificates", func(b *testing.B) {
+			tlsManager := NewManager(nil)
+			tlsManager.UpdateConfigs(b.Context(), nil, nil, certs)
+
+			store := tlsManager.GetStore(DefaultTLSStoreName)
+			clientHello := &tls.ClientHelloInfo{ServerName: "app-0.example.com"}
+
+			b.ReportAllocs()
+
+			for b.Loop() {
+				store.CertCache.Flush()
+				store.GetBestCertificate(clientHello)
+			}
+		})
+	}
+}
+
+// generateTestCertificates generates certificates for the domains app-0.example.com, app-1.example.com, etc.
+func generateTestCertificates(tb testing.TB, count int) []*CertAndStores {
+	tb.Helper()
+
+	// The same key is used for all the certificates to keep the generation fast.
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(tb, err)
+
+	keyDER, err := x509.MarshalPKCS8PrivateKey(key)
+	require.NoError(tb, err)
+
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER})
+
+	certs := make([]*CertAndStores, 0, count)
+	for i := range count {
+		domain := "app-" + strconv.Itoa(i) + ".example.com"
+
+		serialNumber, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+		require.NoError(tb, err)
+
+		template := &x509.Certificate{
+			SerialNumber: serialNumber,
+			Subject:      pkix.Name{CommonName: domain},
+			DNSNames:     []string{domain},
+			NotBefore:    time.Now().Add(-time.Hour),
+			NotAfter:     time.Now().Add(24 * time.Hour),
+			KeyUsage:     x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		}
+
+		der, err := x509.CreateCertificate(rand.Reader, template, template, key.Public(), key)
+		require.NoError(tb, err)
+
+		certs = append(certs, &CertAndStores{
+			CertFile: types.FileOrContent(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})),
+			KeyFile:  types.FileOrContent(keyPEM),
+		})
+	}
+
+	return certs
 }
